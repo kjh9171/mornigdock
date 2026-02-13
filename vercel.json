@@ -1,15 +1,15 @@
 {
-  "version": 2,
+  "version": 2, // Vercel 설정 버전 2 사용
   "builds": [
     {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
+      "src": "api/index.js", // 서버리스 함수로 사용할 소스 경로
+      "use": "@vercel/node" // 노드 런타임 엔진 사용
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "dist/index.js"
+      "source": "/(.*)", // 모든 도메인 경로로 들어오는 요청에 대해
+      "destination": "/api/index.js" // 서버리스 함수인 api/index.js가 응답하도록 설정
     }
   ]
 }
