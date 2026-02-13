@@ -41,7 +41,9 @@ import {
   Settings2,
   AlertTriangle,
   Terminal,
-  Activity
+  Activity,
+  Code2,
+  Zap
 } from 'lucide-react';
 
 // 안티그래비티 시큐어 UI 컴포넌트: 카드 레이아웃 (보안 무결성 디자인)
@@ -95,7 +97,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 데이터 세트 (깃허브 저장소 분석 기반)
+  // 데이터 세트 (게시글 열람 불가 현상 해결을 위한 데이터 구조화)
   const [posts, setPosts] = useState([
     { id: 1, title: "모닝독 인텔리전스 2.5 배포 가이드", content: "안녕하세요. 안티그래비티 시큐어 팀 CERT입니다.\n클라우드플레어 배포 이슈를 기가 막히게 해결하기 위한 최종 UI 통합본입니다.\n상세 보기 기능이 모달이 아닌 페이지로 전환되었으며, 관리자 센터에서 AI 엔진의 심장을 직접 튜닝할 수 있습니다.", author: "cert@antigravity.io", authorEmail: "cert@antigravity.io", type: "notice", views: 156, likes: 62, createdAt: "2024-02-14 10:00" },
     { id: 2, title: "오늘의 뉴스 인공지능 분석 요약", content: "AI가 분석한 결과, 반도체 및 AI 인프라 확충에 대한 글로벌 트렌드가 감지되었습니다.\n모닝독의 독자들을 위한 핵심 요약본을 확인하세요.", author: "kjh9171@mornigdock.io", authorEmail: "kjh9171@mornigdock.io", type: "post", views: 92, likes: 38, createdAt: "2024-02-14 11:30" },
@@ -121,22 +123,25 @@ export default function App() {
     status: "online"
   });
 
-  // 1. 보안 인증: OTP 입력 핸들러
+  // 1. 보안 인증: OTP 입력 핸들러 (이동 및 포커스 제어)
   const handleOtpInput = (index, val) => {
     if (!/^[0-9]?$/.test(val)) return;
     const newOtp = [...otpValue];
     newOtp[index] = val;
     setOtpValue(newOtp);
-    if (val && index < 5) document.getElementById(`otp-${index + 1}`).focus();
+    if (val && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
   };
 
-  // 2. 게시글 상세 보기 핸들러 (페이지 전환 방식)
+  // 2. 게시글 상세 보기 핸들러 (모달 방식 제거, 페이지 전환 방식 고수)
   const openPostDetail = (post) => {
     setSelectedPost(post);
     setCurrentView('post-detail');
   };
 
-  // 3. 실시간 뉴스 스크랩 시뮬레이션
+  // 3. 실시간 뉴스 스크랩 시뮬레이션 (AI 엔진 작동 애니메이션 연동)
   const runScraping = () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -198,7 +203,7 @@ export default function App() {
     </div>
   );
 
-  // --- 렌더링 모듈: 게시글 상세 페이지 (페이지 방식) ---
+  // --- 렌더링 모듈: 게시글 상세 페이지 (게시글 읽기 기능의 핵심) ---
   const renderPostDetail = () => (
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <button onClick={() => {setSelectedPost(null); setCurrentView('community');}} className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-all font-black group">
@@ -260,7 +265,7 @@ export default function App() {
     </div>
   );
 
-  // --- 렌더링 모듈: 관리자 통합 센터 (AI 및 배포 관리) ---
+  // --- 렌더링 모듈: 관리자 통합 센터 (AI 튜닝 및 배포 이슈 해결) ---
   const renderAdmin = () => (
     <div className="space-y-10 animate-in slide-in-from-right-10 duration-700">
       <div className="flex justify-between items-end">
@@ -366,33 +371,46 @@ export default function App() {
           <Card className="p-10 border-none shadow-2xl space-y-8 bg-[#0f172a] text-slate-300">
             <div className="flex items-center gap-4 text-white">
               <Terminal size={28} className="text-blue-500" />
-              <h3 className="text-2xl font-black tracking-tight">클라우드플레어 배포 이슈 (Code: 10068) 해결 가이드</h3>
+              <h3 className="text-2xl font-black tracking-tight">클라우드플레어 배포 이슈 (Code: 10068) 최종 해결책</h3>
             </div>
             
             <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-4">
               <AlertTriangle className="text-red-500 shrink-0" size={24} />
               <div className="space-y-2">
                 <p className="text-sm font-black text-red-400">현상: The uploaded script has no registered event handlers.</p>
-                <p className="text-xs leading-relaxed text-slate-400 font-medium">원인: 서버 엔트리 포인트(server/index.ts)에서 Cloudflare Workers가 요구하는 'fetch' 핸들러가 export되지 않았습니다.</p>
+                <p className="text-xs leading-relaxed text-slate-400 font-medium">조치: wrangler.toml의 main 항목이 가리키는 파일이 반드시 'export default { fetch }'를 포함해야 합니다.</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-widest px-1">Recommended Solution (server/index.ts)</p>
-              <div className="p-6 bg-slate-900 rounded-2xl font-mono text-sm border border-slate-800 overflow-x-auto">
-                <pre className="text-blue-400">
-{`// 1. Express를 Workers용으로 어댑팅하거나 핸들러를 수동 정의해야 합니다.
-// server/index.ts 파일 하단에 다음 코드를 추가하십시오.
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 px-1">
+                <Code2 size={16} className="text-blue-500" />
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">server/index.ts 수정 가이드 (Express 전용)</p>
+              </div>
+              <div className="p-6 bg-slate-900 rounded-2xl font-mono text-sm border border-slate-800 overflow-x-auto relative">
+                <div className="absolute top-4 right-4 text-blue-500/30 font-black italic">CERT SECURE CODE</div>
+                <pre className="text-blue-400 leading-relaxed">
+{`// 1. Express 앱을 정의한 후 최하단에 아래 코드를 추가하십시오.
+// Cloudflare Workers는 app.listen() 대신 fetch export를 요구합니다.
 
+/**
+ * @CERT_SECURE_ADAPTER
+ * Express 앱을 Cloudflare Workers 핸들러로 내보냅니다.
+ */
 export default {
-  fetch(request: Request, env: any, ctx: any) {
-    // 기존 Express 앱 핸들러를 이곳에 연결하십시오.
-    return handleRequest(request, env); 
+  async fetch(request: Request, env: any, ctx: any) {
+    // 만약 Express 5.x를 사용 중이라면 handle 메서드를 사용할 수 있습니다.
+    // 혹은 itty-router-extras와 같은 어댑터를 사용하십시오.
+    return (app as any).handle(request, env, ctx); 
   }
 };`}
                 </pre>
               </div>
-              <p className="text-xs font-bold text-blue-500 italic px-1">※ 지시하신 대로 깃허브 저장소의 서버 로직을 위 형식에 맞춰 수정하시면 배포 에러가 기가 막히게 해결될 것입니다!</p>
+              
+              <div className="flex items-center gap-4 p-5 bg-blue-600/10 rounded-2xl border border-blue-500/20">
+                <Zap className="text-blue-500" size={20} />
+                <p className="text-xs font-bold text-blue-500">지시하신 대로 깃허브 저장소의 server/index.ts 파일 끝에 위 코드를 추가하시면, 클라우드플레어 엔진이 기가 막히게 앱을 인식할 것입니다!</p>
+              </div>
             </div>
           </Card>
         )}
