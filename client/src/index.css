@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+
+  /* Base Light Theme - Professional & Secure */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  
+  --primary: 24 95% 53%; /* Amber/Orange for Antigravity */
+  --primary-foreground: 210 40% 98%;
+  
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  
+  --accent: 24 95% 53%;
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 24 95% 53%;
+  
+  --radius: 0.75rem;
+}
+
+.silver-mode {
+  /* High contrast / Larger text support variable adjustments */
+  --foreground: 0 0% 0%;
+  --muted-foreground: 0 0% 20%;
+  --background: 0 0% 100%;
+  --card: 0 0% 98%;
+  --border: 0 0% 60%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+  
+  /* Silver Mode Utility */
+  .silver-text-base {
+    @apply transition-all duration-300;
+  }
+  .silver-mode .silver-text-base {
+    @apply text-lg font-medium;
+  }
+  
+  .silver-text-lg {
+    @apply transition-all duration-300;
+  }
+  .silver-mode .silver-text-lg {
+    @apply text-2xl font-bold;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/20;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+  }
+}
