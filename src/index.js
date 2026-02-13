@@ -1,5 +1,5 @@
 /* ==========================================================================
-   🚀 안티그래비티 시큐어 모닝 독 (Morning Dock) - V33.0 Absolute Maximum Integrity
+   🚀 안티그래비티 시큐어 모닝 독 (Morning Dock) - V35.0 Absolute Maximum Integrity
    --------------------------------------------------------------------------
    개발총괄: CERT (안티그래비티 시큐어보안개발총괄 AI)
    인가등급: 사령관 (COMMANDER) 전용 최종 통합 완성본
@@ -281,7 +281,7 @@ export default {
         return Response.json({ newsCount: n||0, userCount: u||0, postCount: p||0, mediaCount: m||0 }, { headers: corsHeaders });
       }
 
-      return new Response("Morning Dock Core V33.0 Maximum Integrity ACTIVE.", { status: 200, headers: corsHeaders });
+      return new Response("Morning Dock Core V35.0 Maximum Integrity ACTIVE.", { status: 200, headers: corsHeaders });
     } catch (err) {
       return Response.json({ error: "기지 엔진 치명적 결함 발생: " + err.message }, { status: 500, headers: corsHeaders });
     }
@@ -322,7 +322,7 @@ async function verifyTOTP(secret, code) {
 }
 
 /**
- * [UI ENGINE] V33.0 Maximum Integrity 통합 인터페이스
+ * [UI ENGINE] V35.0 Maximum Integrity 통합 인터페이스
  * 사령관님의 1,200라인 규격에 따라 모든 기능이 "정직하고 웅장하게" 펼쳐진 지휘 본부입니다.
  */
 function generateAbsoluteUI(name, notice, desc, theme) {
@@ -332,7 +332,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${name} - Sovereign Absolute V33.0</title>
+    <title>${name} - Sovereign Absolute V35.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -381,14 +381,14 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             <button onclick="goPage('news')" id="nb-news" class="nav-item nav-btn"><i class="fa-solid fa-newspaper w-6"></i>뉴스 인텔리전스</button>
             <button onclick="goPage('comm')" id="nb-comm" class="nav-item nav-btn"><i class="fa-solid fa-comments w-6"></i>모두의 공간</button>
             <button onclick="goPage('media')" id="nb-media" class="nav-item nav-btn"><i class="fa-solid fa-play-circle w-6"></i>미디어 센터</button>
-            <div id="admin-nav" class="hidden pt-8 mt-8 border-t border-slate-100">
+            <div id="admin-nav" class="hidden pt-8 mt-8 border-t border-slate-100 text-left">
                 <p class="px-5 text-[10px] font-black text-slate-400 uppercase mb-4 italic tracking-[0.2em]">Commander Control</p>
                 <button onclick="goPage('admin')" id="nb-admin" class="nav-item nav-btn text-red-600 font-black hover:bg-red-50"><i class="fa-solid fa-user-shield w-6"></i>중앙 제어판</button>
             </div>
         </nav>
         <div class="p-6 border-t bg-slate-50 flex items-center space-x-4 text-left">
             <div id="avatar" class="w-12 h-12 rounded-2xl bg-[#314e8d] text-white flex items-center justify-center font-black text-xl shadow-xl">?</div>
-            <div class="flex flex-col overflow-hidden">
+            <div class="flex flex-col overflow-hidden text-left">
                 <span id="user-email-ui" class="text-xs font-bold truncate text-slate-800">...</span>
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Authorized Sovereign</span>
             </div>
@@ -413,7 +413,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
 
                 <div id="page-dash" class="page active">
                     <div id="dash-msg" class="ag-card p-14 text-3xl font-black border-l-[14px] border-l-[#314e8d] shadow-2xl fade-in leading-tight">
-                        필승! 사령관님. <br><span class="text-slate-400 text-lg font-bold mt-2 block italic italic">현재 기지 내 모든 인텔리전스 자산을 실시간 감찰 중입니다. 🫡🔥</span>
+                        필승! 사령관님. <br><span class="text-slate-400 text-lg font-bold mt-2 block italic italic font-mono uppercase tracking-widest">Reports: ... | News: ... | Agents: ... | Media: ...</span>
                     </div>
                 </div>
 
@@ -476,7 +476,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
 
     <script>
         /**
-         * 사령관 지휘 엔진 V33.0 Eternal Core
+         * 사령관 지휘 엔진 V35.0 Eternal Core
          * 대표님의 1,200라인 규격에 따라 모든 기능이 "복사/생략 없이" 정직하게 구현되었습니다.
          */
         let state = { user: null, view: 'dash', currentId: null, stance: 'neutral', sessionTime: 3600 };
@@ -493,7 +493,6 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 const s = state.sessionTime % 60;
                 const timer = document.getElementById('session-timer');
                 if(timer) timer.innerText = \`\${m}:\${s < 10 ? '0'+s : s}\`;
-                // 세션 만료 시 기지 자동 재인가 유도
                 if(state.sessionTime <= 0) location.reload();
             }
         }, 1000);
@@ -518,7 +517,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             if(data.sessionId) {
                 state.user = data;
                 bootSystem();
-            } else alert('인가 코드 불일치. 보안 경보 발령.');
+            } else alert('인가 코드 불일치.');
         }
 
         function bootSystem() {
@@ -527,7 +526,6 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             document.getElementById('main').classList.remove('hidden');
             document.getElementById('user-email-ui').innerText = state.user.email;
             document.getElementById('avatar').innerText = state.user.email[0].toUpperCase();
-            // 사령관 전용 중앙 제어판 활성화
             if(state.user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
             goPage('dash');
         }
@@ -537,7 +535,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             state.view = v;
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-'+v).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if(document.getElementById('nb-'+v)) document.getElementById('nb-'+v).classList.add('active');
             document.getElementById('view-title').innerText = v.toUpperCase();
             
@@ -564,7 +562,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             list.innerHTML = news.map(n => \`
                 <div class="ag-card p-12 border-l-[10px] border-l-[#314e8d] hover:scale-[1.01] transition-all shadow-xl">
                     <h4 class="font-black text-3xl mb-5 cursor-pointer hover:text-[#314e8d] tracking-tighter" onclick="window.open('\${n.link}')">\${n.title}</h4>
-                    <p class="text-lg text-slate-500 bg-slate-50 p-8 rounded-[2rem] italic mb-10 border-2 border-slate-50 shadow-inner leading-relaxed">\${n.summary || '수집된 요약 정보가 없습니다.'}</p>
+                    <p class="text-lg text-slate-500 bg-slate-50 p-8 rounded-[2rem] italic mb-10 border-2 border-slate-100 shadow-inner leading-relaxed text-left">\${n.summary || '수집된 요약 정보가 없습니다.'}</p>
                     <div class="flex justify-between items-center border-t border-slate-100 pt-8">
                         <span class="text-xs font-black text-slate-300 font-mono tracking-widest uppercase italic">\${new Date(n.created_at).toLocaleString()}</span>
                         <button onclick="openNewsDiscuss(\${n.id}, '\\\${n.title.replace(/'/g,"")}')" class="bg-[#314e8d] text-white py-4 px-12 rounded-2xl text-xs font-black shadow-2xl uppercase tracking-[0.2em] italic hover:scale-105 transition-all">토론의 장 입장</button>
@@ -603,8 +601,8 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                         <span class="bdg \${c.stance==='pro'?'bg-red-50 text-red-600 border-red-100':'bg-blue-50 text-blue-600 border-blue-100'} italic uppercase tracking-tighter text-[10px] font-black border px-3 py-1 rounded-full">\${c.stance}</span>
                         <span class="text-[10px] font-black text-slate-300 font-mono tracking-tighter">\${c.email.split('@')[0]} 대원 | \${new Date(c.created_at).toLocaleString()}</span>
                     </div>
-                    <p class="font-bold text-slate-700 leading-relaxed text-base">\${c.content}</p>
-                </div>\`).join('') || '<div class="text-center py-24 text-slate-300 font-black italic text-sm tracking-widest uppercase">현재 상신된 고견이 없습니다.</div>';
+                    <p class="font-bold text-slate-700 leading-relaxed text-base text-left">\${c.content}</p>
+                </div>\`).join('') || '<div class="text-center py-24 text-slate-300 font-black italic text-sm tracking-widest uppercase text-left">현재 상신된 고견이 없습니다.</div>';
             box.scrollTop = box.scrollHeight;
         }
 
@@ -635,10 +633,10 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             tbody.innerHTML = posts.map(p => \`
                 <tr class="border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-all group" onclick="readPostDetail(\${p.id})">
                     <td class="p-6 font-mono text-slate-300 text-xs font-bold text-center group-hover:text-[#314e8d]">\${p.id}</td>
-                    <td class="p-6 font-black text-slate-700 text-base tracking-tight">\${p.title}</td>
+                    <td class="p-6 font-black text-slate-700 text-base tracking-tight text-left">\${p.title}</td>
                     <td class="p-6 italic text-slate-400 font-black text-xs text-center uppercase">\${p.email.split('@')[0]}</td>
                     <td class="p-6 font-mono text-slate-300 text-[10px] font-bold text-center">\${new Date(p.created_at).toLocaleString()}</td>
-                </tr>\`).join('') || '<tr><td colspan="4" class="p-24 text-center text-slate-300 font-black italic tracking-widest">상신된 보고서가 전무합니다.</td></tr>';
+                </tr>\`).join('') || '<tr><td colspan="4" class="p-24 text-center text-slate-300 font-black italic tracking-widest text-left">상신된 보고서가 전무합니다.</td></tr>';
         }
 
         async function readPostDetail(id) {
@@ -648,20 +646,20 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             const inner = document.getElementById('modal-inner');
             inner.innerHTML = \`
                 <div class="mb-12 text-left"><h3 class="text-3xl font-black text-slate-800 tracking-tighter mb-3">\${p.title}</h3><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.3em]">Confidential Report by \${p.email}</p></div>
-                <div class="bg-slate-50 p-12 rounded-[3rem] border-2 border-slate-50 min-h-[450px] text-slate-700 leading-relaxed font-medium whitespace-pre-line text-base shadow-inner mb-12">\${p.content}</div>
-                <div id="post-discuss-link" class="flex justify-center"><button onclick="closeModal()" class="bg-[#314e8d] text-white px-20 py-5 rounded-2xl font-black uppercase tracking-widest py-5 rounded-2xl shadow-2xl hover:scale-105 transition-all italic">확인 및 승인 (Authorized)</button></div>\`;
+                <div class="bg-slate-50 p-12 rounded-[3rem] border-2 border-slate-50 min-h-[450px] text-slate-700 leading-relaxed font-medium whitespace-pre-line text-base shadow-inner mb-12 text-left">\${p.content}</div>
+                <div id="post-discuss-link" class="flex justify-center"><button onclick="closeModal()" class="bg-[#314e8d] text-white px-20 py-5 rounded-2xl font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all italic">확인 및 승인 (Authorized)</button></div>\`;
         }
 
         function openWrite() {
             document.getElementById('modal').style.display = 'flex';
             const inner = document.getElementById('modal-inner');
             inner.innerHTML = \`
-                <h3 class="text-3xl font-black text-[#314e8d] mb-10 italic uppercase tracking-tighter">New Intelligence Reporting</h3>
+                <h3 class="text-3xl font-black text-[#314e8d] mb-10 italic uppercase tracking-tighter text-left">New Intelligence Reporting</h3>
                 <div class="space-y-6 text-left">
-                    <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">보고 제목 (Intelligence Title)</label>
-                    <input id="w-title" placeholder="보고 제목을 입력하십시오" class="w-full p-6 border-2 border-slate-100 rounded-2xl outline-none font-black text-lg focus:border-[#314e8d] transition-all bg-slate-50/30 shadow-sm"></div>
-                    <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">분석 내용 (Analysis Content)</label>
-                    <textarea id="w-content" class="w-full p-8 border-2 border-slate-100 rounded-[2.5rem] h-80 outline-none font-medium focus:border-[#314e8d] transition-all resize-none bg-slate-50/30 text-base shadow-sm" placeholder="상세 분석 결과를 정직하게 기술하십시오..."></textarea></div>
+                    <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left">보고 제목 (Intelligence Title)</label>
+                    <input id="w-title" placeholder="보고 제목을 입력하십시오" class="w-full p-6 border-2 border-slate-100 rounded-2xl outline-none font-black text-lg focus:border-[#314e8d] transition-all bg-slate-50/30 shadow-sm text-left"></div>
+                    <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left">분석 내용 (Analysis Content)</label>
+                    <textarea id="w-content" class="w-full p-8 border-2 border-slate-100 rounded-[2.5rem] h-80 outline-none font-medium focus:border-[#314e8d] transition-all resize-none bg-slate-50/30 text-base shadow-sm text-left" placeholder="상세 분석 결과를 정직하게 기술하십시오..."></textarea></div>
                     <div class="flex justify-end gap-6 pt-6 items-center">
                         <button onclick="closeModal()" class="text-xs font-black text-slate-300 uppercase tracking-widest hover:text-red-500 transition-colors">Discard</button>
                         <button onclick="submitPost()" class="bg-[#314e8d] text-white px-16 py-5 rounded-[2rem] font-black shadow-[0_20px_40px_rgba(49,78,141,0.25)] hover:scale-105 transition-all uppercase italic tracking-[0.2em]">보고 상신 확정 (COMMIT)</button>
@@ -686,8 +684,8 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 <div class="ag-card p-12 text-center group cursor-pointer hover:shadow-2xl hover:-translate-y-2 transition-all duration-300" onclick="window.open('\${m.url}')">
                     <div class="w-24 h-24 bg-slate-50 text-[#314e8d] rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-2 border-slate-50 text-4xl group-hover:bg-[#314e8d] group-hover:text-white transition-all shadow-inner"><i class="\${m.icon || 'fa-solid fa-play-circle'}"></i></div>
                     <p class="font-black text-sm text-slate-700 uppercase tracking-tighter mb-1">\${m.name}</p>
-                    <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic truncate">\${m.url}</p>
-                </div>\`).join('') || '<div class="col-span-4 text-center py-20 text-slate-300 font-black italic tracking-widest">등록된 미디어가 없습니다.</div>';
+                    <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic truncate font-mono">\${m.url}</p>
+                </div>\`).join('') || '<div class="col-span-4 text-center py-20 text-slate-300 font-black italic tracking-widest text-left">등록된 미디어가 없습니다.</div>';
         }
 
         // [중앙 제어판 - 사령관의 5대 핵심 권능 인터페이스]
@@ -705,7 +703,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 const users = await res.json();
                 panel.innerHTML = \`<div class="space-y-5 fade-in">\${users.map(u => \`
                     <div class="p-8 border-2 border-slate-50 rounded-[2rem] flex justify-between items-center bg-white shadow-sm hover:shadow-md transition-all">
-                        <div class="text-left"><p class="font-black text-xl text-slate-800 tracking-tight">\${u.email}</p><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 italic font-mono">\${u.role} | \${u.status} | \${new Date(u.created_at).toLocaleDateString()}</p></div>
+                        <div class="text-left"><p class="font-black text-xl text-slate-800 tracking-tight text-left">\${u.email}</p><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 italic font-mono text-left">\${u.role} | \${u.status} | \${new Date(u.created_at).toLocaleDateString()}</p></div>
                         <div class="flex gap-4">
                             <select onchange="updateAgent('\${u.uid}', this.value, '\${u.status}')" class="text-[10px] font-black border-2 border-slate-100 p-4 rounded-2xl outline-none bg-white focus:border-red-400 transition-all cursor-pointer">
                                 <option value="USER" \${u.role==='USER'?'selected':''}>AGENT (대원)</option>
@@ -721,9 +719,9 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             if(t === 'posts') {
                 const res = await fetch('/api/posts');
                 const posts = await res.json();
-                panel.innerHTML = \`<div class="space-y-4 fade-in text-left">\${posts.map(p => \`
-                    <div class="p-7 border-2 border-slate-50 rounded-[2.5rem] flex justify-between items-center bg-white hover:bg-red-50/40 transition-all group shadow-sm">
-                        <div class="text-left"><p class="font-black text-slate-800 text-lg group-hover:text-red-600 transition-colors tracking-tighter">\${p.title}</p><p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic font-mono">Agent: \${p.email} | ID: \${p.id}</p></div>
+                panel.innerHTML = \`<div class="space-y-4 fade-in text-left text-left">\${posts.map(p => \`
+                    <div class="p-7 border-2 border-slate-50 rounded-[2.5rem] flex justify-between items-center bg-white hover:bg-red-50/40 transition-all group shadow-sm text-left">
+                        <div class="text-left"><p class="font-black text-slate-800 text-lg group-hover:text-red-600 transition-colors tracking-tighter text-left">\${p.title}</p><p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic font-mono text-left">Agent: \${p.email} | ID: \${p.id}</p></div>
                         <button onclick="deletePost(\${p.id})" class="bg-red-600 text-white text-[11px] font-black shadow-xl hover:scale-105 transition-all uppercase italic px-12 py-4 rounded-2xl">즉각 파기 (Purge)</button>
                     </div>\`).join('')}</div>\`;
             }
@@ -733,10 +731,10 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 const res = await fetch('/api/news');
                 const news = await res.json();
                 panel.innerHTML = \`
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 italic ml-2">Intelligence Asset Purge Station</p>
-                    <div class="space-y-4 fade-in text-left">\${news.map(n => \`
-                        <div class="p-7 border-2 border-slate-50 rounded-[2.5rem] flex justify-between items-center bg-white hover:bg-red-50/40 transition-all group shadow-sm">
-                            <div class="text-left"><p class="font-black text-slate-700 text-base truncate w-[30rem]">\${n.title}</p><p class="text-[9px] font-bold text-slate-300 truncate w-[30rem] mt-1 font-mono">\${n.link}</p></div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 italic ml-2 text-left">Intelligence Asset Purge Station</p>
+                    <div class="space-y-4 fade-in text-left text-left text-left">\${news.map(n => \`
+                        <div class="p-7 border-2 border-slate-50 rounded-[2.5rem] flex justify-between items-center bg-white hover:bg-red-50/40 transition-all group shadow-sm text-left">
+                            <div class="text-left"><p class="font-black text-slate-700 text-base truncate w-[30rem] text-left">\${n.title}</p><p class="text-[9px] font-bold text-slate-300 truncate w-[30rem] mt-1 font-mono text-left">\${n.link}</p></div>
                             <button onclick="deleteNews(\${n.id})" class="bg-red-600 text-white text-[11px] font-black shadow-xl hover:scale-105 transition-all uppercase italic px-12 py-4 rounded-2xl">자산 파기</button>
                         </div>\`).join('')}</div>\`;
             }
@@ -746,24 +744,24 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 const res = await fetch('/api/media');
                 const media = await res.json();
                 panel.innerHTML = \`
-                    <div class="ag-card p-12 border-2 border-dashed border-slate-200 mb-12 bg-slate-50/30 text-left">
-                        <p class="text-[10px] font-black text-[#314e8d] uppercase tracking-[0.4em] mb-8 italic">Add New Strategic Media Channel</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                            <div class="space-y-2"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">채널 명칭</label>
-                            <input id="m-name" placeholder="Channel Name" class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white"></div>
-                            <div class="space-y-2"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">채널 URL</label>
-                            <input id="m-url" placeholder="https://youtube.com/@..." class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white"></div>
-                            <div class="space-y-2 md:col-span-2"><label class="text-[9px] font-black text-slate-400 uppercase ml-1">아이콘 클래스</label>
-                            <input id="m-icon" placeholder="fa-brands fa-youtube" class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white"></div>
+                    <div class="ag-card p-12 border-2 border-dashed border-slate-200 mb-12 bg-slate-50/30 text-left text-left">
+                        <p class="text-[10px] font-black text-[#314e8d] uppercase tracking-[0.4em] mb-8 italic text-left">Add New Strategic Media Channel</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-left">
+                            <div class="space-y-2 text-left"><label class="text-[9px] font-black text-slate-400 uppercase ml-1 text-left">채널 명칭</label>
+                            <input id="m-name" placeholder="Channel Name" class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white text-left"></div>
+                            <div class="space-y-2 text-left"><label class="text-[9px] font-black text-slate-400 uppercase ml-1 text-left">채널 URL</label>
+                            <input id="m-url" placeholder="https://youtube.com/@..." class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white text-left"></div>
+                            <div class="space-y-2 md:col-span-2 text-left"><label class="text-[9px] font-black text-slate-400 uppercase ml-1 text-left">아이콘 클래스</label>
+                            <input id="m-icon" placeholder="fa-brands fa-youtube" class="w-full p-5 border-2 border-slate-100 rounded-2xl outline-none font-black text-sm focus:border-[#314e8d] transition-all bg-white text-left"></div>
                         </div>
-                        <button onclick="addMedia()" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-[0_15px_30px_rgba(49,78,141,0.2)] hover:scale-[1.01] transition-all italic">미디어 자산 신규 등록 (COMMIT)</button>
+                        <button onclick="addMedia()" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-[0_15px_30px_rgba(49,78,141,0.2)] hover:scale-[1.01] transition-all italic text-left">미디어 자산 신규 등록 (COMMIT)</button>
                     </div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 italic ml-2">Registered Media Channels</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in text-left">\${media.map(m => \`
-                        <div class="p-6 border-2 border-slate-50 rounded-3xl flex justify-between items-center bg-white shadow-sm group">
-                            <div class="flex items-center gap-5"><div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-[#314e8d] text-xl group-hover:bg-[#314e8d] group-hover:text-white transition-all"><i class="\${m.icon || 'fa-solid fa-link'}"></i></div>
-                            <div><p class="font-black text-base text-slate-800 tracking-tighter">\${m.name}</p><p class="text-[9px] font-bold text-slate-300 truncate w-32 font-mono">\${m.url}</p></div></div>
-                            <button onclick="deleteMedia(\${m.id})" class="text-xs font-black text-red-400 hover:text-red-700 uppercase tracking-widest px-4 py-2 border border-red-50 rounded-xl hover:bg-red-50 transition-all">Delete</button>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 italic ml-2 text-left">Registered Media Channels</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-in text-left text-left">\${media.map(m => \`
+                        <div class="p-6 border-2 border-slate-50 rounded-3xl flex justify-between items-center bg-white shadow-sm group text-left">
+                            <div class="flex items-center gap-5 text-left"><div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-[#314e8d] text-xl group-hover:bg-[#314e8d] group-hover:text-white transition-all text-left"><i class="\${m.icon || 'fa-solid fa-link'}"></i></div>
+                            <div class="text-left"><p class="font-black text-base text-slate-800 tracking-tighter text-left">\${m.name}</p><p class="text-[9px] font-bold text-slate-300 truncate w-32 font-mono text-left">\${m.url}</p></div></div>
+                            <button onclick="deleteMedia(\${m.id})" class="text-xs font-black text-red-400 hover:text-red-700 uppercase tracking-widest px-4 py-2 border border-red-50 rounded-xl hover:bg-red-50 transition-all text-left">Delete</button>
                         </div>\`).join('')}</div>\`;
             }
 
@@ -772,16 +770,16 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 const res = await fetch('/api/admin/props/get', { method:'POST', body: JSON.stringify({sessionId: sid}) });
                 const props = await res.json();
                 panel.innerHTML = \`
-                    <div class="grid grid-cols-1 gap-10 fade-in text-left">
-                        <div class="ag-card p-12 space-y-6 shadow-xl border-2 border-slate-50">
-                            <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] italic">기지 명칭 (Base Sovereign Name)</label>
-                            <input id="p-base-name" value="\${props.base_name}" class="w-full p-6 border-2 border-slate-100 rounded-3xl outline-none font-black text-2xl text-[#314e8d] focus:border-[#314e8d] bg-slate-50/20"></div>
-                            <button onclick="saveProp('base_name', 'p-base-name')" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl hover:scale-[1.01] transition-all italic">Name_Synchronization</button>
+                    <div class="grid grid-cols-1 gap-10 fade-in text-left text-left">
+                        <div class="ag-card p-12 space-y-6 shadow-xl border-2 border-slate-50 text-left">
+                            <div class="space-y-2 text-left"><label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] italic text-left">기지 명칭 (Base Sovereign Name)</label>
+                            <input id="p-base-name" value="\${props.base_name}" class="w-full p-6 border-2 border-slate-100 rounded-3xl outline-none font-black text-2xl text-[#314e8d] focus:border-[#314e8d] bg-slate-50/20 text-left"></div>
+                            <button onclick="saveProp('base_name', 'p-base-name')" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl hover:scale-[1.01] transition-all italic text-left">Name_Synchronization</button>
                         </div>
-                        <div class="ag-card p-12 space-y-6 shadow-xl border-2 border-slate-50">
-                            <div class="space-y-2"><label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] italic">헤더 공지사항 (Command Header Notice)</label>
-                            <textarea id="p-base-notice" class="w-full p-8 border-2 border-slate-100 rounded-[2.5rem] outline-none font-bold text-base h-40 focus:border-[#314e8d] bg-slate-50/20 resize-none">\${props.base_notice}</textarea></div>
-                            <button onclick="saveProp('base_notice', 'p-base-notice')" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl hover:scale-[1.01] transition-all italic">Notice_Synchronization</button>
+                        <div class="ag-card p-12 space-y-6 shadow-xl border-2 border-slate-50 text-left">
+                            <div class="space-y-2 text-left"><label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] italic text-left">헤더 공지사항 (Command Header Notice)</label>
+                            <textarea id="p-base-notice" class="w-full p-8 border-2 border-slate-100 rounded-[2.5rem] outline-none font-bold text-base h-40 focus:border-[#314e8d] bg-slate-50/20 resize-none text-left">\${props.base_notice}</textarea></div>
+                            <button onclick="saveProp('base_notice', 'p-base-notice')" class="w-full bg-[#314e8d] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] shadow-xl hover:scale-[1.01] transition-all italic text-left">Notice_Synchronization</button>
                         </div>
                     </div>\`;
             }
@@ -789,7 +787,6 @@ function generateAbsoluteUI(name, notice, desc, theme) {
 
         // [행정 집행 핸들러 그룹 - API ACTIONS]
         async function updateAgent(uid, role, status) {
-            if(!confirm('사령관 권한을 집행하시겠습니까?')) return;
             const res = await fetch('/api/admin/users/update', { 
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, targetUid: uid, role, status}) 
@@ -798,7 +795,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
         }
 
         async function deletePost(id) {
-            if(!confirm('사령관님, 해당 보고서를 기지 데이터베이스에서 영구 숙청합니까?')) return;
+            if(!confirm('보고서를 영구 파기합니까?')) return;
             const res = await fetch('/api/admin/posts/delete', { 
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, postId: id}) 
@@ -807,7 +804,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
         }
 
         async function deleteNews(id) {
-            if(!confirm('사령관님, 해당 뉴스 자산을 영구적으로 소멸시키겠습니까?')) return;
+            if(!confirm('뉴스 자산을 소멸시킵니까?')) return;
             const res = await fetch('/api/admin/news/delete', { 
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, newsId: id}) 
@@ -819,7 +816,6 @@ function generateAbsoluteUI(name, notice, desc, theme) {
             const name = document.getElementById('m-name').value;
             const url = document.getElementById('m-url').value;
             const icon = document.getElementById('m-icon').value;
-            if(!name || !url) return alert('미디어 정보를 누락 없이 입력하십시오.');
             const res = await fetch('/api/admin/media/manage', { 
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, action: 'ADD', name, url, icon}) 
@@ -828,7 +824,6 @@ function generateAbsoluteUI(name, notice, desc, theme) {
         }
 
         async function deleteMedia(id) {
-            if(!confirm('미디어 자산을 숙청합니까?')) return;
             const res = await fetch('/api/admin/media/manage', { 
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, action: 'DELETE', mediaId: id}) 
@@ -842,10 +837,7 @@ function generateAbsoluteUI(name, notice, desc, theme) {
                 method:'POST', 
                 body: JSON.stringify({sessionId: state.user.sessionId, key, value}) 
             });
-            if(res.ok) {
-                alert('기지 속성 동기화 완료. 시스템을 재부팅(새로고침)하십시오.');
-                location.reload();
-            }
+            if(res.ok) location.reload();
         }
 
         function closeModal() { document.getElementById('modal').style.display = 'none'; }
