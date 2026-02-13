@@ -1,9 +1,15 @@
 {
-"version": 2,
-"rewrites": [
-{
-"source": "/(.*)",
-"destination": "/api/index.js"
-}
-]
+  "version": 2,
+  "functions": {
+    "api/index.js": {
+      "runtime": "@vercel/node",
+      "includeFiles": "dist/public/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ]
 }
