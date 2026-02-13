@@ -412,6 +412,12 @@ function generateV41UI() {
         function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); }
         setInterval(updateClock, 1000); updateClock();
 
+        function toggleGateMode() {
+            state.mode = state.mode === 'login' ? 'signup' : 'login';
+            document.getElementById('mode-label').innerText = state.mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?';
+            document.getElementById('mode-btn').innerText = state.mode === 'login' ? '회원가입' : '로그인으로';
+        }
+
         window.onload = () => {
             const saved = localStorage.getItem('morning_dock_v50');
             if(saved) { state.user = JSON.parse(saved); enterHub(); }
