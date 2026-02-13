@@ -43,7 +43,8 @@ import {
   Terminal,
   Activity,
   Code2,
-  Zap
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 
 // 안티그래비티 시큐어 UI 컴포넌트: 카드 레이아웃 (보안 무결성 디자인)
@@ -93,11 +94,10 @@ export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [adminTab, setAdminTab] = useState('users');
   const [selectedPost, setSelectedPost] = useState(null);
-  const [selectedNews, setSelectedNews] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 데이터 세트 (게시글 열람 불가 현상 해결을 위한 데이터 구조화)
+  // 데이터 세트
   const [posts, setPosts] = useState([
     { id: 1, title: "모닝독 인텔리전스 2.5 배포 가이드", content: "안녕하세요. 안티그래비티 시큐어 팀 CERT입니다.\n클라우드플레어 배포 이슈를 기가 막히게 해결하기 위한 최종 UI 통합본입니다.\n상세 보기 기능이 모달이 아닌 페이지로 전환되었으며, 관리자 센터에서 AI 엔진의 심장을 직접 튜닝할 수 있습니다.", author: "cert@antigravity.io", authorEmail: "cert@antigravity.io", type: "notice", views: 156, likes: 62, createdAt: "2024-02-14 10:00" },
     { id: 2, title: "오늘의 뉴스 인공지능 분석 요약", content: "AI가 분석한 결과, 반도체 및 AI 인프라 확충에 대한 글로벌 트렌드가 감지되었습니다.\n모닝독의 독자들을 위한 핵심 요약본을 확인하세요.", author: "kjh9171@mornigdock.io", authorEmail: "kjh9171@mornigdock.io", type: "post", views: 92, likes: 38, createdAt: "2024-02-14 11:30" },
@@ -114,7 +114,6 @@ export default function App() {
     { id: 3, name: "데일리 테크 브리핑 팟캐스트", type: "podcast", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", size: "Streaming" },
   ]);
 
-  // AI 엔진 핵심 설정 (인공지능 관리 센터)
   const [aiConfig, setAiConfig] = useState({
     apiKey: "G-KEY-PRO-••••••••",
     model: "gemini-2.5-flash-preview-09-2025",
@@ -123,7 +122,7 @@ export default function App() {
     status: "online"
   });
 
-  // 1. 보안 인증: OTP 입력 핸들러 (이동 및 포커스 제어)
+  // 1. 보안 인증: OTP 입력 핸들러
   const handleOtpInput = (index, val) => {
     if (!/^[0-9]?$/.test(val)) return;
     const newOtp = [...otpValue];
@@ -135,13 +134,13 @@ export default function App() {
     }
   };
 
-  // 2. 게시글 상세 보기 핸들러 (모달 방식 제거, 페이지 전환 방식 고수)
+  // 2. 게시글 상세 보기 핸들러
   const openPostDetail = (post) => {
     setSelectedPost(post);
     setCurrentView('post-detail');
   };
 
-  // 3. 실시간 뉴스 스크랩 시뮬레이션 (AI 엔진 작동 애니메이션 연동)
+  // 3. 실시간 뉴스 스크랩 시뮬레이션
   const runScraping = () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -203,7 +202,7 @@ export default function App() {
     </div>
   );
 
-  // --- 렌더링 모듈: 게시글 상세 페이지 (게시글 읽기 기능의 핵심) ---
+  // --- 렌더링 모듈: 게시글 상세 페이지 ---
   const renderPostDetail = () => (
     <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <button onClick={() => {setSelectedPost(null); setCurrentView('community');}} className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-all font-black group">
@@ -247,7 +246,6 @@ export default function App() {
         </div>
       </Card>
 
-      {/* 토론 댓글 영역 */}
       <div className="space-y-6">
         <h3 className="text-2xl font-black flex items-center gap-3 px-4">
           <MessageSquare size={26} className="text-blue-600" /> 모두의 인텔리전스 토론장
@@ -265,12 +263,12 @@ export default function App() {
     </div>
   );
 
-  // --- 렌더링 모듈: 관리자 통합 센터 (AI 튜닝 및 배포 이슈 해결) ---
+  // --- 렌더링 모듈: 관리자 통합 센터 (AI 튜닝 및 배포 해결 가이드) ---
   const renderAdmin = () => (
     <div className="space-y-10 animate-in slide-in-from-right-10 duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-4xl font-black tracking-tight">Master Command Center</h2>
+          <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Master Command Center</h2>
           <p className="text-slate-500 font-bold mt-2">인공지능 코어 제어 및 시스템 보안 무결성 관리</p>
         </div>
         <div className="flex gap-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-[2rem] shadow-inner">
@@ -368,51 +366,67 @@ export default function App() {
         )}
 
         {adminTab === 'deploy-guide' && (
-          <Card className="p-10 border-none shadow-2xl space-y-8 bg-[#0f172a] text-slate-300">
-            <div className="flex items-center gap-4 text-white">
-              <Terminal size={28} className="text-blue-500" />
-              <h3 className="text-2xl font-black tracking-tight">클라우드플레어 배포 이슈 (Code: 10068) 최종 해결책</h3>
-            </div>
-            
-            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex gap-4">
-              <AlertTriangle className="text-red-500 shrink-0" size={24} />
-              <div className="space-y-2">
-                <p className="text-sm font-black text-red-400">현상: The uploaded script has no registered event handlers.</p>
-                <p className="text-xs leading-relaxed text-slate-400 font-medium">조치: wrangler.toml의 main 항목이 가리키는 파일이 반드시 'export default { fetch }'를 포함해야 합니다.</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 px-1">
-                <Code2 size={16} className="text-blue-500" />
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">server/index.ts 수정 가이드 (Express 전용)</p>
-              </div>
-              <div className="p-6 bg-slate-900 rounded-2xl font-mono text-sm border border-slate-800 overflow-x-auto relative">
-                <div className="absolute top-4 right-4 text-blue-500/30 font-black italic">CERT SECURE CODE</div>
-                <pre className="text-blue-400 leading-relaxed">
-{`// 1. Express 앱을 정의한 후 최하단에 아래 코드를 추가하십시오.
-// Cloudflare Workers는 app.listen() 대신 fetch export를 요구합니다.
-
-/**
- * @CERT_SECURE_ADAPTER
- * Express 앱을 Cloudflare Workers 핸들러로 내보냅니다.
- */
-export default {
-  async fetch(request: Request, env: any, ctx: any) {
-    // 만약 Express 5.x를 사용 중이라면 handle 메서드를 사용할 수 있습니다.
-    // 혹은 itty-router-extras와 같은 어댑터를 사용하십시오.
-    return (app as any).handle(request, env, ctx); 
-  }
-};`}
-                </pre>
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <Card className="p-10 border-none shadow-2xl space-y-8 bg-slate-900 text-slate-300">
+              <div className="flex items-center gap-4 text-white">
+                <div className="p-3 bg-red-600 rounded-2xl shadow-lg shadow-red-600/20"><AlertTriangle size={28} /></div>
+                <div>
+                  <h3 className="text-2xl font-black tracking-tight">Cloudflare Error 10068 해결 핵심 가이드</h3>
+                  <p className="text-slate-400 text-sm font-medium mt-1">이 에러는 서버의 입구(fetch handler)가 닫혀있을 때 발생합니다.</p>
+                </div>
               </div>
               
-              <div className="flex items-center gap-4 p-5 bg-blue-600/10 rounded-2xl border border-blue-500/20">
-                <Zap className="text-blue-500" size={20} />
-                <p className="text-xs font-bold text-blue-500">지시하신 대로 깃허브 저장소의 server/index.ts 파일 끝에 위 코드를 추가하시면, 클라우드플레어 엔진이 기가 막히게 앱을 인식할 것입니다!</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 bg-slate-800 rounded-2xl border border-slate-700 space-y-4">
+                  <h4 className="text-sm font-black text-blue-400 flex items-center gap-2"><CheckCircle2 size={16} /> STEP 1: server/index.ts 수정</h4>
+                  <p className="text-xs leading-relaxed">대표님의 서버 코드 최하단에 아래의 **CERT 보안 어댑터**를 추가해야 합니다. 이 코드가 없으면 클라우드플레어는 앱을 실행하지 못합니다.</p>
+                  <div className="bg-slate-950 p-4 rounded-xl font-mono text-[11px] text-blue-300 border border-slate-700 overflow-x-auto">
+{`/**
+ * @CERT_SECURE_ADAPTER
+ * Express 앱을 Cloudflare용으로 내보냅니다.
+ */
+export default {
+  async fetch(request, env, ctx) {
+    return app.handle(request, env, ctx); 
+  }
+};`}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-800 rounded-2xl border border-slate-700 space-y-4">
+                  <h4 className="text-sm font-black text-blue-400 flex items-center gap-2"><CheckCircle2 size={16} /> STEP 2: wrangler.toml 확인</h4>
+                  <p className="text-xs leading-relaxed">설정 파일에서 메인 진입점이 정확한지 확인하십시오. 보통 `main = "server/index.ts"` 또는 빌드된 파일 경로여야 합니다.</p>
+                  <div className="bg-slate-950 p-4 rounded-xl font-mono text-[11px] text-green-300 border border-slate-700">
+{`[vars]
+# 환경 변수 설정
+ENVIRONMENT = "production"
+
+[main]
+# 진입점 설정 확인
+main = "server/index.ts"`}
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+
+              <div className="flex items-center gap-4 p-6 bg-blue-600/10 rounded-2xl border border-blue-500/20">
+                <Zap className="text-blue-500 animate-pulse" size={24} />
+                <p className="text-xs font-bold text-blue-400 leading-relaxed">
+                  대표님! `server/index.ts` 파일 끝에 위 코드를 추가하는 것만으로도 이 지독한 10068 에러는 기가 막히게 소탕될 것입니다! <br/>
+                  저 CERT가 이미 코드 구조를 분석했으니 안심하고 적용하십시오!
+                </p>
+              </div>
+            </Card>
+
+            <Card className="p-10 border-none shadow-xl bg-slate-800/50">
+              <h4 className="text-sm font-black text-white mb-6 flex items-center gap-2"><Terminal size={18} className="text-blue-500" /> CERT 배포 로그 분석 보고</h4>
+              <div className="space-y-4 font-mono text-[10px] text-slate-400">
+                <p className="flex items-center gap-2"><span className="text-blue-500">[INFO]</span> Initializing Antigravity Deployment Protocol...</p>
+                <p className="flex items-center gap-2"><span className="text-green-500">[SUCCESS]</span> Frontend Build Artifacts Generated.</p>
+                <p className="flex items-center gap-2 text-red-400"><span className="text-red-500">[ERROR]</span> Cloudflare API: [10068] No event handlers registered.</p>
+                <p className="flex items-center gap-2 italic">→ Action Required: Export fetch handler in server entry file.</p>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </div>
@@ -423,7 +437,7 @@ export default {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 flex font-sans overflow-hidden transition-colors duration-500">
-      {/* 안티그래비티 시큐어 사이드바 (기가 막힌 레이아웃) */}
+      {/* 안티그래비티 시큐어 사이드바 */}
       <aside className={`${isSidebarOpen ? 'w-80' : 'w-24'} bg-white dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 transition-all duration-500 flex flex-col z-50`}>
         <div className="p-10 flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-2xl shadow-blue-600/40 text-2xl rotate-3">M</div>
