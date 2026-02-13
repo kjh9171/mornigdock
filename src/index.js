@@ -29,8 +29,11 @@ export default {
         const { email } = await request.json();
         const uid = crypto.randomUUID();
         try {
-          await env.DB.prepare("INSERT INTO users (uid, email) VALUES (?, ?)").bind(uid, email).run();
-          return Response.json({ status: "success", uid }, { headers: corsHeaders });
+          // 첫 번째 가입자를 관리자로 승격시키는 로직 도입 (보안 총괄의 조치)
+          const userCount = await env.DB.prepare("SELECT COUNT(*) as count FROM users").first("count");
+          const role = userCount === 0 ? 'ADMIN' : 'USER';
+          await env.DB.prepare("INSERT INTO users (uid, email, role) VALUES (?, ?, ?)").bind(uid, email, role).run();
+          return Response.json({ status: "success", uid, role }, { headers: corsHeaders });
         } catch (e) { return Response.json({ error: "이미 가입된 계정입니다." }, { status: 400, headers: corsHeaders }); }
       }
       if (url.pathname === "/api/auth/login" && method === "POST") {
