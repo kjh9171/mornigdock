@@ -1,541 +1,537 @@
-/* ==========================================================================
-   🚀 안티그래비티 시큐어 모닝 독 (Morning Dock) - V37.0 Sovereign Control
-   --------------------------------------------------------------------------
-   개발총괄: CERT (안티그래비티 시큐어보안개발총괄 AI)
-   인가등급: 사령관 (COMMANDER) 전용 최종 통합 완성본
-   디자인 테마: Cline.net 기반 초정밀 그리드 및 다크 미니멀 아키텍처
-   핵심기능: [어드민 전용 메뉴 고정] 가입자/게시글/미디어/뉴스 전수 통제
-   ========================================================================== */
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Layout, 
+  User, 
+  Settings, 
+  ShieldCheck, 
+  MessageSquare, 
+  FileText, 
+  Image as ImageIcon, 
+  Newspaper, 
+  Trash2, 
+  Edit3, 
+  Plus, 
+  Search, 
+  ArrowLeft,
+  ChevronRight,
+  BarChart3,
+  Globe,
+  Bell,
+  MoreVertical,
+  Send,
+  Loader2,
+  Cpu,
+  RefreshCw,
+  ExternalLink,
+  Youtube,
+  Mic,
+  Play,
+  Save,
+  Key,
+  Layers,
+  Lock,
+  Smartphone
+} from 'lucide-react';
 
-/**
- * [사령관 지휘 설계 원칙]
- * 1. Admin Visibility: 관리자 로그인 시 사이드바에 '중앙 제어판' 메뉴를 강제 노출합니다.
- * 2. Full Asset Control: 가입자 권한, 게시글 숙청, 미디어 CMS, 뉴스 삭제 로직을 완비합니다.
- * 3. Discussion Link: 뉴스에서 토론장으로 즉시 진입하여 찬반 의견을 상신합니다.
- */
+// 안티그래비티 시큐어 UI 컴포넌트: 카드 레이아웃
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden ${className}`}>
+    {children}
+  </div>
+);
 
-export default {
-  /**
-   * [Main Control] 기지의 모든 데이터 트래픽이 통과하는 중앙 게이트웨이입니다.
-   */
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    const method = request.method;
-    
-    // 사령관 전용 보안 헤더 (CORS)
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE, PUT",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    };
-
-    if (method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-    // [Cline-Sovereign UI Engine] 기지 설정 데이터(KV)를 실시간 반영하여 송출합니다.
-    if (url.pathname === "/" || url.pathname === "/index.html") {
-      const name = await env.KV.get("prop:base_name") || "Morning Dock";
-      const notice = await env.KV.get("prop:base_notice") || "사령관님의 지휘 하에 기지가 무결하게 가동 중입니다.";
-      const desc = await env.KV.get("prop:base_desc") || "AntiGravity Secure Node";
-      
-      return new Response(generateClineSovereignUI(name, notice, desc), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
-
-    /* ----------------------------------------------------------------------
-       [보안 인프라 유틸리티 - Identity Verification]
-       ---------------------------------------------------------------------- */
-    const getSessionUser = async (sid) => {
-      if (!sid) return null;
-      const uid = await env.KV.get("session:" + sid);
-      if (!uid) return null;
-      return await env.DB.prepare("SELECT * FROM users WHERE uid = ?").bind(uid).first();
-    };
-
-    const isAdminCommander = async (sid) => {
-      const u = await getSessionUser(sid);
-      return !!(u && u.role === "ADMIN" && u.status === "APPROVED");
-    };
-
-    try {
-      /* ════════════════════════════════════════════════════════════════════
-         [1] 인가 본부 API (Auth Protocol)
-         ════════════════════════════════════════════════════════════════════ */
-
-      if (url.pathname === "/api/auth/login" && method === "POST") {
-        const body = await request.json();
-        const agent = await env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(body.email).first();
-        if (!agent || agent.status === "BLOCKED") return Response.json({ error: "인가 거부" }, { status: 403, headers: corsHeaders });
-        return Response.json({ status: "success", uid: agent.uid, email: agent.email }, { headers: corsHeaders });
-      }
-
-      if (url.pathname === "/api/auth/otp-verify" && method === "POST") {
-        const body = await request.json();
-        const profile = await env.DB.prepare("SELECT * FROM users WHERE uid = ?").bind(body.uid).first();
-        if (body.code === "000000" || (profile && await verifyTOTP(profile.mfa_secret, body.code))) {
-          const sid = crypto.randomUUID();
-          await env.KV.put("session:" + sid, profile.uid, { expirationTtl: 3600 });
-          return Response.json({ status: "success", sessionId: sid, role: profile.role, email: profile.email, uid: profile.uid }, { headers: corsHeaders });
-        }
-        return Response.json({ error: "인가 불일치" }, { status: 401, headers: corsHeaders });
-      }
-
-      /* ════════════════════════════════════════════════════════════════════
-         [2] 통합 어드민 관제 센터 API (The Sovereign Control Board)
-         ════════════════════════════════════════════════════════════════════ */
-
-      if (url.pathname.startsWith("/api/admin/")) {
-        const body = await request.clone().json().catch(() => ({}));
-        if (!await isAdminCommander(body.sessionId)) return Response.json({ error: "권한 부족" }, { status: 403, headers: corsHeaders });
-
-        // [가입자 관리] 등급 및 권한 속성 실시간 제어
-        if (url.pathname === "/api/admin/users") {
-          const { results } = await env.DB.prepare("SELECT * FROM users ORDER BY created_at DESC").all();
-          return Response.json(results || [], { headers: corsHeaders });
-        }
-        if (url.pathname === "/api/admin/users/update") {
-          await env.DB.prepare("UPDATE users SET role = ?, status = ? WHERE uid = ?").bind(body.role, body.status, body.targetUid).run();
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-
-        // [게시글 및 뉴스 숙청] 데이터 영구 소멸 (CRUD)
-        if (url.pathname === "/api/admin/posts/delete") {
-          await env.DB.prepare("DELETE FROM post_comments WHERE post_id = ?").bind(body.postId).run();
-          await env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(body.postId).run();
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-        if (url.pathname === "/api/admin/news/delete") {
-          await env.DB.prepare("DELETE FROM news_comments WHERE news_id = ?").bind(body.newsId).run();
-          await env.DB.prepare("DELETE FROM news WHERE id = ?").bind(body.newsId).run();
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-
-        // [미디어 자산 관리] CMS Full CRUD
-        if (url.pathname === "/api/admin/media/manage") {
-          if (body.action === "ADD") {
-            await env.DB.prepare("INSERT INTO media (name, url, icon) VALUES (?, ?, ?)").bind(body.name, body.url, body.icon).run();
-          } else if (body.action === "DELETE") {
-            await env.DB.prepare("DELETE FROM media WHERE id = ?").bind(body.mediaId).run();
-          }
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-      }
-
-      /* ════════════════════════════════════════════════════════════════════
-         [3] 커뮤니티 및 인텔리전스 서비스 API (Feed & Discussion)
-         ════════════════════════════════════════════════════════════════════ */
-
-      if (url.pathname === "/api/news" && method === "GET") {
-        const { results } = await env.DB.prepare("SELECT * FROM news ORDER BY created_at DESC").all();
-        return Response.json(results || [], { headers: corsHeaders });
-      }
-
-      const newsCmtMatch = url.pathname.match(/^\/api\/news\/(\d+)\/comments$/);
-      if (newsCmtMatch) {
-        const nid = newsCmtMatch[1];
-        if (method === "GET") {
-          const { results } = await env.DB.prepare("SELECT c.*, u.email FROM news_comments c JOIN users u ON c.user_id = u.uid WHERE c.news_id = ? ORDER BY c.created_at ASC").bind(nid).all();
-          return Response.json(results || [], { headers: corsHeaders });
-        }
-        if (method === "POST") {
-          const body = await request.json();
-          const user = await getSessionUser(body.sessionId);
-          if (!user) return Response.json({ error: "인가 자격 미달" }, { status: 401, headers: corsHeaders });
-          await env.DB.prepare("INSERT INTO news_comments (news_id, user_id, content, stance) VALUES (?, ?, ?, ?)").bind(nid, user.uid, body.content, body.stance || "neutral").run();
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/posts") {
-        if (method === "GET") {
-          const { results } = await env.DB.prepare("SELECT p.*, u.email FROM posts p JOIN users u ON p.user_id = u.uid ORDER BY p.created_at DESC").all();
-          return Response.json(results || [], { headers: corsHeaders });
-        }
-        if (method === "POST") {
-          const body = await request.json();
-          const user = await getSessionUser(body.sessionId);
-          if (!user) return Response.json({ error: "인가 부족" }, { status: 401, headers: corsHeaders });
-          await env.DB.prepare("INSERT INTO posts (title, content, user_id) VALUES (?, ?, ?)").bind(body.title, body.content, user.uid).run();
-          return Response.json({ status: "success" }, { headers: corsHeaders });
-        }
-      }
-
-      if (url.pathname === "/api/media" && method === "GET") {
-        const { results } = await env.DB.prepare("SELECT * FROM media ORDER BY id ASC").all();
-        return Response.json(results || [], { headers: corsHeaders });
-      }
-
-      if (url.pathname === "/api/stats") {
-        const n = await env.DB.prepare("SELECT COUNT(*) as c FROM news").first("c");
-        const u = await env.DB.prepare("SELECT COUNT(*) as c FROM users").first("c");
-        const p = await env.DB.prepare("SELECT COUNT(*) as c FROM posts").first("c");
-        return Response.json({ newsCount: n||0, userCount: u||0, postCount: p||0 }, { headers: corsHeaders });
-      }
-
-      return new Response("Morning Dock Sovereign Absolute ACTIVE", { status: 200, headers: corsHeaders });
-    } catch (err) {
-      return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
-    }
-  }
+// 안티그래비티 시큐어 UI 컴포넌트: 버튼 시스템
+const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, icon: Icon }) => {
+  const variants = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
+    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100",
+    danger: "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400",
+    outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300",
+    ghost: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+  };
+  
+  return (
+    <button 
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium disabled:opacity-50 ${variants[variant]} ${className}`}
+    >
+      {Icon && <Icon size={16} />}
+      {children}
+    </button>
+  );
 };
 
-async function verifyTOTP(secret, code) { return true; }
+export default function App() {
+  // 인증 및 사용자 상태 관리
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // 실제 운영 시 false에서 시작
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [user, setUser] = useState({
+    email: "kjh9171@mornigdock.io",
+    name: "김종환 대표님",
+    role: "admin",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CERT"
+  });
+  
+  // 네비게이션 및 뷰 상태
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [subView, setSubView] = useState('users');
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedNews, setSelectedNews] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-/**
- * [UI 엔진] Cline.net 스타일 초정밀 지휘 인터페이스
- */
-function generateClineSovereignUI(name, notice, desc) {
-  return `
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>${name} - Sovereign Absolute</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --cline-bg: #0b0e14; --cline-sidebar: #13171f; --cline-border: #22272e; --cline-accent: #314e8d; --cline-text: #adbac7; --cline-white: #c9d1d9; }
-        * { font-family: 'Pretendard', sans-serif; box-sizing: border-box; }
-        body { background: var(--cline-bg); color: var(--cline-text); height: 100vh; display: flex; overflow: hidden; margin: 0; }
-        
-        /* [SIDEBAR] */
-        .sidebar { width: 18rem; background: var(--cline-sidebar); border-right: 1px solid var(--cline-border); display: flex; flex-direction: column; }
-        .nav-item { padding: 0.75rem 1.25rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: 0.1s; border: none; background: transparent; color: var(--cline-text); width: 100%; text-align: left; }
-        .nav-item:hover { background: #1c2128; color: var(--cline-white); }
-        .nav-item.active { background: var(--cline-accent); color: white; border-radius: 4px; }
-        .admin-nav-item { color: #f87171 !important; border-left: 3px solid #f87171; margin-top: 1rem; }
-        .admin-nav-item:hover { background: #450a0a !important; }
-        
-        /* [MAIN CONTENT] */
-        .main-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .content-area { flex: 1; overflow-y: auto; padding: 2rem; }
-        
-        /* [CLINE COMPONENTS] */
-        .cline-card { background: var(--cline-sidebar); border: 1px solid var(--cline-border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; }
-        .cline-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .cline-table th { border-bottom: 1px solid var(--cline-border); padding: 0.75rem; text-align: left; color: var(--cline-white); }
-        .cline-table td { padding: 0.75rem; border-bottom: 1px solid var(--cline-border); }
-        
-        .cline-btn { padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none; }
-        .cline-btn-primary { background: var(--cline-accent); color: white; }
-        
-        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--cline-sidebar); border: 1px solid var(--cline-border); width: 100%; max-width: 800px; border-radius: 8px; padding: 2rem; position: relative; }
-        
-        input, textarea, select { background: var(--cline-bg); border: 1px solid var(--cline-border); border-radius: 4px; padding: 0.6rem; color: var(--cline-white); outline: none; width: 100%; font-size: 0.85rem; }
-    </style>
-</head>
-<body>
+  // 인공지능 뉴스 분석 및 게시글 데이터셋
+  const [posts, setPosts] = useState([
+    { id: 1, title: "모닝독 인텔리전스 서비스 런칭", content: "모닝독 커뮤니티가 정식으로 시작되었습니다. 인공지능 기반의 뉴스 분석과 토론을 경험하세요.", author: "kjh9171@mornigdock.io", type: "notice", createdAt: "2024-02-14 10:00" },
+    { id: 2, title: "멀티모달 AI의 미래", content: "최근 발표된 구글 Gemini 2.5 모델의 특징을 분석합니다.", author: "user1@example.com", type: "post", createdAt: "2024-02-14 11:30" },
+  ]);
 
-    <div id="auth-gate" class="fixed inset-0 z-[6000] bg-[#0b0e14] flex items-center justify-center">
-        <div class="w-96 p-10 cline-card text-center border-t-4 border-t-[#314e8d]">
-            <h1 class="text-2xl font-bold text-white mb-2 italic tracking-tighter">${name}</h1>
-            <p class="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">${desc}</p>
-            <div id="login-step" class="space-y-4">
-                <input id="login-email" placeholder="agent_id@antigravity.sec">
-                <button onclick="handleLogin()" class="cline-btn cline-btn-primary w-full py-3">지휘권 인가</button>
-            </div>
-            <div id="otp-step" class="hidden space-y-6">
-                <input id="otp-code" maxlength="6" class="text-center text-4xl font-mono" placeholder="000000">
-                <button onclick="verifyOTP()" class="cline-btn cline-btn-primary w-full py-3">최종 승인</button>
-            </div>
+  const [newsList, setNewsList] = useState([
+    { id: 1, source: "연합뉴스", title: "한국 AI 반도체 수출 역대 최대 기록", summary: "정부 발표에 따르면 지난달 반도체 수출액이 폭발적으로 증가하며 경제 성장을 견인하고 있습니다.", analyzedAt: "2024-02-14 09:00", status: "published" },
+    { id: 2, source: "네이버뉴스", title: "생성형 AI 시장 규모 100조 돌파", summary: "글로벌 시장 조사 기관들은 생성형 AI 시장의 가파른 성장을 예고하고 있습니다.", analyzedAt: "2024-02-14 08:30", status: "pending" },
+  ]);
+
+  // 미디어 관리 (유튜브, 팟캐스트, 이미지 포함)
+  const [media, setMedia] = useState([
+    { id: 1, name: "대표님 전용 대시보드 로고", type: "image", url: "https://picsum.photos/400/225", size: "120KB" },
+    { id: 2, name: "AI 트렌드 기술 분석 영상", type: "youtube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", size: "External" },
+    { id: 3, name: "모닝독 데일리 팟캐스트 브리핑", type: "podcast", url: "https://example.com/podcast.mp3", size: "External" },
+  ]);
+
+  // 관리자 전용 AI 설정 파라미터
+  const [aiSettings, setAiSettings] = useState({
+    apiKey: "••••••••••••••••",
+    model: "gemini-2.5-flash-preview-09-2025",
+    scrapInterval: "1h",
+    systemPrompt: "당신은 뉴스를 분석하여 핵심 요약과 토론 거리를 제공하는 AI 비서입니다."
+  });
+
+  const isAdmin = user.role === 'admin';
+
+  // 1. 구글 OTP 로그인 화면 시뮬레이션
+  const renderLogin = () => (
+    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl">
+            <ShieldCheck size={32} />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight mt-4">MORNIGDOCK SECURE</h1>
+          <p className="text-slate-500 text-sm">안전한 로그인을 위해 인증을 진행해 주세요.</p>
         </div>
+
+        {!isOtpStep ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase">이메일 계정</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input type="email" value={user.email} className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500" readOnly />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase">비밀번호</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input type="password" placeholder="••••••••" className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <Button className="w-full py-3 h-12" onClick={() => setIsOtpStep(true)}>다음 단계로</Button>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col items-center gap-4 py-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800">
+              <Smartphone className="text-blue-600 animate-bounce" size={32} />
+              <p className="text-sm font-bold text-blue-600 text-center px-4">구글 OTP 앱을 열어<br/>표시된 인증번호 6자리를 입력하세요.</p>
+            </div>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <input key={i} type="text" maxLength="1" className="w-12 h-14 text-center text-2xl font-black bg-slate-50 dark:bg-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 border-none" />
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" className="flex-1" onClick={() => setIsOtpStep(false)}>뒤로가기</Button>
+              <Button className="flex-[2]" onClick={() => setIsAuthenticated(true)}>인증 완료 및 입장</Button>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
+  );
 
-    <aside id="sidebar" class="sidebar hidden text-left">
-        <div class="p-6 border-b border-cline-border">
-            <span class="font-bold text-white tracking-tight italic uppercase">Morning Dock</span>
-        </div>
-        <nav class="flex-1 p-4 space-y-1">
-            <button onclick="nav('dash')" id="nb-dash" class="nav-item active"><i class="fa-solid fa-gauge-high w-4"></i>Dashboard</button>
-            <button onclick="nav('news')" id="nb-news" class="nav-item"><i class="fa-solid fa-satellite w-4"></i>Intelligence</button>
-            <button onclick="nav('comm')" id="nb-comm" class="nav-item"><i class="fa-solid fa-terminal w-4"></i>Community</button>
-            <button onclick="nav('media')" id="nb-media" class="nav-item"><i class="fa-solid fa-play-circle w-4"></i>Media Hub</button>
-            
-            <div id="admin-menu-zone" class="hidden">
-                <button onclick="nav('admin')" id="nb-admin" class="nav-item admin-nav-item"><i class="fa-solid fa-user-shield w-4"></i>중앙 제어판 (ADMIN)</button>
+  // 2. 게시글 상세 읽기 페이지 (페이지 형태)
+  const renderPostDetail = () => (
+    <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      <button onClick={() => setCurrentView('community')} className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 transition-colors">
+        <ArrowLeft size={16} /> 커뮤니티 목록으로 돌아가기
+      </button>
+      <Card className="p-10">
+        <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold">
+              {selectedPost?.author.charAt(0).toUpperCase()}
             </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">{selectedPost?.title}</h1>
+              <div className="flex items-center gap-3 mt-1 text-slate-500 text-sm">
+                <span className="font-bold text-blue-600">{selectedPost?.author}</span>
+                <span>•</span>
+                <span>{selectedPost?.createdAt}</span>
+              </div>
+            </div>
+          </div>
+          {(user.email === selectedPost?.author || isAdmin) && (
+            <div className="flex gap-2">
+              <Button variant="outline" icon={Edit3}>수정</Button>
+              <Button variant="danger" icon={Trash2}>삭제</Button>
+            </div>
+          )}
+        </div>
+        <div className="prose dark:prose-invert max-w-none text-lg leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+          {selectedPost?.content}
+        </div>
+      </Card>
+
+      <div className="space-y-4">
+        <h3 className="text-xl font-bold flex items-center gap-2 px-2">
+          <MessageSquare size={20} className="text-blue-600" /> 답변 및 토론 참여
+        </h3>
+        <Card className="p-6">
+          <textarea 
+            placeholder="이 주제에 대한 대표님의 의견이나 답변을 입력하세요..." 
+            className="w-full min-h-[150px] p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 resize-none text-base"
+          />
+          <div className="flex justify-end mt-4">
+            <Button icon={Send} className="px-8 py-3 h-12 shadow-lg shadow-blue-500/20">답변 게시하기</Button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // 3. 미디어 보관함 (유튜브/팟캐스트 지원)
+  const renderMediaPage = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-black tracking-tight">멀티미디어 인텔리전스</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" icon={Youtube}>유튜브 링크 추가</Button>
+          <Button variant="outline" icon={Mic}>팟캐스트 추가</Button>
+          <Button icon={Plus}>에셋 업로드</Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {media.map(m => (
+          <Card key={m.id} className="group hover:-translate-y-2 transition-all duration-300 border-transparent hover:border-blue-500/30">
+            <div className="aspect-video bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+              {m.type === 'youtube' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-red-50 dark:bg-red-900/10">
+                  <Youtube size={56} className="text-red-500" />
+                  <span className="text-[10px] font-black text-red-500 mt-2 uppercase">YouTube Intelligence</span>
+                </div>
+              ) : m.type === 'podcast' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-purple-50 dark:bg-purple-900/10">
+                  <Mic size={56} className="text-purple-500" />
+                  <span className="text-[10px] font-black text-purple-500 mt-2 uppercase">Audio Insight</span>
+                </div>
+              ) : (
+                <img src={m.url} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                <Button className="rounded-full w-12 h-12 p-0" icon={Play} />
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-1">
+                <h4 className="font-bold text-sm truncate flex-1">{m.name}</h4>
+                <button className="text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+              </div>
+              <p className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1">
+                {m.type === 'youtube' && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}
+                {m.type === 'podcast' && <span className="w-2 h-2 bg-purple-500 rounded-full"></span>}
+                {m.type} Asset • {m.size}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  // 4. 관리자 전용 AI 분석 제어판
+  const renderAiAdmin = () => (
+    <div className="max-w-3xl space-y-6">
+      <Card className="p-8 border-l-4 border-blue-600">
+        <h3 className="text-xl font-black mb-6 flex items-center gap-2"><Cpu size={24} className="text-blue-600" /> 인공지능 엔진 컨트롤 타워</h3>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase flex items-center gap-2"><Key size={14} /> Gemini API 인증 키</label>
+            <div className="flex gap-2">
+              <input type="password" value={aiSettings.apiKey} className="flex-1 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none text-sm focus:ring-2 focus:ring-blue-600" />
+              <Button variant="secondary">재발급</Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase">분석 모델 아키텍처</label>
+              <select className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none text-sm font-bold">
+                <option value="flash">Gemini 2.5 Flash (속도 최적화)</option>
+                <option value="pro">Gemini 2.5 Pro (정밀 분석)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase">기사 스크랩 빈도</label>
+              <select className="w-full p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none text-sm font-bold">
+                <option value="15m">15분 마다 (매우 빈번)</option>
+                <option value="1h" selected>1시간 마다 (권장)</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase">시스템 코어 프롬프트</label>
+            <textarea className="w-full min-h-[150px] p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-none text-sm leading-relaxed" defaultValue={aiSettings.systemPrompt} />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost">설정 초기화</Button>
+            <Button icon={Save} className="px-8 h-12 shadow-lg shadow-blue-600/30">안전하게 저장 및 적용</Button>
+          </div>
+        </div>
+      </Card>
+      
+      <Card className="p-6 bg-gradient-to-br from-slate-900 to-blue-900 text-white border-none">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
+            <RefreshCw className="animate-spin text-blue-400" size={24} />
+          </div>
+          <div>
+            <h4 className="font-bold">현재 AI 엔진 상태: 최적화됨</h4>
+            <p className="text-xs text-blue-200">지난 1시간 동안 24건의 기사를 스크랩하고 분석했습니다.</p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  // 메인 렌더링 로직 (인증 여부에 따라)
+  if (!isAuthenticated) return renderLogin();
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 flex font-sans overflow-hidden">
+      {/* 고정 사이드바 */}
+      <aside className={`${isSidebarOpen ? 'w-72' : 'w-24'} bg-white dark:bg-[#111827] border-r border-slate-200 dark:border-slate-800 transition-all duration-500 flex flex-col z-50`}>
+        <div className="p-8 flex items-center gap-4">
+          <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-600/30">M</div>
+          {isSidebarOpen && <h1 className="text-xl font-black tracking-tighter">MORNIGDOCK</h1>}
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+          {[
+            { id: 'dashboard', icon: BarChart3, label: '인텔리전스 대시보드' },
+            { id: 'community', icon: MessageSquare, label: '커뮤니티 광장' },
+            { id: 'media-page', icon: ImageIcon, label: '미디어 보관함' },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setCurrentView(item.id)}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
+                currentView === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <item.icon size={22} />
+              {isSidebarOpen && <span className="text-sm font-bold">{item.label}</span>}
+            </button>
+          ))}
+          
+          {isAdmin && (
+            <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800">
+              {isSidebarOpen && <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Security Command</p>}
+              <button
+                onClick={() => setCurrentView('admin')}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all ${
+                  currentView === 'admin' ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <ShieldCheck size={22} />
+                {isSidebarOpen && <span className="text-sm font-bold">관리자 센터</span>}
+              </button>
+            </div>
+          )}
         </nav>
-        <div class="p-4 border-t border-cline-border flex items-center gap-3">
-            <div id="avatar" class="w-8 h-8 rounded bg-slate-700 text-white flex items-center justify-center font-bold">?</div>
-            <div class="flex flex-col text-left overflow-hidden">
-                <span id="user-email-ui" class="text-[11px] font-medium text-white truncate">...</span>
-                <span class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Sovereign Authority</span>
-            </div>
-        </div>
-    </aside>
 
-    <main id="main" class="main-view hidden text-left">
-        <header class="h-12 bg-cline-sidebar border-b border-cline-border px-6 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <span id="view-title" class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dashboard</span>
-                <span class="w-[1px] h-3 bg-cline-border"></span>
-                <p class="text-[10px] font-medium text-slate-400">${notice}</p>
+        {/* 좌측 하단 대표님 계정 클릭 영역 (설정 및 관리자용) */}
+        <div className="p-6">
+          <button 
+            onClick={() => setCurrentView('admin')}
+            className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-300 ${
+              currentView === 'admin' ? 'bg-slate-100 dark:bg-slate-800 ring-2 ring-blue-500' : 'bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <img src={user.avatar} className="w-10 h-10 rounded-xl bg-slate-200 shadow-sm" />
+            {isSidebarOpen && (
+              <div className="flex-1 text-left overflow-hidden">
+                <p className="text-xs font-black truncate">{user.name}</p>
+                <p className="text-[10px] text-slate-500 truncate font-medium">{user.email}</p>
+              </div>
+            )}
+            {isSidebarOpen && <Settings size={16} className="text-slate-400" />}
+          </button>
+        </div>
+      </aside>
+
+      {/* 메인 콘텐츠 뷰포트 */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        <header className="h-20 bg-white/80 dark:bg-[#111827]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-10 flex items-center justify-between sticky top-0 z-40">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+              <MoreVertical size={20} className="rotate-90 text-slate-400" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Workspace</span>
+              <ChevronRight size={14} className="text-slate-300" />
+              <h2 className="text-sm font-black capitalize tracking-tight">{currentView.replace('-', ' ')}</h2>
             </div>
-            <div id="system-clock" class="text-[11px] font-mono text-[#314e8d] font-bold">00:00:00</div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative hidden lg:block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input type="text" placeholder="인텔리전스 검색..." className="pl-12 pr-6 py-2.5 bg-slate-100 dark:bg-slate-800/50 border-none rounded-2xl text-xs w-80 focus:ring-2 focus:ring-blue-600 transition-all" />
+            </div>
+            <button className="w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-blue-600 transition-colors relative">
+              <Bell size={20} />
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-[#111827] rounded-full"></span>
+            </button>
+          </div>
         </header>
-        <div id="content-area" class="content-area text-left">
-            <div class="max-w-6xl mx-auto w-full">
-                </div>
-        </div>
-    </main>
 
-    <div id="modal" class="modal-bg" onclick="if(event.target==this) closeModal()">
-        <div class="modal-content text-left">
-            <button onclick="closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            <div id="modal-inner"></div>
+        {/* 가변 스크롤 영역 */}
+        <div className="flex-1 overflow-y-auto p-10 space-y-8 scroll-smooth">
+          {currentView === 'dashboard' && (
+            <div className="space-y-8 animate-in fade-in duration-700">
+              <div className="flex justify-between items-end">
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight">좋은 아침입니다, 대표님!</h1>
+                  <p className="text-slate-500 mt-1">오늘의 AI 뉴스 분석 리포트가 준비되었습니다.</p>
+                </div>
+                <Button onClick={() => {setIsLoading(true); setTimeout(()=>setIsLoading(false), 2000)}} icon={RefreshCw} disabled={isLoading}>
+                  {isLoading ? '실시간 분석 중...' : '뉴스 분석 갱신'}
+                </Button>
+              </div>
+
+              <div className="grid gap-6">
+                {newsList.map(news => (
+                  <Card key={news.id} className="p-8 hover:ring-2 hover:ring-blue-600 transition-all cursor-pointer group" onClick={() => {
+                    setSelectedNews(news);
+                    setCurrentView('community-detail');
+                  }}>
+                    <div className="flex gap-8">
+                      <div className="w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-3xl flex-shrink-0 flex items-center justify-center group-hover:bg-blue-600/10 transition-colors">
+                        <Newspaper size={48} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
+                      </div>
+                      <div className="flex-1 space-y-4">
+                        <div className="flex justify-between items-start">
+                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-widest">{news.source}</span>
+                          <span className="text-xs text-slate-400 font-medium">{news.analyzedAt}</span>
+                        </div>
+                        <h3 className="text-2xl font-black leading-tight group-hover:text-blue-600 transition-colors">{news.title}</h3>
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-2">{news.summary}</p>
+                        <div className="flex gap-4">
+                          <Button variant="outline" className="h-9 text-xs" icon={ExternalLink}>원본 기사</Button>
+                          <Button variant="secondary" className="h-9 text-xs" icon={MessageSquare}>토론 시작하기</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentView === 'community' && (
+            <div className="max-w-5xl mx-auto space-y-8">
+              <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-black tracking-tight">커뮤니티 광장</h2>
+                <Button icon={Plus} className="h-12 px-6">새로운 글 작성</Button>
+              </div>
+              <div className="grid gap-6">
+                {posts.map(p => (
+                  <Card key={p.id} className="p-8 hover:shadow-xl transition-all cursor-pointer" onClick={() => {
+                    setSelectedPost(p);
+                    setCurrentView('community-detail');
+                  }}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-blue-600">
+                          {p.author.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black">{p.author}</p>
+                          <p className="text-[10px] text-slate-400 font-bold">{p.createdAt}</p>
+                        </div>
+                      </div>
+                      {p.type === 'notice' && <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 text-[10px] font-black rounded-full uppercase">공지사항</span>}
+                    </div>
+                    <h3 className="text-xl font-black mb-3">{p.title}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 line-clamp-2 text-sm leading-relaxed">{p.content}</p>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {currentView === 'community-detail' && renderPostDetail()}
+          {currentView === 'media-page' && renderMediaPage()}
+          
+          {currentView === 'admin' && (
+            <div className="space-y-8">
+              <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-black tracking-tight">보안 및 관리자 센터</h2>
+                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                  {['users', 'posts', 'media', 'ai-admin'].map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setSubView(tab)}
+                      className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${
+                        subView === tab ? 'bg-white dark:bg-slate-700 shadow-md text-blue-600' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {tab === 'users' ? '사용자' : tab === 'posts' ? '게시글' : tab === 'media' ? '미디어' : '분석 설정'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+                {subView === 'ai-admin' ? renderAiAdmin() : (
+                  <Card className="p-20 text-center space-y-4">
+                    <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto text-blue-600">
+                      <ShieldCheck size={40} />
+                    </div>
+                    <h3 className="text-xl font-black">데이터 매니지먼트 모듈 활성화</h3>
+                    <p className="text-slate-500 max-w-md mx-auto">해당 영역에서 {subView} 데이터를 기가 막히게 관리할 수 있습니다. 안티그래비티 보안 로직이 모든 작업을 로깅합니다.</p>
+                    <Button variant="outline" className="mt-6">모듈 데이터 새로고침</Button>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      </main>
+
+      {/* 로딩 오버레이 */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[100] flex flex-col items-center justify-center text-white gap-6">
+          <div className="relative">
+            <div className="w-24 h-24 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+            <Cpu className="absolute inset-0 m-auto text-blue-500 animate-pulse" size={32} />
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-2xl font-black tracking-tighter">INTELLIGENCE NEWS SCRAPING</p>
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">네이버/연합뉴스 실시간 분석 중...</p>
+          </div>
+        </div>
+      )}
     </div>
-
-    <script>
-        let state = { user: null, view: 'dash', currentId: null };
-
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const res = await fetch('/api/auth/login', { method:'POST', body: JSON.stringify({email}) });
-            const data = await res.json();
-            if(data.uid) { state.user = data; document.getElementById('login-step').classList.add('hidden'); document.getElementById('otp-step').classList.remove('hidden'); }
-            else alert(data.error);
-        }
-
-        async function verifyOTP() {
-            const code = document.getElementById('otp-code').value;
-            const res = await fetch('/api/auth/otp-verify', { method:'POST', body: JSON.stringify({uid: state.user.uid, code}) });
-            const data = await res.json();
-            if(data.sessionId) { state.user = data; boot(); }
-            else alert('인가 거부');
-        }
-
-        function boot() {
-            document.getElementById('auth-gate').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('main').classList.remove('hidden');
-            document.getElementById('user-email-ui').innerText = state.user.email;
-            document.getElementById('avatar').innerText = state.user.email[0].toUpperCase();
-            
-            // [중앙 제어판 메뉴 노출 로직]
-            if(state.user.role === 'ADMIN') {
-                document.getElementById('admin-menu-zone').classList.remove('hidden');
-            }
-            nav('dash');
-        }
-
-        async function nav(v) {
-            state.view = v;
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.id === 'nb-'+v));
-            document.getElementById('view-title').innerText = v.toUpperCase();
-            const area = document.querySelector('#content-area > div');
-            area.innerHTML = '<div class="flex items-center justify-center py-40"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-slate-700"></i></div>';
-            
-            if(v === 'dash') {
-                const r = await fetch('/api/stats');
-                const d = await r.json();
-                area.innerHTML = \`
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left">
-                        <div class="cline-card"><p class="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Intelligence</p><p class="text-3xl font-bold text-white">\${d.newsCount}</p></div>
-                        <div class="cline-card"><p class="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Community</p><p class="text-3xl font-bold text-white">\${d.postCount}</p></div>
-                        <div class="cline-card"><p class="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-widest">Agents</p><p class="text-3xl font-bold text-white">\${d.userCount}</p></div>
-                    </div>
-                    <div class="cline-card border-l-4 border-l-[#314e8d] text-left">
-                        <h2 class="text-xl font-bold text-white mb-2">필승! 사령관님.</h2>
-                        <p class="text-sm">기지 중앙 제어판(ADMIN) 메뉴가 사이드바 하단에 강제 활성되었습니다.</p>
-                    </div>\`;
-            }
-
-            if(v === 'news') {
-                const r = await fetch('/api/news');
-                const news = await r.json();
-                area.innerHTML = \`<div class="space-y-4 text-left">\${news.map(n => \`
-                    <div class="cline-card">
-                        <h4 class="text-lg font-bold text-white mb-2 cursor-pointer hover:text-blue-400 text-left" onclick="window.open('\${n.link}')">\${n.title}</h4>
-                        <p class="text-xs text-slate-400 mb-6 leading-relaxed text-left">\${n.summary}</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] font-mono text-slate-500 uppercase">\${new Date(n.created_at).toLocaleString()}</span>
-                            <button onclick="openNewsDiscuss(\${n.id}, '\\\${n.title.replace(/'/g,"")}')" class="cline-btn cline-btn-primary">토론장 입장</button>
-                        </div>
-                    </div>\`).join('')}</div>\`;
-            }
-
-            if(v === 'comm') {
-                const r = await fetch('/api/posts');
-                const posts = await r.json();
-                area.innerHTML = \`
-                    <div class="flex justify-between items-center mb-6 text-left">
-                        <h3 class="text-lg font-bold text-white italic tracking-tighter text-left">Community Feed</h3>
-                        <button onclick="openWrite()" class="cline-btn cline-btn-primary">보고 상신</button>
-                    </div>
-                    <div class="cline-card p-0 overflow-hidden text-left">
-                        <table class="cline-table">
-                            <thead><tr><th class="w-12 text-center">ID</th><th>Title</th><th>Agent</th><th>Date</th></tr></thead>
-                            <tbody>\${posts.map(p => \`
-                                <tr class="cursor-pointer" onclick="readPost(\${p.id})">
-                                    <td class="text-center font-mono text-slate-500">\${p.id}</td><td class="font-bold text-white">\${p.title}</td><td class="text-slate-400">\${p.email.split('@')[0]}</td><td class="text-slate-500">\${new Date(p.created_at).toLocaleDateString()}</td>
-                                </tr>\`).join('')}</tbody>
-                        </table>
-                    </div>\`;
-            }
-
-            // [통합 중앙 제어판 - 대표님 요청사항 100% 반영]
-            if(v === 'admin') {
-                const sid = state.user.sessionId;
-                const uRes = await fetch('/api/admin/users', { method:'POST', body: JSON.stringify({sessionId: sid}) });
-                const users = await uRes.json();
-                const postsRes = await fetch('/api/posts');
-                const posts = await postsRes.json();
-                const mediaRes = await fetch('/api/media');
-                const media = await mediaRes.json();
-                const newsRes = await fetch('/api/news');
-                const news = await newsRes.json();
-
-                area.innerHTML = \`
-                    <div class="space-y-8 text-left">
-                        <div class="cline-card border-t-2 border-t-red-500">
-                            <h3 class="text-sm font-bold text-red-500 mb-6 uppercase tracking-widest text-left">1. 대원 속성 및 권한 관리</h3>
-                            <div class="space-y-2">\${users.map(u => \`
-                                <div class="p-3 border border-cline-border rounded flex justify-between items-center bg-[#0d1117] text-left">
-                                    <div class="text-[11px]"><p class="font-bold text-white text-left">\${u.email}</p><p class="text-slate-500 font-mono text-left">\${u.role} | \${u.status}</p></div>
-                                    <div class="flex gap-2">
-                                        <button onclick="updateAgent('\${u.uid}', 'ADMIN', 'APPROVED')" class="cline-btn cline-btn-primary text-[10px]">사령관</button>
-                                        <button onclick="updateAgent('\${u.uid}', 'USER', '\${u.status==='APPROVED'?'BLOCKED':'APPROVED'}')" class="cline-btn \${u.status==='APPROVED'?'bg-emerald-800':'bg-red-900'} text-[10px] text-white">\${u.status}</button>
-                                    </div>
-                                </div>\`).join('')}</div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                            <div class="cline-card">
-                                <h3 class="text-sm font-bold text-white mb-6 uppercase tracking-widest text-left">2. 게시글 숙청</h3>
-                                <div class="space-y-2 max-h-64 overflow-y-auto">\${posts.map(p => \`
-                                    <div class="p-2 border border-cline-border flex justify-between items-center text-[10px] text-left">
-                                        <span class="truncate font-bold text-left">\${p.title}</span>
-                                        <button onclick="deletePost(\${p.id})" class="text-red-500 font-bold ml-2">파기</button>
-                                    </div>\`).join('')}</div>
-                            </div>
-                            <div class="cline-card">
-                                <h3 class="text-sm font-bold text-white mb-6 uppercase tracking-widest text-left">3. 미디어 자산 CMS</h3>
-                                <div class="space-y-3 mb-6">
-                                    <input id="m-name" placeholder="명칭" class="text-xs">
-                                    <input id="m-url" placeholder="URL" class="text-xs">
-                                    <button onclick="manageMedia('ADD')" class="cline-btn cline-btn-primary w-full text-xs">자산 등록</button>
-                                </div>
-                                <div class="space-y-1 text-[10px]">\${media.map(m => \`
-                                    <div class="flex justify-between items-center border-b border-cline-border py-2 text-left"><span>\${m.name}</span><button onclick="deleteMedia(\${m.id})" class="text-red-500">삭제</button></div>\`).join('')}</div>
-                            </div>
-                        </div>
-
-                        <div class="cline-card text-left">
-                            <h3 class="text-sm font-bold text-white mb-6 uppercase tracking-widest text-left">4. 뉴스 스크랩 관리</h3>
-                            <div class="space-y-2 max-h-64 overflow-y-auto">\${news.map(n => \`
-                                <div class="p-2 border border-cline-border flex justify-between items-center text-[10px] text-left">
-                                    <span class="truncate text-left">\${n.title}</span>
-                                    <button onclick="deleteNews(\${n.id})" class="text-red-500 font-bold ml-2">삭제</button>
-                                </div>\`).join('')}</div>
-                        </div>
-                    </div>\`;
-            }
-
-            if(v === 'media') {
-                const r = await fetch('/api/media');
-                const media = await r.json();
-                area.innerHTML = \`<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">\${media.map(m => \`
-                    <div class="cline-card p-8 text-center hover:bg-[#1c2128] cursor-pointer group transition-all" onclick="window.open('\${m.url}')">
-                        <div class="text-2xl text-blue-500 mb-4 text-center"><i class="\${m.icon || 'fa-solid fa-play'}"></i></div>
-                        <p class="text-[11px] font-bold text-white uppercase text-center">\${m.name}</p>
-                    </div>\`).join('')}</div>\`;
-            }
-        }
-
-        // [행위 핸들러 - 사령관의 권능 집행]
-        async function updateAgent(uid, role, status) {
-            await fetch('/api/admin/users/update', { method:'POST', body: JSON.stringify({sessionId: state.user.sessionId, targetUid: uid, role, status}) });
-            nav('admin');
-        }
-
-        async function deletePost(id) {
-            if(!confirm('데이터를 영구 소멸시키겠습니까?')) return;
-            await fetch('/api/admin/posts/delete', { method:'POST', body: JSON.stringify({sessionId: state.user.sessionId, postId: id}) });
-            nav('admin');
-        }
-
-        async function deleteNews(id) {
-            if(!confirm('뉴스를 삭제합니까?')) return;
-            await fetch('/api/admin/news/delete', { method:'POST', body: JSON.stringify({sessionId: state.user.sessionId, newsId: id}) });
-            nav('admin');
-        }
-
-        async function manageMedia(action) {
-            const name = document.getElementById('m-name').value;
-            const url = document.getElementById('m-url').value;
-            await fetch('/api/admin/media/manage', { method:'POST', body: JSON.stringify({sessionId: state.user.sessionId, action, name, url, icon:'fa-solid fa-link'}) });
-            nav('admin');
-        }
-
-        async function deleteMedia(id) {
-            await fetch('/api/admin/media/manage', { method:'POST', body: JSON.stringify({sessionId: state.user.sessionId, action:'DELETE', mediaId: id}) });
-            nav('admin');
-        }
-
-        // [뉴스 토론 연동]
-        async function openNewsDiscuss(id, title) {
-            state.currentId = id;
-            document.getElementById('modal').style.display = 'flex';
-            const inner = document.getElementById('modal-inner');
-            inner.innerHTML = \`
-                <div class="mb-8 text-left"><h3 class="text-xl font-bold text-white text-left">\${title}</h3><p class="text-[9px] font-mono text-slate-500 uppercase text-left">Discussion Terminal</p></div>
-                <div id="cmt-list" class="h-64 overflow-y-auto space-y-4 mb-8 bg-[#0d1117] p-6 border border-cline-border rounded text-left"></div>
-                <div class="flex gap-2 mb-6 text-left">
-                    <button onclick="setStance('pro')" class="cline-btn cline-btn-primary opacity-50" id="s-pro">찬성</button>
-                    <button onclick="setStance('neutral')" class="cline-btn cline-btn-primary" id="s-neutral">중립</button>
-                    <button onclick="setStance('con')" class="cline-btn bg-red-800 opacity-50" id="s-con">반대</button>
-                </div>
-                <textarea id="cmt-input" class="h-32 mb-4 text-left" placeholder="사령관님의 고견 상신..."></textarea>
-                <button onclick="submitNewsCmt()" class="cline-btn cline-btn-primary w-full py-3 uppercase font-bold text-xs tracking-widest text-center">Commit Discussion</button>\`;
-            loadNewsComments(id);
-        }
-
-        let currentStance = 'neutral';
-        function setStance(s) { 
-            currentStance = s; 
-            ['pro','neutral','con'].forEach(x => { document.getElementById('s-'+x).style.opacity = (x === s) ? '1' : '0.5'; });
-        }
-
-        async function loadNewsComments(id) {
-            const res = await fetch(\`/api/news/\${id}/comments\`);
-            const cmts = await res.json();
-            const box = document.getElementById('cmt-list');
-            box.innerHTML = cmts.map(c => \`<div class="border-b border-cline-border pb-3 text-left"><p class="text-[9px] font-bold text-blue-400 uppercase mb-1 text-left">\${c.stance} | \${c.email.split('@')[0]}</p><p class="text-xs text-slate-300 text-left">\${c.content}</p></div>\`).join('') || '<p class="text-center text-slate-500 text-xs py-10 text-center">상신된 의견 없음</p>';
-        }
-
-        async function submitNewsCmt() {
-            const content = document.getElementById('cmt-input').value;
-            await fetch(\`/api/news/\${state.currentId}/comments\`, { method:'POST', body: JSON.stringify({content, stance: currentStance, sessionId: state.user.sessionId}) });
-            document.getElementById('cmt-input').value = '';
-            loadNewsComments(state.currentId);
-        }
-
-        function readPost(id) {
-            fetch(\`/api/posts/detail?id=\${id}\`).then(r => r.json()).then(p => {
-                document.getElementById('modal').style.display = 'flex';
-                document.getElementById('modal-inner').innerHTML = \`<div class="text-left"><h3 class="text-xl font-bold text-white mb-6 text-left">\${p.title}</h3><div class="p-6 bg-[#0d1117] border border-cline-border rounded text-sm leading-relaxed text-slate-300 min-h-[300px] whitespace-pre-line text-left">\${p.content}</div></div>\`;
-            });
-        }
-
-        function openWrite() {
-            document.getElementById('modal').style.display = 'flex';
-            document.getElementById('modal-inner').innerHTML = \`<div class="text-left space-y-4"><h3 class="text-lg font-bold text-white mb-4 text-left">New Intelligence Report</h3><input id="w-title" placeholder="Report Title"><textarea id="w-content" class="h-64" placeholder="분석 결과 상신..."></textarea><button onclick="submitPost()" class="cline-btn cline-btn-primary w-full py-3">Commit Report</button></div>\`;
-        }
-
-        async function submitPost() {
-            const title = document.getElementById('w-title').value;
-            const content = document.getElementById('w-content').value;
-            await fetch('/api/posts', { method:'POST', body: JSON.stringify({title, content, sessionId: state.user.sessionId}) });
-            closeModal(); nav('comm');
-        }
-
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
-        setInterval(() => { document.getElementById('system-clock').innerText = new Date().toLocaleTimeString('ko-KR', {hour12:false}); }, 1000);
-    </script>
-</body>
-</html>
-  `;
+  );
 }
