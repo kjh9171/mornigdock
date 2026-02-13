@@ -23,7 +23,7 @@ const formattedTime = now.toLocaleTimeString("en-US", {
 hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true,
 });
 // 수정 완료: 백틱 기호를 명확히 삽입하여 구문 에러를 해결했습니다.
-console.log(${formattedTime} [${source}] ${message});
+console.log(`${formattedTime} [${source}] ${message}`);
 }
 
 app.use((req: Request, res: Response, next: NextFunction) => { // 통신 모니터링
@@ -38,8 +38,8 @@ return originalJson.apply(res, [body, ...args]);
 res.on("finish", () => { // 응답 종료 로그 기록
 const duration = Date.now() - start;
 if (path.startsWith("/api")) {
-let logLine = ${req.method} ${path} ${res.statusCode} in ${duration}ms;
-if (capturedBody) logLine +=  :: ${JSON.stringify(capturedBody)};
+let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+if (capturedBody) logLine += ` :: ${JSON.stringify(capturedBody)}`;
 log(logLine);
 }
 });
@@ -75,6 +75,6 @@ export default app; // Vercel 서버리스 익스포트
 if (process.env.NODE_ENV !== "production") { // 로컬 개발용 포트 개방
 const port = Number(process.env.PORT || 5000);
 httpServer.listen(port, "0.0.0.0", () => {
-log(Local server running on port ${port});
+log(`Local server running on port ${port}`);
 });
 }
