@@ -1,16 +1,16 @@
-import { storage } from "./storage";
+import { DatabaseStorage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
 /**
- * Workers용 OpenAI 호출 (Node SDK 제거)
+ * Workers용 OpenAI 호출
  */
 async function callOpenAI(prompt: string, env: any) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
@@ -23,8 +23,8 @@ async function callOpenAI(prompt: string, env: any) {
     throw new Error("OpenAI request failed");
   }
 
-  const data = await response.json();
-  return JSON.parse(data.choices[0].message.content || "{}");
+  const data: any = await response.json();
+  return JSON.parse(data.choices?.[0]?.message?.content || "{}");
 }
 
 /**
@@ -35,10 +35,12 @@ export async function registerRoutes(
   env: any,
   ctx: any
 ): Promise<Response> {
+
+  const storage = new DatabaseStorage(env); // ✅ 여기서 생성
+
   const url = new URL(request.url);
   const method = request.method;
 
-  // JSON body helper
   const parseBody = async () => {
     try {
       return await request.json();
@@ -54,7 +56,7 @@ export async function registerRoutes(
   }
 
   // === NEWS GET ===
-  if (method === "GET" && url.pathname.match(/^\/api\/news\/\d+$/)) {
+  if (method === "GET" && /^\/api\/news\/\d+$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/").pop());
     const news = await storage.getNewsItem(id);
     if (!news) return json({ message: "News not found" }, 404);
@@ -64,6 +66,7 @@ export async function registerRoutes(
   // === NEWS CREATE ===
   if (method === "POST" && url.pathname === api.news.create.path) {
     const body = await parseBody();
+
     try {
       const input = api.news.create.input.parse(body);
       const news = await storage.createNews(input);
@@ -77,14 +80,15 @@ export async function registerRoutes(
   }
 
   // === AI ANALYSIS ===
-  if (method === "POST" && url.pathname.match(/^\/api\/news\/\d+\/analyze$/)) {
+  if (method === "POST" && /^\/api\/news\/\d+\/analyze$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
     const newsItem = await storage.getNewsItem(id);
+
     if (!newsItem) return json({ message: "News not found" }, 404);
 
     try {
       const prompt = `
-Analyze this news article for the Antigravity platform:
+Analyze this news article:
 
 Title: ${newsItem.title}
 Content: ${newsItem.content}
@@ -104,20 +108,20 @@ Return JSON with:
       });
 
       return json(updatedNews);
-    } catch (error) {
+    } catch {
       return json({ message: "AI Analysis failed" }, 500);
     }
   }
 
   // === COMMENTS LIST ===
-  if (method === "GET" && url.pathname.match(/^\/api\/news\/\d+\/comments$/)) {
+  if (method === "GET" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
     const comments = await storage.getComments(id);
     return json(comments);
   }
 
   // === COMMENTS CREATE ===
-  if (method === "POST" && url.pathname.match(/^\/api\/news\/\d+\/comments$/)) {
+  if (method === "POST" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
     const body = await parseBody();
 
@@ -125,7 +129,7 @@ Return JSON with:
       const comment = await storage.createComment({
         content: body.content,
         newsId: id,
-        userId: 1, // ⚠️ 임시 고정 (Auth 제거 상태)
+        userId: 1, // Auth 제거 상태 (임시)
       });
 
       return json(comment, 201);
@@ -158,8 +162,6 @@ Return JSON with:
 function json(data: any, status: number = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
   });
 }

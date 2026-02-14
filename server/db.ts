@@ -1,14 +1,14 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@shared/schema";
 
-const { Pool } = pg;
+/**
+ * Cloudflare Workers D1 전용 DB 생성 함수
+ * env.DB 는 wrangler.toml에 정의된 D1 binding
+ */
+export function createDb(env: any) {
+  if (!env?.DB) {
+    throw new Error("D1 database binding (env.DB) is not defined.");
+  }
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  return drizzle(env.DB, { schema });
 }
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
