@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 
 workers_dev = true
 
+# 🔥 정적 파일 서빙
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
 # ---- D1 Database ----
 [[d1_databases]]
 binding = "DB"
@@ -21,10 +26,10 @@ id = "0d816f43804d400abe81df5bc45e5313"
 [ai]
 binding = "AI"
 
-# ---- Build Config (명시적으로 안정화) ----
+# ---- Build ----
 [build]
 command = "npm run build"
 
-# ---- Production Env ----
+# ---- Production ----
 [env.production]
 workers_dev = false
