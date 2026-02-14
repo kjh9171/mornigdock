@@ -2,7 +2,8 @@ name = "mornigdock-ap"
 # Use the built worker entry produced by the build: api/index.js
 # This resolves Cloudflare error 10068 (no event handlers registered)
 main = "api/index.js"
-compatibility_date = "2024-02-12"
+# Use a compatibility date that supports `node:` built-in imports
+compatibility_date = "2024-09-23"
 compatibility_flags = [ "nodejs_compat" ]
 
 [[d1_databases]]

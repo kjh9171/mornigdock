@@ -27,13 +27,8 @@ const serverBuildOptions: BuildOptions = {
   logOverride: {
     "unsupported-regexp": "silent",
   },
-  banner: {
-    // [CERT 필살기] ESM 환경에서 Node.js 표준 모듈 및 require 지원을 위한 폴리필 주입
-    js: `
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-`,
-  },
+  // Note: removed banner that statically imported `createRequire` to avoid
+  // duplicate-import errors during Wrangler build (Cloudflare Pages).
 };
 
 const runBuild = async () => {
