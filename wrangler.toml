@@ -1,19 +1,30 @@
-name = "mornigdock-ap"
-# Use the built worker entry produced by the build: api/index.js
-# This resolves Cloudflare error 10068 (no event handlers registered)
+name = "mornigdock"
 main = "api/index.js"
-# Use a compatibility date that supports `node:` built-in imports
-compatibility_date = "2024-09-23"
-compatibility_flags = [ "nodejs_compat" ]
 
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+# ---- D1 Database ----
 [[d1_databases]]
 binding = "DB"
 database_name = "morningdock-db"
 database_id = "60293aba-5567-4f16-a860-8ffca82e65da"
 
+# ---- KV Namespace ----
 [[kv_namespaces]]
 binding = "KV"
 id = "0d816f43804d400abe81df5bc45e5313"
 
+# ---- AI Binding ----
 [ai]
 binding = "AI"
+
+# ---- Build Config (명시적으로 안정화) ----
+[build]
+command = "npm run build"
+
+# ---- Production Env ----
+[env.production]
+workers_dev = false
