@@ -4,21 +4,28 @@ import path from "path"; // 경로 처리 모듈
 // 서버 빌드 옵션 설정
 const serverBuildOptions: BuildOptions = {
   entryPoints: ["server/index.ts"], // 진입점 설정
-  bundle: true, // 의존성 포함 번들링
+  bundle: true, // [CERT 중요] 모든 의존성을 하나로 번들링하여 Cloudflare Workers 환경에 최적화
   outfile: "api/index.js", // 출력 파일 경로 (wrangler.toml의 main과 일치)
   platform: "node", // 플랫폼 설정
-  format: "esm", // [CERT 중요] CJS에서 ESM으로 변경하여 클라우드플레어 규격 준수
+  format: "esm", // ESM 형식으로 출력하여 Cloudflare Workers 규격 준수
   target: "node20", // 타겟 런타임 설정
-  // [CERT 조치] 빌드 에러 해결을 위해 문제가 되는 바벨 내부 경로 및 불필요 모듈을 외부로 격리
+  // [CERT 조치] 빌드 에러 해결을 위해 실제 실행에 불필요한 도구들만 제외합니다.
+  // express는 반드시 번들링되어야 하므로 external에서 제거했습니다.
   external: [
-    "express", 
     "vite", 
-    "@babel/preset-typescript/package.json", 
-    "@babel/core"
+    "@babel/*", 
+    "fsevents"
   ], 
+  // [CERT 조치] 빌드 시 발생하는 해석 불가능한 경고 및 에러 무시 설정
+  logOverride: {
+    "unsupported-regexp": "silent",
+  },
   banner: {
-    // ESM 환경에서 __dirname 및 process.env 미비 문제 해결을 위한 폴리필 주입
-    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+    // ESM 환경에서 require 및 Node.js 표준 모듈 폴리필 지원을 위한 구문 주입
+    js: `
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+`,
   },
 };
 
