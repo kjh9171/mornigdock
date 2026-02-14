@@ -36,10 +36,6 @@ export async function registerRoutes(
   const url = new URL(request.url);
   const method = request.method;
 
-  // 🔥 ROOT (404 방지용)
-  if (url.pathname === "/") {
-    return json({ status: "Worker Running" });
-  }
 
   // =========================
   // NEWS LIST

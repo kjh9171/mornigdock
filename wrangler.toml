@@ -1,5 +1,5 @@
 name = "mornigdock"
-main = "api/index.js"
+main = "server/index.ts"
 
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
@@ -8,8 +8,9 @@ workers_dev = true
 
 # 🔥 정적 파일 서빙
 [assets]
-directory = "./dist"
+directory = "./dist/public"
 binding = "ASSETS"
+not_found_handling = "single-page-application"
 
 # ---- D1 Database ----
 [[d1_databases]]
@@ -29,7 +30,3 @@ binding = "AI"
 # ---- Build ----
 [build]
 command = "npm run build"
-
-# ---- Production ----
-[env.production]
-workers_dev = false

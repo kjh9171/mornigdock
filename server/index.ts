@@ -8,11 +8,17 @@ export function log(message: string, source: string = "worker") {
 export default {
   async fetch(request: Request, env: any, ctx: any): Promise<Response> {
     try {
+      const url = new URL(request.url);
+
+      // API 요청만 워커 라우터에서 처리하고,
+      // 그 외 경로는 정적 에셋(SPA)으로 전달
+      if (!url.pathname.startsWith("/api")) {
+        return await serveAsset(request, env);
+      }
+
       const start = Date.now();
       const response = await registerRoutes(request, env, ctx);
       const duration = Date.now() - start;
-
-      const url = new URL(request.url);
       if (url.pathname.startsWith("/api")) {
         log(`${request.method} ${url.pathname} ${response.status} ${duration}ms`);
       }
@@ -31,3 +37,19 @@ export default {
     }
   },
 };
+
+async function serveAsset(request: Request, env: any): Promise<Response> {
+  if (!env?.ASSETS?.fetch) {
+    return new Response("Static assets binding is not configured", { status: 500 });
+  }
+
+  const assetResponse = await env.ASSETS.fetch(request);
+
+  // SPA 라우팅: 파일이 없으면 index.html 반환
+  if (assetResponse.status === 404) {
+    const url = new URL(request.url);
+    return env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+  }
+
+  return assetResponse;
+}
