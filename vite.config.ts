@@ -19,6 +19,7 @@ export default defineConfig({
         ]
       : []),
   ],
+
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -26,11 +27,23 @@ export default defineConfig({
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
+
   root: path.resolve(import.meta.dirname, "client"),
+
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+
+    // Cloudflare Workers lightningcss 충돌 방지
+    rollupOptions: {
+      external: ["lightningcss"],
+    },
   },
+
+  optimizeDeps: {
+    exclude: ["lightningcss"],
+  },
+
   server: {
     fs: {
       strict: true,
