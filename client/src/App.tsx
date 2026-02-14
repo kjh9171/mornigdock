@@ -275,8 +275,7 @@ export default function App() {
           {[
             { id: 'users', label: '가입자 정보', icon: User },
             { id: 'content', label: '게시글 관리', icon: FileText },
-            { id: 'ai-config', label: 'AI 분석 설정', icon: Cpu },
-            { id: 'deploy-guide', label: '배포/데브옵스', icon: Terminal }
+            { id: 'ai-config', label: 'AI 분석 설정', icon: Cpu }
           ].map(tab => (
             <button
               key={tab.id} onClick={() => setAdminTab(tab.id)}
@@ -365,69 +364,7 @@ export default function App() {
           </div>
         )}
 
-        {adminTab === 'deploy-guide' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <Card className="p-10 border-none shadow-2xl space-y-8 bg-slate-900 text-slate-300">
-              <div className="flex items-center gap-4 text-white">
-                <div className="p-3 bg-red-600 rounded-2xl shadow-lg shadow-red-600/20"><AlertTriangle size={28} /></div>
-                <div>
-                  <h3 className="text-2xl font-black tracking-tight">Cloudflare Error 10068 해결 핵심 가이드</h3>
-                  <p className="text-slate-400 text-sm font-medium mt-1">이 에러는 서버의 입구(fetch handler)가 닫혀있을 때 발생합니다.</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-slate-800 rounded-2xl border border-slate-700 space-y-4">
-                  <h4 className="text-sm font-black text-blue-400 flex items-center gap-2"><CheckCircle2 size={16} /> STEP 1: server/index.ts 수정</h4>
-                  <p className="text-xs leading-relaxed">대표님의 서버 코드 최하단에 아래의 **CERT 보안 어댑터**를 추가해야 합니다. 이 코드가 없으면 클라우드플레어는 앱을 실행하지 못합니다.</p>
-                  <div className="bg-slate-950 p-4 rounded-xl font-mono text-[11px] text-blue-300 border border-slate-700 overflow-x-auto">
-{`/**
- * @CERT_SECURE_ADAPTER
- * Express 앱을 Cloudflare용으로 내보냅니다.
- */
-export default {
-  async fetch(request, env, ctx) {
-    return app.handle(request, env, ctx); 
-  }
-};`}
-                  </div>
-                </div>
 
-                <div className="p-6 bg-slate-800 rounded-2xl border border-slate-700 space-y-4">
-                  <h4 className="text-sm font-black text-blue-400 flex items-center gap-2"><CheckCircle2 size={16} /> STEP 2: wrangler.toml 확인</h4>
-                  <p className="text-xs leading-relaxed">설정 파일에서 메인 진입점이 정확한지 확인하십시오. 보통 `main = "server/index.ts"` 또는 빌드된 파일 경로여야 합니다.</p>
-                  <div className="bg-slate-950 p-4 rounded-xl font-mono text-[11px] text-green-300 border border-slate-700">
-{`[vars]
-# 환경 변수 설정
-ENVIRONMENT = "production"
-
-[main]
-# 진입점 설정 확인
-main = "server/index.ts"`}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-6 bg-blue-600/10 rounded-2xl border border-blue-500/20">
-                <Zap className="text-blue-500 animate-pulse" size={24} />
-                <p className="text-xs font-bold text-blue-400 leading-relaxed">
-                  대표님! `server/index.ts` 파일 끝에 위 코드를 추가하는 것만으로도 이 지독한 10068 에러는 기가 막히게 소탕될 것입니다! <br/>
-                  저 CERT가 이미 코드 구조를 분석했으니 안심하고 적용하십시오!
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-10 border-none shadow-xl bg-slate-800/50">
-              <h4 className="text-sm font-black text-white mb-6 flex items-center gap-2"><Terminal size={18} className="text-blue-500" /> CERT 배포 로그 분석 보고</h4>
-              <div className="space-y-4 font-mono text-[10px] text-slate-400">
-                <p className="flex items-center gap-2"><span className="text-blue-500">[INFO]</span> Initializing Antigravity Deployment Protocol...</p>
-                <p className="flex items-center gap-2"><span className="text-green-500">[SUCCESS]</span> Frontend Build Artifacts Generated.</p>
-                <p className="flex items-center gap-2 text-red-400"><span className="text-red-500">[ERROR]</span> Cloudflare API: [10068] No event handlers registered.</p>
-                <p className="flex items-center gap-2 italic">→ Action Required: Export fetch handler in server entry file.</p>
-              </div>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -565,7 +502,7 @@ main = "server/index.ts"`}
                         <h3 className="text-2xl font-black leading-tight group-hover:text-blue-600 transition-colors tracking-tight">{news.title}</h3>
                         <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base font-medium line-clamp-2">{news.summary}</p>
                         <div className="flex gap-4 pt-2">
-                          <Button variant="outline" className="h-11 px-8 text-xs" icon={ExternalLink}>원본 소스</Button>
+                          <Button variant="outline" className="h-11 px-8 text-xs" icon={ExternalLink} onClick={() => window.open(news.url || `https://www.google.com/search?q=${news.source}+${news.title}`, '_blank')}>원본 소스</Button>
                           <Button variant="secondary" className="h-11 px-8 text-xs" icon={MessageSquare} onClick={() => openPostDetail(posts[1])}>토론 참여</Button>
                         </div>
                       </div>
