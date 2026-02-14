@@ -1,9 +1,8 @@
 import { DatabaseStorage } from "./storage";
-import { api } from "@shared/routes";
 import { z } from "zod";
 
 /**
- * Workers용 OpenAI 호출
+ * OpenAI 호출
  */
 async function callOpenAI(prompt: string, env: any) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -27,59 +26,57 @@ async function callOpenAI(prompt: string, env: any) {
   return JSON.parse(data.choices?.[0]?.message?.content || "{}");
 }
 
-/**
- * Workers 라우터
- */
 export async function registerRoutes(
   request: Request,
   env: any,
   ctx: any
 ): Promise<Response> {
 
-  const storage = new DatabaseStorage(env); // ✅ 여기서 생성
-
+  const storage = new DatabaseStorage(env);
   const url = new URL(request.url);
   const method = request.method;
 
-  const parseBody = async () => {
-    try {
-      return await request.json();
-    } catch {
-      return {};
-    }
-  };
+  // 🔥 ROOT (404 방지용)
+  if (url.pathname === "/") {
+    return json({ status: "Worker Running" });
+  }
 
-  // === NEWS LIST ===
-  if (method === "GET" && url.pathname === api.news.list.path) {
+  // =========================
+  // NEWS LIST
+  // =========================
+  if (method === "GET" && /^\/api\/news\/?$/.test(url.pathname)) {
     const news = await storage.getNews();
     return json(news);
   }
 
-  // === NEWS GET ===
+  // =========================
+  // NEWS GET
+  // =========================
   if (method === "GET" && /^\/api\/news\/\d+$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/").pop());
     const news = await storage.getNewsItem(id);
+
     if (!news) return json({ message: "News not found" }, 404);
     return json(news);
   }
 
-  // === NEWS CREATE ===
-  if (method === "POST" && url.pathname === api.news.create.path) {
-    const body = await parseBody();
+  // =========================
+  // NEWS CREATE
+  // =========================
+  if (method === "POST" && /^\/api\/news\/?$/.test(url.pathname)) {
+    const body = await safeJson(request);
 
     try {
-      const input = api.news.create.input.parse(body);
-      const news = await storage.createNews(input);
+      const news = await storage.createNews(body);
       return json(news, 201);
-    } catch (e: any) {
-      if (e instanceof z.ZodError) {
-        return json({ message: e.errors[0].message }, 400);
-      }
-      return json({ message: "Internal Server Error" }, 500);
+    } catch {
+      return json({ message: "Failed to create news" }, 500);
     }
   }
 
-  // === AI ANALYSIS ===
+  // =========================
+  // AI ANALYZE
+  // =========================
   if (method === "POST" && /^\/api\/news\/\d+\/analyze$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
     const newsItem = await storage.getNewsItem(id);
@@ -103,7 +100,7 @@ Return JSON with:
 
       const updatedNews = await storage.updateNewsAnalysis(id, {
         summary: aiResult.summary || "Summary not available.",
-        reaction: aiResult.reaction || "Reaction analysis pending.",
+        reaction: aiResult.reaction || "Reaction pending.",
         question: aiResult.question || "What do you think?",
       });
 
@@ -113,23 +110,27 @@ Return JSON with:
     }
   }
 
-  // === COMMENTS LIST ===
+  // =========================
+  // COMMENTS LIST
+  // =========================
   if (method === "GET" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
     const comments = await storage.getComments(id);
     return json(comments);
   }
 
-  // === COMMENTS CREATE ===
+  // =========================
+  // COMMENTS CREATE
+  // =========================
   if (method === "POST" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
     const id = Number(url.pathname.split("/")[3]);
-    const body = await parseBody();
+    const body = await safeJson(request);
 
     try {
       const comment = await storage.createComment({
         content: body.content,
         newsId: id,
-        userId: 1, // Auth 제거 상태 (임시)
+        userId: 1, // 임시
       });
 
       return json(comment, 201);
@@ -138,15 +139,20 @@ Return JSON with:
     }
   }
 
-  // === MEDIA LIST ===
-  if (method === "GET" && url.pathname === api.media.list.path) {
+  // =========================
+  // MEDIA LIST
+  // =========================
+  if (method === "GET" && /^\/api\/media\/?$/.test(url.pathname)) {
     const media = await storage.getMedia();
     return json(media);
   }
 
-  // === STATS ===
-  if (method === "GET" && url.pathname === api.stats.get.path) {
+  // =========================
+  // STATS
+  // =========================
+  if (method === "GET" && /^\/api\/stats\/?$/.test(url.pathname)) {
     const stats = await storage.getStats();
+
     return json({
       ...stats,
       activeUsers: Math.floor(Math.random() * 50) + 10,
@@ -156,9 +162,17 @@ Return JSON with:
   return new Response("Not Found", { status: 404 });
 }
 
-/**
- * JSON Helper
- */
+// =========================
+// Helpers
+// =========================
+async function safeJson(request: Request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
 function json(data: any, status: number = 200) {
   return new Response(JSON.stringify(data), {
     status,

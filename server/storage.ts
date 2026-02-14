@@ -3,17 +3,13 @@ import {
   news,
   comments,
   media,
-  type User,
   type InsertUser,
-  type News,
   type InsertNews,
-  type Comment,
   type InsertComment,
-  type Media,
   type InsertMedia
 } from "@shared/schema";
 
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { createDb } from "./db";
 
 export class DatabaseStorage {
@@ -23,8 +19,10 @@ export class DatabaseStorage {
     return createDb(this.env);
   }
 
+  // =========================
   // Users
-  async getUser(id: number): Promise<User | undefined> {
+  // =========================
+  async getUser(id: number) {
     const [user] = await this.db.select().from(users).where(eq(users.id, id));
     return user;
   }
@@ -39,18 +37,25 @@ export class DatabaseStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser) {
-    const [user] = await this.db.insert(users).values(insertUser).returning();
+  async createUser(data: InsertUser) {
+    await this.db.insert(users).values(data);
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.username, data.username));
     return user;
   }
 
   async updateUserMfa(userId: number, secret: string, enabled: boolean) {
-    await this.db.update(users)
+    await this.db
+      .update(users)
       .set({ mfaSecret: secret, isMfaEnabled: enabled })
       .where(eq(users.id, userId));
   }
 
+  // =========================
   // News
+  // =========================
   async getNews() {
     return await this.db.select().from(news).orderBy(desc(news.createdAt));
   }
@@ -60,25 +65,31 @@ export class DatabaseStorage {
     return item;
   }
 
-  async createNews(insertNews: InsertNews) {
-    const [item] = await this.db.insert(news).values(insertNews).returning();
+  async createNews(data: InsertNews) {
+    await this.db.insert(news).values(data);
+    const [item] = await this.db
+      .select()
+      .from(news)
+      .orderBy(desc(news.id));
     return item;
   }
 
   async updateNewsAnalysis(id: number, analysis: any) {
-    const [item] = await this.db.update(news)
+    await this.db.update(news)
       .set({
         summary: analysis.summary,
         generationalReaction: analysis.reaction,
         discussionQuestion: analysis.question,
         analysis: "Completed"
       })
-      .where(eq(news.id, id))
-      .returning();
-    return item;
+      .where(eq(news.id, id));
+
+    return this.getNewsItem(id);
   }
 
+  // =========================
   // Comments
+  // =========================
   async getComments(newsId: number) {
     return await this.db.select({
       id: comments.id,
@@ -94,25 +105,46 @@ export class DatabaseStorage {
     .orderBy(desc(comments.createdAt));
   }
 
-  async createComment(insertComment: InsertComment) {
-    const [comment] = await this.db.insert(comments).values(insertComment).returning();
+  async createComment(data: InsertComment) {
+    await this.db.insert(comments).values(data);
+    const [comment] = await this.db
+      .select()
+      .from(comments)
+      .orderBy(desc(comments.id));
     return comment;
   }
 
+  // =========================
   // Media
+  // =========================
   async getMedia() {
     return await this.db.select().from(media).orderBy(desc(media.createdAt));
   }
 
-  async createMedia(insertMedia: InsertMedia) {
-    const [item] = await this.db.insert(media).values(insertMedia).returning();
+  async createMedia(data: InsertMedia) {
+    await this.db.insert(media).values(data);
+    const [item] = await this.db
+      .select()
+      .from(media)
+      .orderBy(desc(media.id));
     return item;
   }
 
-  // Stats
+  // =========================
+  // Stats (D1-safe)
+  // =========================
   async getStats() {
-    const usersCount = await this.db.$count(users);
-    const newsCount = await this.db.$count(news);
-    return { usersCount, newsCount };
+    const usersCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
+
+    const newsCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(news);
+
+    return {
+      usersCount: usersCountResult[0]?.count ?? 0,
+      newsCount: newsCountResult[0]?.count ?? 0,
+    };
   }
 }
