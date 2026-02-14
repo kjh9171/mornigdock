@@ -1,164 +1,165 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import OpenAI from "openai";
 
-// Initialize OpenAI (using Replit integration env vars)
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
-
-export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
-  // Setup Auth (Passport strategy + MFA helpers)
-  setupAuth(app);
-
-  // === NEWS ROUTES ===
-  app.get(api.news.list.path, async (req, res) => {
-    const news = await storage.getNews();
-    res.json(news);
+/**
+ * Workers용 OpenAI 호출 (Node SDK 제거)
+ */
+async function callOpenAI(prompt: string, env: any) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+    }),
   });
 
-  app.get(api.news.get.path, async (req, res) => {
-    const news = await storage.getNewsItem(Number(req.params.id));
-    if (!news) return res.status(404).json({ message: "News not found" });
-    res.json(news);
-  });
+  if (!response.ok) {
+    throw new Error("OpenAI request failed");
+  }
 
-  app.post(api.news.create.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const input = api.news.create.input.parse(req.body);
-      const news = await storage.createNews(input);
-      res.status(201).json(news);
-    } catch (e) {
-      if (e instanceof z.ZodError) {
-        res.status(400).json({ message: e.errors[0].message });
-      } else {
-        res.status(500).json({ message: "Internal Server Error" });
-      }
-    }
-  });
-
-  // AI Analysis Endpoint
-  app.post(api.news.analyze.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const id = Number(req.params.id);
-    const newsItem = await storage.getNewsItem(id);
-    if (!newsItem) return res.status(404).json({ message: "News not found" });
-
-    try {
-      // Call OpenAI
-      const prompt = `
-        Analyze this news article for the Antigravity platform (Generational News Analysis):
-        Title: ${newsItem.title}
-        Content: ${newsItem.content}
-
-        Output JSON with these fields:
-        - summary: A 3-line easy-to-understand summary.
-        - reaction: Expected reactions from Gen Z, Millennials, and Boomers.
-        - question: One provocative discussion question to spark debate.
-      `;
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5.2", // Replit integration model
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const content = JSON.parse(completion.choices[0].message.content || "{}");
-      
-      const updatedNews = await storage.updateNewsAnalysis(id, {
-        summary: content.summary || "Summary not available.",
-        reaction: content.reaction || "Reaction analysis pending.",
-        question: content.question || "What do you think?",
-      });
-
-      res.json(updatedNews);
-    } catch (error) {
-      console.error("AI Analysis failed:", error);
-      res.status(500).json({ message: "AI Analysis failed" });
-    }
-  });
-
-  // === COMMENTS ROUTES ===
-  app.get(api.comments.list.path, async (req, res) => {
-    const comments = await storage.getComments(Number(req.params.newsId));
-    res.json(comments);
-  });
-
-  app.post(api.comments.create.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    try {
-      const { content } = req.body;
-      const comment = await storage.createComment({
-        content,
-        newsId: Number(req.params.newsId),
-        userId: req.user!.id,
-      });
-      res.status(201).json(comment);
-    } catch (e) {
-      res.status(500).json({ message: "Failed to create comment" });
-    }
-  });
-
-  // === MEDIA ROUTES ===
-  app.get(api.media.list.path, async (req, res) => {
-    const media = await storage.getMedia();
-    res.json(media);
-  });
-
-  // === STATS ROUTES ===
-  app.get(api.stats.get.path, async (req, res) => {
-    const stats = await storage.getStats();
-    // Mock active users for now (or use session store size if available)
-    res.json({ ...stats, activeUsers: Math.floor(Math.random() * 50) + 10 }); 
-  });
-
-  // Seed Data
-  await seedDatabase();
-
-  return httpServer;
+  const data = await response.json();
+  return JSON.parse(data.choices[0].message.content || "{}");
 }
 
-async function seedDatabase() {
-  const news = await storage.getNews();
-  if (news.length === 0) {
-    await storage.createNews({
-      title: "Global Tech Summit 2026 Announced",
-      content: "The annual Global Tech Summit will be held in Seoul this year, focusing on AI ethics and quantum computing advancements. Leaders from major tech companies are expected to attend.",
-      sourceUrl: "https://example.com/tech-summit",
-      category: "Technology",
-      imageUrl: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1000&q=80",
-    });
-    
-    await storage.createNews({
-      title: "New Eco-Friendly Urban Planning Initiative",
-      content: "City council reveals plans for 'Green Corridors' connecting major parks. The initiative aims to reduce urban heat islands and promote pedestrian traffic.",
-      sourceUrl: "https://example.com/green-city",
-      category: "Environment",
-      imageUrl: "https://images.unsplash.com/photo-1449824913929-4bdd42b00fb3?auto=format&fit=crop&w=1000&q=80",
+/**
+ * Workers 라우터
+ */
+export async function registerRoutes(
+  request: Request,
+  env: any,
+  ctx: any
+): Promise<Response> {
+  const url = new URL(request.url);
+  const method = request.method;
+
+  // JSON body helper
+  const parseBody = async () => {
+    try {
+      return await request.json();
+    } catch {
+      return {};
+    }
+  };
+
+  // === NEWS LIST ===
+  if (method === "GET" && url.pathname === api.news.list.path) {
+    const news = await storage.getNews();
+    return json(news);
+  }
+
+  // === NEWS GET ===
+  if (method === "GET" && url.pathname.match(/^\/api\/news\/\d+$/)) {
+    const id = Number(url.pathname.split("/").pop());
+    const news = await storage.getNewsItem(id);
+    if (!news) return json({ message: "News not found" }, 404);
+    return json(news);
+  }
+
+  // === NEWS CREATE ===
+  if (method === "POST" && url.pathname === api.news.create.path) {
+    const body = await parseBody();
+    try {
+      const input = api.news.create.input.parse(body);
+      const news = await storage.createNews(input);
+      return json(news, 201);
+    } catch (e: any) {
+      if (e instanceof z.ZodError) {
+        return json({ message: e.errors[0].message }, 400);
+      }
+      return json({ message: "Internal Server Error" }, 500);
+    }
+  }
+
+  // === AI ANALYSIS ===
+  if (method === "POST" && url.pathname.match(/^\/api\/news\/\d+\/analyze$/)) {
+    const id = Number(url.pathname.split("/")[3]);
+    const newsItem = await storage.getNewsItem(id);
+    if (!newsItem) return json({ message: "News not found" }, 404);
+
+    try {
+      const prompt = `
+Analyze this news article for the Antigravity platform:
+
+Title: ${newsItem.title}
+Content: ${newsItem.content}
+
+Return JSON with:
+- summary
+- reaction
+- question
+`;
+
+      const aiResult = await callOpenAI(prompt, env);
+
+      const updatedNews = await storage.updateNewsAnalysis(id, {
+        summary: aiResult.summary || "Summary not available.",
+        reaction: aiResult.reaction || "Reaction analysis pending.",
+        question: aiResult.question || "What do you think?",
+      });
+
+      return json(updatedNews);
+    } catch (error) {
+      return json({ message: "AI Analysis failed" }, 500);
+    }
+  }
+
+  // === COMMENTS LIST ===
+  if (method === "GET" && url.pathname.match(/^\/api\/news\/\d+\/comments$/)) {
+    const id = Number(url.pathname.split("/")[3]);
+    const comments = await storage.getComments(id);
+    return json(comments);
+  }
+
+  // === COMMENTS CREATE ===
+  if (method === "POST" && url.pathname.match(/^\/api\/news\/\d+\/comments$/)) {
+    const id = Number(url.pathname.split("/")[3]);
+    const body = await parseBody();
+
+    try {
+      const comment = await storage.createComment({
+        content: body.content,
+        newsId: id,
+        userId: 1, // ⚠️ 임시 고정 (Auth 제거 상태)
+      });
+
+      return json(comment, 201);
+    } catch {
+      return json({ message: "Failed to create comment" }, 500);
+    }
+  }
+
+  // === MEDIA LIST ===
+  if (method === "GET" && url.pathname === api.media.list.path) {
+    const media = await storage.getMedia();
+    return json(media);
+  }
+
+  // === STATS ===
+  if (method === "GET" && url.pathname === api.stats.get.path) {
+    const stats = await storage.getStats();
+    return json({
+      ...stats,
+      activeUsers: Math.floor(Math.random() * 50) + 10,
     });
   }
 
-  const media = await storage.getMedia();
-  if (media.length === 0) {
-    await storage.createMedia({
-      title: "Morning Briefing - Feb 12",
-      artist: "Antigravity AI",
-      url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Demo MP3
-      type: "briefing",
-      coverUrl: "https://placehold.co/400x400/1e293b/FFF?text=Briefing",
-    });
-    await storage.createMedia({
-      title: "Focus Flow",
-      artist: "LoFi Beats",
-      url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", // Demo MP3
-      type: "music",
-      coverUrl: "https://placehold.co/400x400/f59e0b/FFF?text=Music",
-    });
-  }
+  return new Response("Not Found", { status: 404 });
+}
+
+/**
+ * JSON Helper
+ */
+function json(data: any, status: number = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 }
