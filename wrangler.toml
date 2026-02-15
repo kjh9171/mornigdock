@@ -10,7 +10,7 @@ workers_dev = true
 [assets]
 directory = "./dist/public"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+not_found_handling = "single-page-application" # Cloudflare Pages/Workers Sites의 내장 SPA 핸들러 비활성화
 
 # ---- D1 Database ----
 [[d1_databases]]
