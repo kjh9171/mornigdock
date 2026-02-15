@@ -19631,20 +19631,30 @@ var index_default = {
 };
 async function serveAsset(request, env) {
   if (!env?.ASSETS?.fetch) {
+    log("ASSETS binding not configured.", "serveAsset");
     return new Response("Static assets binding is not configured", { status: 500 });
   }
-  let assetResponse = await env.ASSETS.fetch(request);
-  if (assetResponse.status === 404) {
-    const url2 = new URL(request.url);
-    assetResponse = await env.ASSETS.fetch(new Request(`${url2.origin}/index.html`, request));
-  }
   const url = new URL(request.url);
+  log(`Attempting to serve asset for URL: ${url.pathname}`, "serveAsset");
+  let assetResponse = await env.ASSETS.fetch(request);
+  log(`Initial assetResponse status: ${assetResponse.status}, URL: ${url.pathname}`, "serveAsset");
+  if (assetResponse.status === 404) {
+    log(`Asset not found (${url.pathname}), fetching index.html`, "serveAsset");
+    assetResponse = await env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+    log(`index.html assetResponse status: ${assetResponse.status}`, "serveAsset");
+  }
   const fileExtension = url.pathname.split(".").pop();
   if (fileExtension === "js" || fileExtension === "mjs" || fileExtension === "jsx" || fileExtension === "tsx") {
+    log(`Setting Content-Type for JS file: ${url.pathname}`, "serveAsset");
     const headers = new Headers(assetResponse.headers);
     headers.set("Content-Type", "application/javascript");
-    return new Response(assetResponse.body, { ...assetResponse, headers });
+    return new Response(assetResponse.body, {
+      status: assetResponse.status,
+      statusText: assetResponse.statusText,
+      headers
+    });
   }
+  log(`Returning assetResponse for ${url.pathname} with status: ${assetResponse.status}`, "serveAsset");
   return assetResponse;
 }
 export {

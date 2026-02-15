@@ -40,26 +40,38 @@ export default {
 
 async function serveAsset(request: Request, env: any): Promise<Response> {
   if (!env?.ASSETS?.fetch) {
+    log("ASSETS binding not configured.", "serveAsset");
     return new Response("Static assets binding is not configured", { status: 500 });
   }
 
+  const url = new URL(request.url);
+  log(`Attempting to serve asset for URL: ${url.pathname}`, "serveAsset");
+
   let assetResponse = await env.ASSETS.fetch(request);
+  log(`Initial assetResponse status: ${assetResponse.status}, URL: ${url.pathname}`, "serveAsset");
 
   // SPA 라우팅: 파일이 없으면 index.html 반환
   if (assetResponse.status === 404) {
-    const url = new URL(request.url);
+    log(`Asset not found (${url.pathname}), fetching index.html`, "serveAsset");
     assetResponse = await env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+    log(`index.html assetResponse status: ${assetResponse.status}`, "serveAsset");
   }
 
   // JavaScript 파일에 대한 Content-Type을 명시적으로 설정
   // 이는 브라우저가 ES 모듈을 올바르게 해석하도록 돕습니다.
-  const url = new URL(request.url);
   const fileExtension = url.pathname.split('.').pop();
   if (fileExtension === 'js' || fileExtension === 'mjs' || fileExtension === 'jsx' || fileExtension === 'tsx') {
+    log(`Setting Content-Type for JS file: ${url.pathname}`, "serveAsset");
     const headers = new Headers(assetResponse.headers);
     headers.set('Content-Type', 'application/javascript');
-    return new Response(assetResponse.body, { ...assetResponse, headers });
+    // Ensure that Response constructor correctly uses all properties
+    return new Response(assetResponse.body, {
+      status: assetResponse.status,
+      statusText: assetResponse.statusText,
+      headers: headers,
+    });
   }
 
+  log(`Returning assetResponse for ${url.pathname} with status: ${assetResponse.status}`, "serveAsset");
   return assetResponse;
 }
