@@ -19633,10 +19633,17 @@ async function serveAsset(request, env) {
   if (!env?.ASSETS?.fetch) {
     return new Response("Static assets binding is not configured", { status: 500 });
   }
-  const assetResponse = await env.ASSETS.fetch(request);
+  let assetResponse = await env.ASSETS.fetch(request);
   if (assetResponse.status === 404) {
-    const url = new URL(request.url);
-    return env.ASSETS.fetch(new Request(`${url.origin}/index.html`, request));
+    const url2 = new URL(request.url);
+    assetResponse = await env.ASSETS.fetch(new Request(`${url2.origin}/index.html`, request));
+  }
+  const url = new URL(request.url);
+  const fileExtension = url.pathname.split(".").pop();
+  if (fileExtension === "js" || fileExtension === "mjs" || fileExtension === "jsx" || fileExtension === "tsx") {
+    const headers = new Headers(assetResponse.headers);
+    headers.set("Content-Type", "application/javascript");
+    return new Response(assetResponse.body, { ...assetResponse, headers });
   }
   return assetResponse;
 }
