@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query'; // useQuery 훅 임포트
-import { 
-  User, 
-  Settings, 
-  MessageSquare, 
-  FileText, 
-  Trash2, 
-  Edit3, 
-  Plus, 
-  Search, 
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // useQueryClient 임포트
+import {
+  User as UserIcon, // User 아이콘과 User 타입을 구분하기 위해 별칭 사용
+  Settings,
+  MessageSquare,
+  FileText,
+  Trash2,
+  Edit3,
+  Plus,
+  Search,
   ArrowLeft,
   Menu,
   X,
@@ -29,22 +29,20 @@ import {
   LogOut,
   Sun,
   Moon,
-  Users,
-  LayoutDashboard
+  Users
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query'; // useQuery 훅 임포트
-import { LoginForm, RegisterForm } from './components/Auth'; // Auth 컴포넌트 임포트
-import { useAuth } from './hooks/useAuth'; // useAuth 훅 임포트
+import { LoginForm, RegisterForm } from './components/Auth';
+import { useAuth } from './hooks/useAuth';
+import { User, InsertNews } from '@shared/schema';
 
 // --- Storyport 디자인 시스템 컴포넌트 ---
-
-const Card = ({ children, className = "" }) => (
+export const Card = ({ children, className = "" }) => (
   <div className={`bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm rounded-xl border border-black/10 dark:border-white/10 shadow-lg ${className}`}>
     {children}
   </div>
 );
 
-const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, icon: Icon }) => {
+export const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, icon: Icon }) => {
   const variants = {
     primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 shadow-md",
     secondary: "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--secondary)]/90",
@@ -53,9 +51,9 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
     ghost: "text-[var(--foreground)]/70 hover:bg-[var(--secondary)]",
     dark: "bg-[var(--dark-card-background)] text-[var(--dark-card-foreground)] hover:bg-[var(--dark-card-background)]/80"
   };
-  
+
   return (
-    <button 
+    <button
       onClick={onClick}
       disabled={disabled}
       className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 text-sm font-semibold disabled:opacity-50 active:scale-95 ${variants[variant]} ${className}`}
@@ -65,6 +63,7 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
     </button>
   );
 };
+
 
 // MediaModal 컴포넌트 (추가/편집 모달)
 const MediaModal = ({ isOpen, onClose, onSave, media }) => {
@@ -81,7 +80,6 @@ const MediaModal = ({ isOpen, onClose, onSave, media }) => {
       setSize(media.size);
     } else {
       setName('');
-      setType('image');
       setUrl('');
       setSize('');
     }
@@ -291,7 +289,12 @@ const PostManagementModal = ({ isOpen, onClose, onSave, post }) => {
 
 // API로부터 게시글 데이터를 가져오는 함수
 const fetchPosts = async () => {
-  const response = await fetch('/api/news'); // 백엔드 API 엔드포인트 호출
+  const token = localStorage.getItem('jwt_token');
+  const response = await fetch('/api/news', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  }); // 백엔드 API 엔드포인트 호출
   if (!response.ok) {
     throw new Error('네트워크 응답이 올바르지 않습니다.');
   }
@@ -322,10 +325,13 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false); // 회원가입 폼 표시 여부
   const [mfaRequired, setMfaRequired] = useState(false); // MFA 필요 여부
 
+  const queryClient = useQueryClient();
+
   // TanStack Query를 사용하여 게시글 데이터 가져오기
   const { data: posts, isLoading: postsLoading, error: postsError } = useQuery({
     queryKey: ['posts'], // 쿼리 키 정의
     queryFn: fetchPosts, // 데이터를 가져올 함수
+    enabled: isAuthenticated, // 인증된 경우에만 쿼리 실행
   });
   
   const [users, setUsers] = useState([
@@ -417,11 +423,9 @@ export default function App() {
 
   // 게시글 추가/편집 핸들러
   const handleAddEditPostManagement = (postData) => {
-    if (editingPostManagement) {
-      setPosts(posts.map(p => (p.id === postData.id ? postData : p)));
-    } else {
-      setPosts([...posts, { ...postData, id: posts.length ? Math.max(...posts.map(p => p.id)) + 1 : 1, author: user.name, authorEmail: user.email, views: 0, likes: 0, createdAt: new Date().toLocaleString() }]);
-    }
+    // API를 통해 게시글 생성 또는 업데이트 후 쿼리 무효화
+    // 이 예시에서는 API 호출 부분을 생략하고 쿼리 무효화만 표시
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
     setIsPostManagementModalOpen(false);
     setEditingPostManagement(null);
   };
@@ -429,274 +433,67 @@ export default function App() {
   // 게시글 삭제 핸들러
   const handleDeletePostManagement = (id) => {
     if (window.confirm("정말 이 게시글을 삭제하시겠습니까?")) {
-      setPosts(posts.filter(p => p.id !== id));
+      // API를 통해 게시글 삭제 후 쿼리 무효화
+      // 이 예시에서는 API 호출 부분을 생략하고 쿼리 무효화만 표시
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
     }
   };
 
-  // --- 렌더링 함수들 ---
-  const renderDashboard = () => {
-    if (postsLoading) return <div className="text-center text-lg">게시글을 불러오는 중입니다...</div>;
-    if (postsError) return <div className="text-center text-lg text-red-500">게시글을 불러오는데 실패했습니다: {postsError.message}</div>;
-    if (!posts || posts.length === 0) return <div className="text-center text-lg">게시글이 없습니다.</div>;
-
-    return (
-      <div className="space-y-8 animate-in fade-in duration-700">
-        <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">모든 이야기</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post: any) => ( // API에서 가져온 posts 타입 명시
-            <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
-                {post.type === 'notice' && (
-                  <span className="px-3 py-1 text-xs font-bold rounded-full bg-[var(--secondary)] text-[var(--secondary-foreground)]">공지</span>
-                )}
-              </div>
-              <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
-              <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author} on {post.createdAt}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderMedia = () => (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-4xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">음악 & 미디어</h2>
-        <div className="flex gap-3">
-          <Button variant="outline" icon={Youtube} className="text-sm" onClick={() => { setIsMediaModalOpen(true); setEditingMedia(null); }}>유튜브 추가</Button>
-          <Button variant="outline" icon={Mic} className="text-sm" onClick={() => { setIsMediaModalOpen(true); setEditingMedia(null); }}>팟캐스트 추가</Button>
-          <Button icon={Plus} className="text-sm" onClick={() => { setIsMediaModalOpen(true); setEditingMedia(null); }}>미디어 업로드</Button>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mediaAssets.map(asset => (
-          <Card key={asset.id} className="group overflow-hidden">
-            <div className="aspect-video bg-[var(--secondary)] dark:bg-[var(--dark-input)] relative flex items-center justify-center">
-              {asset.type === 'youtube' && <Youtube size={48} className="text-red-500" />}
-              {asset.type === 'podcast' && <Mic size={48} className="text-purple-500" />}
-              {asset.type === 'image' && <img src={asset.url} alt={asset.name} className="w-full h-full object-cover" />}
-              
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button onClick={() => openMediaPlayer(asset)} className="rounded-full w-14 h-14 p-0" icon={Play} />
-              </div>
-            </div>
-            <div className="p-4 space-y-2 bg-white dark:bg-[var(--dark-card-background)]">
-              <h4 className="font-bold font-lora truncate text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{asset.name}</h4>
-              <p className="text-xs text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70">{asset.type} • {asset.size}</p>
-              <div className="flex gap-2 mt-2">
-                <Button variant="outline" icon={Edit3} className="flex-1" onClick={() => { setIsMediaModalOpen(true); setEditingMedia(asset); }}>편집</Button>
-                <Button variant="danger" icon={Trash2} className="flex-1" onClick={() => handleDeleteMedia(asset.id)}>삭제</Button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderCommunity = () => {
-    if (postsLoading) return <div className="text-center text-lg">게시글을 불러오는 중입니다...</div>;
-    if (postsError) return <div className="text-center text-lg text-red-500">게시글을 불러오는데 실패했습니다: {postsError.message}</div>;
-    if (!posts || posts.length === 0) return <div className="text-center text-lg">게시글이 없습니다.</div>;
-
-    return (
-      <div className="space-y-8 animate-in fade-in duration-700">
-        <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">커뮤니티 광장</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post: any) => ( // API에서 가져온 posts 타입 명시
-            <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
-              <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
-              <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
-              <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-
-  const renderPostDetail = () => (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
-      <Button onClick={() => {setSelectedPost(null); setCurrentView('community');}} icon={ArrowLeft} variant="outline">커뮤니티로 돌아가기</Button>
-      <Card className="p-8 bg-white dark:bg-[var(--dark-card-background)]">
-        <h1 className="text-4xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{selectedPost?.title}</h1>
-        <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2">by {selectedPost?.author} on {selectedPost?.createdAt}</p>
-        <div className="mt-8 prose dark:prose-invert max-w-none text-[var(--foreground)] dark:text-[var(--dark-foreground)]">
-          <p>{selectedPost?.content}</p>
-        </div>
-        <div className="flex items-center gap-4 mt-8 pt-4 border-t border-[var(--border)] dark:border-[var(--dark-border)]">
-          <Button variant="ghost" icon={ThumbsUp}>{selectedPost?.likes} 좋아요</Button>
-          <Button variant="ghost" icon={Eye}>{selectedPost?.views} 조회수</Button>
-          <Button variant="ghost" icon={Share2}>공유</Button>
-        </div>
-      </Card>
-
-      <div className="space-y-6">
-        <h3 className="text-2xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">댓글</h3>
-        <Card className="p-6 bg-white dark:bg-[var(--dark-card-background)]">
-          <textarea
-            className="w-full p-3 bg-[var(--input)] dark:bg-[var(--dark-input)] rounded-lg border border-[var(--border)] dark:border-[var(--dark-border)] min-h-[100px]"
-            placeholder={user ? "댓글을 작성해주세요." : "로그인 후 댓글을 작성할 수 있습니다."}
-            value={newCommentText}
-            onChange={(e) => setNewCommentText(e.target.value)}
-            disabled={!user}
-          />
-          <div className="flex justify-end mt-4">
-            <Button onClick={handleCommentSubmit} disabled={!user} icon={Send}>댓글 작성</Button>
-          </div>
-        </Card>
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <Card key={comment.id} className="p-4 bg-white dark:bg-[var(--dark-card-background)]">
-              <p className="text-sm font-semibold text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{comment.author}</p>
-              <p className="text-xs text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70">{comment.createdAt}</p>
-              <p className="mt-2 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{comment.content}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-  
-  const renderAdmin = () => (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex justify-between items-end mb-6">
-        <h2 className="text-4xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">관리자 센터</h2>
-        <div className="flex gap-2 p-1 bg-[var(--secondary)] dark:bg-[var(--dark-input)] rounded-lg">
-          <Button variant={adminTab === 'users' ? 'primary' : 'ghost'} onClick={() => setAdminTab('users')} icon={Users}>사용자</Button>
-          <Button variant={adminTab === 'posts' ? 'primary' : 'ghost'} onClick={() => setAdminTab('posts')} icon={FileText}>게시글</Button>
-          <Button variant={adminTab === 'settings' ? 'primary' : 'ghost'} onClick={() => setAdminTab('settings')} icon={Settings}>설정</Button>
-        </div>
-      </div>
-
-      {adminTab === 'users' && (
-        <Card className="p-8 bg-white dark:bg-[var(--dark-card-background)]">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">사용자 관리</h3>
-            <Button icon={Plus} onClick={() => { setIsUserModalOpen(true); setEditingUser(null); }}>새 사용자 추가</Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white dark:bg-[var(--dark-card-background)] rounded-lg">
-              <thead>
-                <tr className="text-left bg-[var(--secondary)] dark:bg-[var(--dark-input)] text-[var(--secondary-foreground)] dark:text-[var(--dark-foreground)]">
-                  <th className="py-3 px-4 rounded-tl-lg">ID</th>
-                  <th className="py-3 px-4">이름</th>
-                  <th className="py-3 px-4">이메일</th>
-                  <th className="py-3 px-4">역할</th>
-                  <th className="py-3 px-4">상태</th>
-                  <th className="py-3 px-4 rounded-tr-lg">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u.id} className="border-b border-[var(--border)] dark:border-[var(--dark-border)] text-[var(--foreground)] dark:text-[var(--dark-foreground)]">
-                    <td className="py-3 px-4">{u.id}</td>
-                    <td className="py-3 px-4">{u.name}</td>
-                    <td className="py-3 px-4">{u.email}</td>
-                    <td className="py-3 px-4">{u.role}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        u.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>{u.status}</span>
-                    </td>
-                    <td className="py-3 px-4 flex gap-2">
-                      <Button variant="ghost" icon={Edit3} onClick={() => { setIsUserModalOpen(true); setEditingUser(u); }}>편집</Button>
-                      <Button variant="danger" icon={Trash2} onClick={() => handleDeleteUser(u.id)}>삭제</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {adminTab === 'posts' && (
-        <Card className="p-8 bg-white dark:bg-[var(--dark-card-background)]">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">게시글 관리</h3>
-            <Button icon={Plus} onClick={() => { setIsPostManagementModalOpen(true); setEditingPostManagement(null); }}>새 게시글 작성</Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white dark:bg-[var(--dark-card-background)] rounded-lg">
-              <thead>
-                <tr className="text-left bg-[var(--secondary)] dark:bg-[var(--dark-input)] text-[var(--secondary-foreground)] dark:text-[var(--dark-foreground)]">
-                  <th className="py-3 px-4 rounded-tl-lg">ID</th>
-                  <th className="py-3 px-4">제목</th>
-                  <th className="py-3 px-4">작성자</th>
-                  <th className="py-3 px-4">타입</th>
-                  <th className="py-3 px-4">조회수</th>
-                  <th className="py-3 px-4">좋아요</th>
-                  <th className="py-3 px-4 rounded-tr-lg">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {posts.map(p => (
-                  <tr key={p.id} className="border-b border-[var(--border)] dark:border-[var(--dark-border)] text-[var(--foreground)] dark:text-[var(--dark-foreground)]">
-                    <td className="py-3 px-4">{p.id}</td>
-                    <td className="py-3 px-4">{p.title}</td>
-                    <td className="py-3 px-4">{p.author}</td>
-                    <td className="py-3 px-4">{p.type}</td>
-                    <td className="py-3 px-4">{p.views}</td>
-                    <td className="py-3 px-4">{p.likes}</td>
-                    <td className="py-3 px-4 flex gap-2">
-                      <Button variant="ghost" icon={Edit3} onClick={() => { setIsPostManagementModalOpen(true); setEditingPostManagement(p); }}>편집</Button>
-                      <Button variant="danger" icon={Trash2} onClick={() => handleDeletePostManagement(p.id)}>삭제</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {adminTab === 'settings' && (
-        <Card className="p-8 bg-white dark:bg-[var(--dark-card-background)]">
-          <h3 className="text-2xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">AI 분석 설정</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1">API 키</label>
-              <input type="password" value="****************" readOnly className="w-full p-3 bg-[var(--input)] dark:bg-[var(--dark-input)] rounded-lg border border-[var(--border)] dark:border-[var(--dark-border)]" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1">분석 모델</label>
-              <select className="w-full p-3 bg-[var(--input)] dark:bg-[var(--dark-input)] rounded-lg border border-[var(--border)] dark:border-[var(--dark-border)]">
-                <option>Gemini 1.5 Flash (초고속)</option>
-                <option>Gemini 1.5 Pro (정밀)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1">스크랩 주기</label>
-              <input type="text" value="1시간마다" readOnly className="w-full p-3 bg-[var(--input)] dark:bg-[var(--dark-input)] rounded-lg border border-[var(--border)] dark:border-[var(--dark-border)]" />
-            </div>
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button icon={Save}>설정 저장</Button>
-          </div>
-        </Card>
-      )}
-    </div>
-  );
-
   // --- 메인 앱 렌더링 ---
-  if (!isAuthenticated) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-[var(--background)] dark:bg-[var(--dark-background)] flex items-center justify-center p-6 font-lora">
         <Card className="w-full max-w-sm p-10 text-center shadow-2xl bg-[var(--card-background)] dark:bg-[var(--dark-card-background)]">
-          <Anchor className="mx-auto text-[var(--primary)] mb-4" size={48} />
-          <h1 className="text-4xl font-bold text-[var(--foreground)] dark:text-[var(--dark-foreground)]">Storyport</h1>
-          <p className="mt-2 text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70">당신의 이야기가 머무는 항구</p>
-          <div className="mt-8">
-            <Button onClick={handleLogin} icon={LogIn} className="w-full">관리자 로그인</Button>
-            {/* 실제 가입 로직은 백엔드 연동이 필요하므로 현재는 시뮬레이션 */}
-            <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">
-              * 일반 사용자 가입은 현재 준비 중입니다.
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)] mb-6">
+            로딩 중...
+          </h1>
+          <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70">인증 상태를 확인하고 있습니다.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] dark:bg-[var(--dark-background)] flex items-center justify-center p-6 font-lora">
+        {isRegistering ? (
+          <RegisterForm
+            onRegisterSuccess={() => {
+              setIsRegistering(false);
+              setCurrentView('dashboard');
+              queryClient.invalidateQueries({ queryKey: ['posts'] }); // 게시글 쿼리 무효화
+            }}
+            onNavigateToLogin={() => setIsRegistering(false)}
+          />
+        ) : (
+          <LoginForm
+            onLoginSuccess={async (success, mfaRequiredResult) => {
+              if (success) {
+                setCurrentView('dashboard');
+                setMfaRequired(false); // 로그인 성공 시 MFA 상태 초기화
+                queryClient.invalidateQueries({ queryKey: ['posts'] }); // 게시글 쿼리 무효화
+              } else if (mfaRequiredResult) {
+                setMfaRequired(true);
+              }
+            }}
+            onNavigateToRegister={() => setIsRegistering(true)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // MFA가 필요할 경우 MFA 입력 폼 렌더링 (임시)
+  if (mfaRequired) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] dark:bg-[var(--dark-background)] flex items-center justify-center p-6 font-lora">
+        <Card className="w-full max-w-sm p-10 text-center shadow-2xl bg-[var(--card-background)] dark:bg-[var(--dark-card-background)]">
+          <h1 className="text-3xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)] mb-6">MFA 인증 필요</h1>
+          <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mb-4">로그인을 완료하려면 OTP 토큰을 입력하세요.</p>
+          {/* TODO: 실제 MFA 입력 폼 컴포넌트 추가 */}
+          <input type="text" placeholder="OTP 토큰" className="w-full p-3 bg-[var(--input)] dark:bg-[var(--dark-input)] rounded-lg border border-[var(--border)] dark:border-[var(--dark-border)] mb-4" />
+          <Button className="w-full">인증</Button>
+          <Button variant="ghost" className="w-full mt-4" onClick={logout}>다른 계정으로 로그인</Button>
         </Card>
       </div>
     );
@@ -735,7 +532,7 @@ export default function App() {
               {isSidebarOpen && <span className="text-sm font-semibold">{item.label}</span>}
             </button>
           ))}
-          
+
           {user && user.role === 'admin' && (
             <div className="mt-8 pt-8 border-t border-[var(--border)] dark:border-[var(--dark-border)]">
               {isSidebarOpen && <p className="px-5 text-xs font-bold text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 uppercase tracking-wider mb-3">관리자 메뉴</p>}
@@ -755,14 +552,14 @@ export default function App() {
         <div className="p-6">
           <Card className="p-4 bg-white dark:bg-[var(--dark-card-background)]">
             <div className="flex items-center gap-4">
-              <img src={user.avatar} className="w-10 h-10 rounded-full bg-[var(--secondary)]" alt="profile" />
+              <img src={user?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || 'Guest'}`} className="w-10 h-10 rounded-full bg-[var(--secondary)]" alt="profile" />
               {isSidebarOpen && (
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-sm font-bold truncate text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{user.name}</p>
-                  <p className="text-xs text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 truncate">{user.email}</p>
+                  <p className="text-sm font-bold truncate text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{user?.username}</p>
+                  <p className="text-xs text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 truncate">{user?.email}</p>
                 </div>
               )}
-              {isSidebarOpen && <Button onClick={handleLogout} variant="ghost" className="p-2"><LogOut size={18} /></Button>}
+              {isSidebarOpen && <Button onClick={logout} variant="ghost" className="p-2"><LogOut size={18} /></Button>}
             </div>
           </Card>
         </div>
@@ -779,7 +576,7 @@ export default function App() {
               {selectedPost ? '이야기 상세' : currentView.replace('-', ' ')}
             </h2>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--foreground)]/50" size={18} />
@@ -801,17 +598,17 @@ export default function App() {
       </main>
 
       {/* 모달 컴포넌트들 */}
-      <MediaModal 
-        isOpen={isMediaModalOpen} 
-        onClose={() => {setIsMediaModalOpen(false); setEditingMedia(null);}} 
-        onSave={handleAddEditMedia} 
-        media={editingMedia} 
+      <MediaModal
+        isOpen={isMediaModalOpen}
+        onClose={() => {setIsMediaModalOpen(false); setEditingMedia(null);}}
+        onSave={handleAddEditMedia}
+        media={editingMedia}
       />
 
-      <MediaPlayerModal 
-        isOpen={isPlayerModalOpen} 
-        onClose={() => {setIsPlayerModalOpen(false); setPlayingMedia(null);}} 
-        media={playingMedia} 
+      <MediaPlayerModal
+        isOpen={isPlayerModalOpen}
+        onClose={() => {setIsPlayerModalOpen(false); setPlayingMedia(null);}}
+        media={playingMedia}
       />
 
       <UserModal
