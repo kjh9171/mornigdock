@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query'; // useQuery 훅 임포트
 import { 
   User, 
   Settings, 
@@ -31,6 +32,9 @@ import {
   Users,
   LayoutDashboard
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query'; // useQuery 훅 임포트
+import { LoginForm, RegisterForm } from './components/Auth'; // Auth 컴포넌트 임포트
+import { useAuth } from './hooks/useAuth'; // useAuth 훅 임포트
 
 // --- Storyport 디자인 시스템 컴포넌트 ---
 
@@ -285,16 +289,23 @@ const PostManagementModal = ({ isOpen, onClose, onSave, post }) => {
   );
 };
 
+// API로부터 게시글 데이터를 가져오는 함수
+const fetchPosts = async () => {
+  const response = await fetch('/api/news'); // 백엔드 API 엔드포인트 호출
+  if (!response.ok) {
+    throw new Error('네트워크 응답이 올바르지 않습니다.');
+  }
+  return response.json();
+};
+
+
 
 export default function App() {
   const [theme, setTheme] = useState('light');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('dashboard');
   const [adminTab, setAdminTab] = useState('users');
   const [selectedPost, setSelectedPost] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
   const [comments, setComments] = useState([]);
   const [newCommentText, setNewCommentText] = useState("");
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -306,11 +317,17 @@ export default function App() {
   const [isPostManagementModalOpen, setIsPostManagementModalOpen] = useState(false);
   const [editingPostManagement, setEditingPostManagement] = useState(null);
 
-  const [posts, setPosts] = useState([
-    { id: 1, title: "스토리포트에 오신 것을 환영합니다", content: "이곳은 당신의 이야기가 머무는 항구입니다.\n자유롭게 글을 쓰고, 음악을 감상하며 영감을 나눠보세요.", author: "운영팀", authorEmail: "cert@storyport.io", type: "notice", views: 156, likes: 62, createdAt: "2024-02-14 10:00" },
-    { id: 2, title: "오늘의 추천 플레이리스트", content: "나른한 오후, 잠시 쉬어가고 싶을 때 듣기 좋은 음악들을 모아봤습니다.", author: "DJ 아톰", authorEmail: "atom@storyport.io", type: "post", views: 92, likes: 38, createdAt: "2024-02-14 11:30" },
-  ]);
+  // useAuth 훅을 사용하여 인증 상태 관리
+  const { isAuthenticated, user, token, isLoading: authLoading, login, register, logout } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false); // 회원가입 폼 표시 여부
+  const [mfaRequired, setMfaRequired] = useState(false); // MFA 필요 여부
 
+  // TanStack Query를 사용하여 게시글 데이터 가져오기
+  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery({
+    queryKey: ['posts'], // 쿼리 키 정의
+    queryFn: fetchPosts, // 데이터를 가져올 함수
+  });
+  
   const [users, setUsers] = useState([
     { id: 1, name: "김종환 대표님", email: "kjh9171@storyport.io", role: "admin", status: "active", createdAt: "2023-01-01" },
     { id: 2, name: "DJ 아톰", email: "atom@storyport.io", role: "editor", status: "active", createdAt: "2023-03-15" },
@@ -330,25 +347,6 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
-
-  // 로그인 핸들러
-  const handleLogin = () => {
-    // 실제 OTP 인증 로직 대신 관리자 계정으로 로그인 시뮬레이션
-    setUser({
-      email: "kjh9171@storyport.io",
-      name: "김종환 대표님",
-      role: "admin",
-      avatar: "https://api.dicebear.com/7.x/initials/svg?seed=SP",
-    });
-    setIsAuthenticated(true);
-  };
-
-  // 로그아웃 핸들러
-  const handleLogout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    setCurrentView('dashboard'); // 로그아웃 시 대시보드로 이동
-  };
   
   // 게시글 상세 보기 핸들러
   const openPostDetail = (post) => {
@@ -436,25 +434,31 @@ export default function App() {
   };
 
   // --- 렌더링 함수들 ---
-  const renderDashboard = () => (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">모든 이야기</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {posts.map(post => (
-          <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
-              {post.type === 'notice' && (
-                <span className="px-3 py-1 text-xs font-bold rounded-full bg-[var(--secondary)] text-[var(--secondary-foreground)]">공지</span>
-              )}
-            </div>
-            <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
-            <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author} on {post.createdAt}</p>
-          </Card>
-        ))}
+  const renderDashboard = () => {
+    if (postsLoading) return <div className="text-center text-lg">게시글을 불러오는 중입니다...</div>;
+    if (postsError) return <div className="text-center text-lg text-red-500">게시글을 불러오는데 실패했습니다: {postsError.message}</div>;
+    if (!posts || posts.length === 0) return <div className="text-center text-lg">게시글이 없습니다.</div>;
+
+    return (
+      <div className="space-y-8 animate-in fade-in duration-700">
+        <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">모든 이야기</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((post: any) => ( // API에서 가져온 posts 타입 명시
+            <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
+                {post.type === 'notice' && (
+                  <span className="px-3 py-1 text-xs font-bold rounded-full bg-[var(--secondary)] text-[var(--secondary-foreground)]">공지</span>
+                )}
+              </div>
+              <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
+              <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author} on {post.createdAt}</p>
+            </Card>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderMedia = () => (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -492,20 +496,27 @@ export default function App() {
     </div>
   );
 
-  const renderCommunity = () => (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">커뮤니티 광장</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {posts.map(post => (
-          <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
-            <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
-            <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
-            <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author}</p>
-          </Card>
-        ))}
+  const renderCommunity = () => {
+    if (postsLoading) return <div className="text-center text-lg">게시글을 불러오는 중입니다...</div>;
+    if (postsError) return <div className="text-center text-lg text-red-500">게시글을 불러오는데 실패했습니다: {postsError.message}</div>;
+    if (!posts || posts.length === 0) return <div className="text-center text-lg">게시글이 없습니다.</div>;
+
+    return (
+      <div className="space-y-8 animate-in fade-in duration-700">
+        <h2 className="text-4xl font-bold font-lora mb-6 text-[var(--foreground)] dark:text-[var(--dark-foreground)]">커뮤니티 광장</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((post: any) => ( // API에서 가져온 posts 타입 명시
+            <Card key={post.id} className="p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300" onClick={() => openPostDetail(post)}>
+              <h3 className="text-xl font-bold font-lora text-[var(--foreground)] dark:text-[var(--dark-foreground)]">{post.title}</h3>
+              <p className="text-sm text-[var(--foreground)]/70 dark:text-[var(--dark-foreground)]/70 mt-2 line-clamp-3">{post.content}</p>
+              <p className="text-xs text-[var(--foreground)]/50 dark:text-[var(--dark-foreground)]/50 mt-4">by {post.author}</p>
+            </Card>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
 
   const renderPostDetail = () => (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">

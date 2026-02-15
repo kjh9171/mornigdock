@@ -55,3 +55,4 @@ replit.nix
 .cpolar
 .profile
 .cache
+node_modules
