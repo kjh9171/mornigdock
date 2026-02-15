@@ -1,8 +1,8815 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
+var __commonJS = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except2, desc2) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except2)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc2 = __getOwnPropDesc(from, key)) || desc2.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// node_modules/safe-buffer/index.js
+var require_safe_buffer = __commonJS({
+  "node_modules/safe-buffer/index.js"(exports, module) {
+    var buffer = __require("buffer");
+    var Buffer2 = buffer.Buffer;
+    function copyProps(src, dst) {
+      for (var key in src) {
+        dst[key] = src[key];
+      }
+    }
+    if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
+      module.exports = buffer;
+    } else {
+      copyProps(buffer, exports);
+      exports.Buffer = SafeBuffer;
+    }
+    function SafeBuffer(arg, encodingOrOffset, length) {
+      return Buffer2(arg, encodingOrOffset, length);
+    }
+    SafeBuffer.prototype = Object.create(Buffer2.prototype);
+    copyProps(Buffer2, SafeBuffer);
+    SafeBuffer.from = function(arg, encodingOrOffset, length) {
+      if (typeof arg === "number") {
+        throw new TypeError("Argument must not be a number");
+      }
+      return Buffer2(arg, encodingOrOffset, length);
+    };
+    SafeBuffer.alloc = function(size, fill, encoding) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      var buf = Buffer2(size);
+      if (fill !== void 0) {
+        if (typeof encoding === "string") {
+          buf.fill(fill, encoding);
+        } else {
+          buf.fill(fill);
+        }
+      } else {
+        buf.fill(0);
+      }
+      return buf;
+    };
+    SafeBuffer.allocUnsafe = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return Buffer2(size);
+    };
+    SafeBuffer.allocUnsafeSlow = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return buffer.SlowBuffer(size);
+    };
+  }
+});
+
+// node_modules/jws/lib/data-stream.js
+var require_data_stream = __commonJS({
+  "node_modules/jws/lib/data-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var Stream = __require("stream");
+    var util2 = __require("util");
+    function DataStream(data) {
+      this.buffer = null;
+      this.writable = true;
+      this.readable = true;
+      if (!data) {
+        this.buffer = Buffer2.alloc(0);
+        return this;
+      }
+      if (typeof data.pipe === "function") {
+        this.buffer = Buffer2.alloc(0);
+        data.pipe(this);
+        return this;
+      }
+      if (data.length || typeof data === "object") {
+        this.buffer = data;
+        this.writable = false;
+        process.nextTick(function() {
+          this.emit("end", data);
+          this.readable = false;
+          this.emit("close");
+        }.bind(this));
+        return this;
+      }
+      throw new TypeError("Unexpected data type (" + typeof data + ")");
+    }
+    util2.inherits(DataStream, Stream);
+    DataStream.prototype.write = function write(data) {
+      this.buffer = Buffer2.concat([this.buffer, Buffer2.from(data)]);
+      this.emit("data", data);
+    };
+    DataStream.prototype.end = function end(data) {
+      if (data)
+        this.write(data);
+      this.emit("end", data);
+      this.emit("close");
+      this.writable = false;
+      this.readable = false;
+    };
+    module.exports = DataStream;
+  }
+});
+
+// node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js
+var require_param_bytes_for_alg = __commonJS({
+  "node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js"(exports, module) {
+    "use strict";
+    function getParamSize(keySize) {
+      var result = (keySize / 8 | 0) + (keySize % 8 === 0 ? 0 : 1);
+      return result;
+    }
+    var paramBytesForAlg = {
+      ES256: getParamSize(256),
+      ES384: getParamSize(384),
+      ES512: getParamSize(521)
+    };
+    function getParamBytesForAlg(alg) {
+      var paramBytes = paramBytesForAlg[alg];
+      if (paramBytes) {
+        return paramBytes;
+      }
+      throw new Error('Unknown algorithm "' + alg + '"');
+    }
+    module.exports = getParamBytesForAlg;
+  }
+});
+
+// node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js
+var require_ecdsa_sig_formatter = __commonJS({
+  "node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js"(exports, module) {
+    "use strict";
+    var Buffer2 = require_safe_buffer().Buffer;
+    var getParamBytesForAlg = require_param_bytes_for_alg();
+    var MAX_OCTET = 128;
+    var CLASS_UNIVERSAL = 0;
+    var PRIMITIVE_BIT = 32;
+    var TAG_SEQ = 16;
+    var TAG_INT = 2;
+    var ENCODED_TAG_SEQ = TAG_SEQ | PRIMITIVE_BIT | CLASS_UNIVERSAL << 6;
+    var ENCODED_TAG_INT = TAG_INT | CLASS_UNIVERSAL << 6;
+    function base64Url(base64) {
+      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function signatureAsBuffer(signature) {
+      if (Buffer2.isBuffer(signature)) {
+        return signature;
+      } else if ("string" === typeof signature) {
+        return Buffer2.from(signature, "base64");
+      }
+      throw new TypeError("ECDSA signature must be a Base64 string or a Buffer");
+    }
+    function derToJose(signature, alg) {
+      signature = signatureAsBuffer(signature);
+      var paramBytes = getParamBytesForAlg(alg);
+      var maxEncodedParamLength = paramBytes + 1;
+      var inputLength = signature.length;
+      var offset = 0;
+      if (signature[offset++] !== ENCODED_TAG_SEQ) {
+        throw new Error('Could not find expected "seq"');
+      }
+      var seqLength = signature[offset++];
+      if (seqLength === (MAX_OCTET | 1)) {
+        seqLength = signature[offset++];
+      }
+      if (inputLength - offset < seqLength) {
+        throw new Error('"seq" specified length of "' + seqLength + '", only "' + (inputLength - offset) + '" remaining');
+      }
+      if (signature[offset++] !== ENCODED_TAG_INT) {
+        throw new Error('Could not find expected "int" for "r"');
+      }
+      var rLength = signature[offset++];
+      if (inputLength - offset - 2 < rLength) {
+        throw new Error('"r" specified length of "' + rLength + '", only "' + (inputLength - offset - 2) + '" available');
+      }
+      if (maxEncodedParamLength < rLength) {
+        throw new Error('"r" specified length of "' + rLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
+      }
+      var rOffset = offset;
+      offset += rLength;
+      if (signature[offset++] !== ENCODED_TAG_INT) {
+        throw new Error('Could not find expected "int" for "s"');
+      }
+      var sLength = signature[offset++];
+      if (inputLength - offset !== sLength) {
+        throw new Error('"s" specified length of "' + sLength + '", expected "' + (inputLength - offset) + '"');
+      }
+      if (maxEncodedParamLength < sLength) {
+        throw new Error('"s" specified length of "' + sLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
+      }
+      var sOffset = offset;
+      offset += sLength;
+      if (offset !== inputLength) {
+        throw new Error('Expected to consume entire buffer, but "' + (inputLength - offset) + '" bytes remain');
+      }
+      var rPadding = paramBytes - rLength, sPadding = paramBytes - sLength;
+      var dst = Buffer2.allocUnsafe(rPadding + rLength + sPadding + sLength);
+      for (offset = 0; offset < rPadding; ++offset) {
+        dst[offset] = 0;
+      }
+      signature.copy(dst, offset, rOffset + Math.max(-rPadding, 0), rOffset + rLength);
+      offset = paramBytes;
+      for (var o = offset; offset < o + sPadding; ++offset) {
+        dst[offset] = 0;
+      }
+      signature.copy(dst, offset, sOffset + Math.max(-sPadding, 0), sOffset + sLength);
+      dst = dst.toString("base64");
+      dst = base64Url(dst);
+      return dst;
+    }
+    function countPadding(buf, start, stop) {
+      var padding = 0;
+      while (start + padding < stop && buf[start + padding] === 0) {
+        ++padding;
+      }
+      var needsSign = buf[start + padding] >= MAX_OCTET;
+      if (needsSign) {
+        --padding;
+      }
+      return padding;
+    }
+    function joseToDer(signature, alg) {
+      signature = signatureAsBuffer(signature);
+      var paramBytes = getParamBytesForAlg(alg);
+      var signatureBytes = signature.length;
+      if (signatureBytes !== paramBytes * 2) {
+        throw new TypeError('"' + alg + '" signatures must be "' + paramBytes * 2 + '" bytes, saw "' + signatureBytes + '"');
+      }
+      var rPadding = countPadding(signature, 0, paramBytes);
+      var sPadding = countPadding(signature, paramBytes, signature.length);
+      var rLength = paramBytes - rPadding;
+      var sLength = paramBytes - sPadding;
+      var rsBytes = 1 + 1 + rLength + 1 + 1 + sLength;
+      var shortLength = rsBytes < MAX_OCTET;
+      var dst = Buffer2.allocUnsafe((shortLength ? 2 : 3) + rsBytes);
+      var offset = 0;
+      dst[offset++] = ENCODED_TAG_SEQ;
+      if (shortLength) {
+        dst[offset++] = rsBytes;
+      } else {
+        dst[offset++] = MAX_OCTET | 1;
+        dst[offset++] = rsBytes & 255;
+      }
+      dst[offset++] = ENCODED_TAG_INT;
+      dst[offset++] = rLength;
+      if (rPadding < 0) {
+        dst[offset++] = 0;
+        offset += signature.copy(dst, offset, 0, paramBytes);
+      } else {
+        offset += signature.copy(dst, offset, rPadding, paramBytes);
+      }
+      dst[offset++] = ENCODED_TAG_INT;
+      dst[offset++] = sLength;
+      if (sPadding < 0) {
+        dst[offset++] = 0;
+        signature.copy(dst, offset, paramBytes);
+      } else {
+        signature.copy(dst, offset, paramBytes + sPadding);
+      }
+      return dst;
+    }
+    module.exports = {
+      derToJose,
+      joseToDer
+    };
+  }
+});
+
+// node_modules/buffer-equal-constant-time/index.js
+var require_buffer_equal_constant_time = __commonJS({
+  "node_modules/buffer-equal-constant-time/index.js"(exports, module) {
+    "use strict";
+    var Buffer2 = __require("buffer").Buffer;
+    var SlowBuffer = __require("buffer").SlowBuffer;
+    module.exports = bufferEq;
+    function bufferEq(a, b) {
+      if (!Buffer2.isBuffer(a) || !Buffer2.isBuffer(b)) {
+        return false;
+      }
+      if (a.length !== b.length) {
+        return false;
+      }
+      var c = 0;
+      for (var i = 0; i < a.length; i++) {
+        c |= a[i] ^ b[i];
+      }
+      return c === 0;
+    }
+    bufferEq.install = function() {
+      Buffer2.prototype.equal = SlowBuffer.prototype.equal = function equal(that) {
+        return bufferEq(this, that);
+      };
+    };
+    var origBufEqual = Buffer2.prototype.equal;
+    var origSlowBufEqual = SlowBuffer.prototype.equal;
+    bufferEq.restore = function() {
+      Buffer2.prototype.equal = origBufEqual;
+      SlowBuffer.prototype.equal = origSlowBufEqual;
+    };
+  }
+});
+
+// node_modules/jwa/index.js
+var require_jwa = __commonJS({
+  "node_modules/jwa/index.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var crypto = __require("crypto");
+    var formatEcdsa = require_ecdsa_sig_formatter();
+    var util2 = __require("util");
+    var MSG_INVALID_ALGORITHM = '"%s" is not a valid algorithm.\n  Supported algorithms are:\n  "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512" and "none".';
+    var MSG_INVALID_SECRET = "secret must be a string or buffer";
+    var MSG_INVALID_VERIFIER_KEY = "key must be a string or a buffer";
+    var MSG_INVALID_SIGNER_KEY = "key must be a string, a buffer or an object";
+    var supportsKeyObjects = typeof crypto.createPublicKey === "function";
+    if (supportsKeyObjects) {
+      MSG_INVALID_VERIFIER_KEY += " or a KeyObject";
+      MSG_INVALID_SECRET += "or a KeyObject";
+    }
+    function checkIsPublicKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return;
+      }
+      if (!supportsKeyObjects) {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key !== "object") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.type !== "string") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.asymmetricKeyType !== "string") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.export !== "function") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+    }
+    function checkIsPrivateKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return;
+      }
+      if (typeof key === "object") {
+        return;
+      }
+      throw typeError(MSG_INVALID_SIGNER_KEY);
+    }
+    function checkIsSecretKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return key;
+      }
+      if (!supportsKeyObjects) {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (typeof key !== "object") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (key.type !== "secret") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (typeof key.export !== "function") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+    }
+    function fromBase64(base64) {
+      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function toBase64(base64url) {
+      base64url = base64url.toString();
+      var padding = 4 - base64url.length % 4;
+      if (padding !== 4) {
+        for (var i = 0; i < padding; ++i) {
+          base64url += "=";
+        }
+      }
+      return base64url.replace(/\-/g, "+").replace(/_/g, "/");
+    }
+    function typeError(template) {
+      var args = [].slice.call(arguments, 1);
+      var errMsg = util2.format.bind(util2, template).apply(null, args);
+      return new TypeError(errMsg);
+    }
+    function bufferOrString(obj) {
+      return Buffer2.isBuffer(obj) || typeof obj === "string";
+    }
+    function normalizeInput(thing) {
+      if (!bufferOrString(thing))
+        thing = JSON.stringify(thing);
+      return thing;
+    }
+    function createHmacSigner(bits) {
+      return function sign(thing, secret) {
+        checkIsSecretKey(secret);
+        thing = normalizeInput(thing);
+        var hmac = crypto.createHmac("sha" + bits, secret);
+        var sig = (hmac.update(thing), hmac.digest("base64"));
+        return fromBase64(sig);
+      };
+    }
+    var bufferEqual;
+    var timingSafeEqual2 = "timingSafeEqual" in crypto ? function timingSafeEqual3(a, b) {
+      if (a.byteLength !== b.byteLength) {
+        return false;
+      }
+      return crypto.timingSafeEqual(a, b);
+    } : function timingSafeEqual3(a, b) {
+      if (!bufferEqual) {
+        bufferEqual = require_buffer_equal_constant_time();
+      }
+      return bufferEqual(a, b);
+    };
+    function createHmacVerifier(bits) {
+      return function verify(thing, signature, secret) {
+        var computedSig = createHmacSigner(bits)(thing, secret);
+        return timingSafeEqual2(Buffer2.from(signature), Buffer2.from(computedSig));
+      };
+    }
+    function createKeySigner(bits) {
+      return function sign(thing, privateKey) {
+        checkIsPrivateKey(privateKey);
+        thing = normalizeInput(thing);
+        var signer = crypto.createSign("RSA-SHA" + bits);
+        var sig = (signer.update(thing), signer.sign(privateKey, "base64"));
+        return fromBase64(sig);
+      };
+    }
+    function createKeyVerifier(bits) {
+      return function verify(thing, signature, publicKey) {
+        checkIsPublicKey(publicKey);
+        thing = normalizeInput(thing);
+        signature = toBase64(signature);
+        var verifier = crypto.createVerify("RSA-SHA" + bits);
+        verifier.update(thing);
+        return verifier.verify(publicKey, signature, "base64");
+      };
+    }
+    function createPSSKeySigner(bits) {
+      return function sign(thing, privateKey) {
+        checkIsPrivateKey(privateKey);
+        thing = normalizeInput(thing);
+        var signer = crypto.createSign("RSA-SHA" + bits);
+        var sig = (signer.update(thing), signer.sign({
+          key: privateKey,
+          padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST
+        }, "base64"));
+        return fromBase64(sig);
+      };
+    }
+    function createPSSKeyVerifier(bits) {
+      return function verify(thing, signature, publicKey) {
+        checkIsPublicKey(publicKey);
+        thing = normalizeInput(thing);
+        signature = toBase64(signature);
+        var verifier = crypto.createVerify("RSA-SHA" + bits);
+        verifier.update(thing);
+        return verifier.verify({
+          key: publicKey,
+          padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST
+        }, signature, "base64");
+      };
+    }
+    function createECDSASigner(bits) {
+      var inner = createKeySigner(bits);
+      return function sign() {
+        var signature = inner.apply(null, arguments);
+        signature = formatEcdsa.derToJose(signature, "ES" + bits);
+        return signature;
+      };
+    }
+    function createECDSAVerifer(bits) {
+      var inner = createKeyVerifier(bits);
+      return function verify(thing, signature, publicKey) {
+        signature = formatEcdsa.joseToDer(signature, "ES" + bits).toString("base64");
+        var result = inner(thing, signature, publicKey);
+        return result;
+      };
+    }
+    function createNoneSigner() {
+      return function sign() {
+        return "";
+      };
+    }
+    function createNoneVerifier() {
+      return function verify(thing, signature) {
+        return signature === "";
+      };
+    }
+    module.exports = function jwa(algorithm) {
+      var signerFactories = {
+        hs: createHmacSigner,
+        rs: createKeySigner,
+        ps: createPSSKeySigner,
+        es: createECDSASigner,
+        none: createNoneSigner
+      };
+      var verifierFactories = {
+        hs: createHmacVerifier,
+        rs: createKeyVerifier,
+        ps: createPSSKeyVerifier,
+        es: createECDSAVerifer,
+        none: createNoneVerifier
+      };
+      var match = algorithm.match(/^(RS|PS|ES|HS)(256|384|512)$|^(none)$/);
+      if (!match)
+        throw typeError(MSG_INVALID_ALGORITHM, algorithm);
+      var algo = (match[1] || match[3]).toLowerCase();
+      var bits = match[2];
+      return {
+        sign: signerFactories[algo](bits),
+        verify: verifierFactories[algo](bits)
+      };
+    };
+  }
+});
+
+// node_modules/jws/lib/tostring.js
+var require_tostring = __commonJS({
+  "node_modules/jws/lib/tostring.js"(exports, module) {
+    var Buffer2 = __require("buffer").Buffer;
+    module.exports = function toString(obj) {
+      if (typeof obj === "string")
+        return obj;
+      if (typeof obj === "number" || Buffer2.isBuffer(obj))
+        return obj.toString();
+      return JSON.stringify(obj);
+    };
+  }
+});
+
+// node_modules/jws/lib/sign-stream.js
+var require_sign_stream = __commonJS({
+  "node_modules/jws/lib/sign-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var DataStream = require_data_stream();
+    var jwa = require_jwa();
+    var Stream = __require("stream");
+    var toString = require_tostring();
+    var util2 = __require("util");
+    function base64url(string, encoding) {
+      return Buffer2.from(string, encoding).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function jwsSecuredInput(header, payload, encoding) {
+      encoding = encoding || "utf8";
+      var encodedHeader = base64url(toString(header), "binary");
+      var encodedPayload = base64url(toString(payload), encoding);
+      return util2.format("%s.%s", encodedHeader, encodedPayload);
+    }
+    function jwsSign(opts) {
+      var header = opts.header;
+      var payload = opts.payload;
+      var secretOrKey = opts.secret || opts.privateKey;
+      var encoding = opts.encoding;
+      var algo = jwa(header.alg);
+      var securedInput = jwsSecuredInput(header, payload, encoding);
+      var signature = algo.sign(securedInput, secretOrKey);
+      return util2.format("%s.%s", securedInput, signature);
+    }
+    function SignStream(opts) {
+      var secret = opts.secret;
+      secret = secret == null ? opts.privateKey : secret;
+      secret = secret == null ? opts.key : secret;
+      if (/^hs/i.test(opts.header.alg) === true && secret == null) {
+        throw new TypeError("secret must be a string or buffer or a KeyObject");
+      }
+      var secretStream = new DataStream(secret);
+      this.readable = true;
+      this.header = opts.header;
+      this.encoding = opts.encoding;
+      this.secret = this.privateKey = this.key = secretStream;
+      this.payload = new DataStream(opts.payload);
+      this.secret.once("close", function() {
+        if (!this.payload.writable && this.readable)
+          this.sign();
+      }.bind(this));
+      this.payload.once("close", function() {
+        if (!this.secret.writable && this.readable)
+          this.sign();
+      }.bind(this));
+    }
+    util2.inherits(SignStream, Stream);
+    SignStream.prototype.sign = function sign() {
+      try {
+        var signature = jwsSign({
+          header: this.header,
+          payload: this.payload.buffer,
+          secret: this.secret.buffer,
+          encoding: this.encoding
+        });
+        this.emit("done", signature);
+        this.emit("data", signature);
+        this.emit("end");
+        this.readable = false;
+        return signature;
+      } catch (e) {
+        this.readable = false;
+        this.emit("error", e);
+        this.emit("close");
+      }
+    };
+    SignStream.sign = jwsSign;
+    module.exports = SignStream;
+  }
+});
+
+// node_modules/jws/lib/verify-stream.js
+var require_verify_stream = __commonJS({
+  "node_modules/jws/lib/verify-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var DataStream = require_data_stream();
+    var jwa = require_jwa();
+    var Stream = __require("stream");
+    var toString = require_tostring();
+    var util2 = __require("util");
+    var JWS_REGEX = /^[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)?$/;
+    function isObject(thing) {
+      return Object.prototype.toString.call(thing) === "[object Object]";
+    }
+    function safeJsonParse(thing) {
+      if (isObject(thing))
+        return thing;
+      try {
+        return JSON.parse(thing);
+      } catch (e) {
+        return void 0;
+      }
+    }
+    function headerFromJWS(jwsSig) {
+      var encodedHeader = jwsSig.split(".", 1)[0];
+      return safeJsonParse(Buffer2.from(encodedHeader, "base64").toString("binary"));
+    }
+    function securedInputFromJWS(jwsSig) {
+      return jwsSig.split(".", 2).join(".");
+    }
+    function signatureFromJWS(jwsSig) {
+      return jwsSig.split(".")[2];
+    }
+    function payloadFromJWS(jwsSig, encoding) {
+      encoding = encoding || "utf8";
+      var payload = jwsSig.split(".")[1];
+      return Buffer2.from(payload, "base64").toString(encoding);
+    }
+    function isValidJws(string) {
+      return JWS_REGEX.test(string) && !!headerFromJWS(string);
+    }
+    function jwsVerify(jwsSig, algorithm, secretOrKey) {
+      if (!algorithm) {
+        var err = new Error("Missing algorithm parameter for jws.verify");
+        err.code = "MISSING_ALGORITHM";
+        throw err;
+      }
+      jwsSig = toString(jwsSig);
+      var signature = signatureFromJWS(jwsSig);
+      var securedInput = securedInputFromJWS(jwsSig);
+      var algo = jwa(algorithm);
+      return algo.verify(securedInput, signature, secretOrKey);
+    }
+    function jwsDecode(jwsSig, opts) {
+      opts = opts || {};
+      jwsSig = toString(jwsSig);
+      if (!isValidJws(jwsSig))
+        return null;
+      var header = headerFromJWS(jwsSig);
+      if (!header)
+        return null;
+      var payload = payloadFromJWS(jwsSig);
+      if (header.typ === "JWT" || opts.json)
+        payload = JSON.parse(payload, opts.encoding);
+      return {
+        header,
+        payload,
+        signature: signatureFromJWS(jwsSig)
+      };
+    }
+    function VerifyStream(opts) {
+      opts = opts || {};
+      var secretOrKey = opts.secret;
+      secretOrKey = secretOrKey == null ? opts.publicKey : secretOrKey;
+      secretOrKey = secretOrKey == null ? opts.key : secretOrKey;
+      if (/^hs/i.test(opts.algorithm) === true && secretOrKey == null) {
+        throw new TypeError("secret must be a string or buffer or a KeyObject");
+      }
+      var secretStream = new DataStream(secretOrKey);
+      this.readable = true;
+      this.algorithm = opts.algorithm;
+      this.encoding = opts.encoding;
+      this.secret = this.publicKey = this.key = secretStream;
+      this.signature = new DataStream(opts.signature);
+      this.secret.once("close", function() {
+        if (!this.signature.writable && this.readable)
+          this.verify();
+      }.bind(this));
+      this.signature.once("close", function() {
+        if (!this.secret.writable && this.readable)
+          this.verify();
+      }.bind(this));
+    }
+    util2.inherits(VerifyStream, Stream);
+    VerifyStream.prototype.verify = function verify() {
+      try {
+        var valid = jwsVerify(this.signature.buffer, this.algorithm, this.key.buffer);
+        var obj = jwsDecode(this.signature.buffer, this.encoding);
+        this.emit("done", valid, obj);
+        this.emit("data", valid);
+        this.emit("end");
+        this.readable = false;
+        return valid;
+      } catch (e) {
+        this.readable = false;
+        this.emit("error", e);
+        this.emit("close");
+      }
+    };
+    VerifyStream.decode = jwsDecode;
+    VerifyStream.isValid = isValidJws;
+    VerifyStream.verify = jwsVerify;
+    module.exports = VerifyStream;
+  }
+});
+
+// node_modules/jws/index.js
+var require_jws = __commonJS({
+  "node_modules/jws/index.js"(exports) {
+    var SignStream = require_sign_stream();
+    var VerifyStream = require_verify_stream();
+    var ALGORITHMS = [
+      "HS256",
+      "HS384",
+      "HS512",
+      "RS256",
+      "RS384",
+      "RS512",
+      "PS256",
+      "PS384",
+      "PS512",
+      "ES256",
+      "ES384",
+      "ES512"
+    ];
+    exports.ALGORITHMS = ALGORITHMS;
+    exports.sign = SignStream.sign;
+    exports.verify = VerifyStream.verify;
+    exports.decode = VerifyStream.decode;
+    exports.isValid = VerifyStream.isValid;
+    exports.createSign = function createSign(opts) {
+      return new SignStream(opts);
+    };
+    exports.createVerify = function createVerify(opts) {
+      return new VerifyStream(opts);
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/decode.js
+var require_decode = __commonJS({
+  "node_modules/jsonwebtoken/decode.js"(exports, module) {
+    var jws = require_jws();
+    module.exports = function(jwt2, options) {
+      options = options || {};
+      var decoded = jws.decode(jwt2, options);
+      if (!decoded) {
+        return null;
+      }
+      var payload = decoded.payload;
+      if (typeof payload === "string") {
+        try {
+          var obj = JSON.parse(payload);
+          if (obj !== null && typeof obj === "object") {
+            payload = obj;
+          }
+        } catch (e) {
+        }
+      }
+      if (options.complete === true) {
+        return {
+          header: decoded.header,
+          payload,
+          signature: decoded.signature
+        };
+      }
+      return payload;
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/lib/JsonWebTokenError.js
+var require_JsonWebTokenError = __commonJS({
+  "node_modules/jsonwebtoken/lib/JsonWebTokenError.js"(exports, module) {
+    var JsonWebTokenError = function(message, error) {
+      Error.call(this, message);
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, this.constructor);
+      }
+      this.name = "JsonWebTokenError";
+      this.message = message;
+      if (error) this.inner = error;
+    };
+    JsonWebTokenError.prototype = Object.create(Error.prototype);
+    JsonWebTokenError.prototype.constructor = JsonWebTokenError;
+    module.exports = JsonWebTokenError;
+  }
+});
+
+// node_modules/jsonwebtoken/lib/NotBeforeError.js
+var require_NotBeforeError = __commonJS({
+  "node_modules/jsonwebtoken/lib/NotBeforeError.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var NotBeforeError = function(message, date2) {
+      JsonWebTokenError.call(this, message);
+      this.name = "NotBeforeError";
+      this.date = date2;
+    };
+    NotBeforeError.prototype = Object.create(JsonWebTokenError.prototype);
+    NotBeforeError.prototype.constructor = NotBeforeError;
+    module.exports = NotBeforeError;
+  }
+});
+
+// node_modules/jsonwebtoken/lib/TokenExpiredError.js
+var require_TokenExpiredError = __commonJS({
+  "node_modules/jsonwebtoken/lib/TokenExpiredError.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var TokenExpiredError = function(message, expiredAt) {
+      JsonWebTokenError.call(this, message);
+      this.name = "TokenExpiredError";
+      this.expiredAt = expiredAt;
+    };
+    TokenExpiredError.prototype = Object.create(JsonWebTokenError.prototype);
+    TokenExpiredError.prototype.constructor = TokenExpiredError;
+    module.exports = TokenExpiredError;
+  }
+});
+
+// node_modules/ms/index.js
+var require_ms = __commonJS({
+  "node_modules/ms/index.js"(exports, module) {
+    var s = 1e3;
+    var m = s * 60;
+    var h = m * 60;
+    var d = h * 24;
+    var w = d * 7;
+    var y = d * 365.25;
+    module.exports = function(val, options) {
+      options = options || {};
+      var type = typeof val;
+      if (type === "string" && val.length > 0) {
+        return parse(val);
+      } else if (type === "number" && isFinite(val)) {
+        return options.long ? fmtLong(val) : fmtShort(val);
+      }
+      throw new Error(
+        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
+      );
+    };
+    function parse(str) {
+      str = String(str);
+      if (str.length > 100) {
+        return;
+      }
+      var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+        str
+      );
+      if (!match) {
+        return;
+      }
+      var n = parseFloat(match[1]);
+      var type = (match[2] || "ms").toLowerCase();
+      switch (type) {
+        case "years":
+        case "year":
+        case "yrs":
+        case "yr":
+        case "y":
+          return n * y;
+        case "weeks":
+        case "week":
+        case "w":
+          return n * w;
+        case "days":
+        case "day":
+        case "d":
+          return n * d;
+        case "hours":
+        case "hour":
+        case "hrs":
+        case "hr":
+        case "h":
+          return n * h;
+        case "minutes":
+        case "minute":
+        case "mins":
+        case "min":
+        case "m":
+          return n * m;
+        case "seconds":
+        case "second":
+        case "secs":
+        case "sec":
+        case "s":
+          return n * s;
+        case "milliseconds":
+        case "millisecond":
+        case "msecs":
+        case "msec":
+        case "ms":
+          return n;
+        default:
+          return void 0;
+      }
+    }
+    function fmtShort(ms) {
+      var msAbs = Math.abs(ms);
+      if (msAbs >= d) {
+        return Math.round(ms / d) + "d";
+      }
+      if (msAbs >= h) {
+        return Math.round(ms / h) + "h";
+      }
+      if (msAbs >= m) {
+        return Math.round(ms / m) + "m";
+      }
+      if (msAbs >= s) {
+        return Math.round(ms / s) + "s";
+      }
+      return ms + "ms";
+    }
+    function fmtLong(ms) {
+      var msAbs = Math.abs(ms);
+      if (msAbs >= d) {
+        return plural(ms, msAbs, d, "day");
+      }
+      if (msAbs >= h) {
+        return plural(ms, msAbs, h, "hour");
+      }
+      if (msAbs >= m) {
+        return plural(ms, msAbs, m, "minute");
+      }
+      if (msAbs >= s) {
+        return plural(ms, msAbs, s, "second");
+      }
+      return ms + " ms";
+    }
+    function plural(ms, msAbs, n, name) {
+      var isPlural = msAbs >= n * 1.5;
+      return Math.round(ms / n) + " " + name + (isPlural ? "s" : "");
+    }
+  }
+});
+
+// node_modules/jsonwebtoken/lib/timespan.js
+var require_timespan = __commonJS({
+  "node_modules/jsonwebtoken/lib/timespan.js"(exports, module) {
+    var ms = require_ms();
+    module.exports = function(time2, iat) {
+      var timestamp2 = iat || Math.floor(Date.now() / 1e3);
+      if (typeof time2 === "string") {
+        var milliseconds = ms(time2);
+        if (typeof milliseconds === "undefined") {
+          return;
+        }
+        return Math.floor(timestamp2 + milliseconds / 1e3);
+      } else if (typeof time2 === "number") {
+        return timestamp2 + time2;
+      } else {
+        return;
+      }
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/constants.js
+var require_constants = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/constants.js"(exports, module) {
+    "use strict";
+    var SEMVER_SPEC_VERSION = "2.0.0";
+    var MAX_LENGTH = 256;
+    var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
+    9007199254740991;
+    var MAX_SAFE_COMPONENT_LENGTH = 16;
+    var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
+    var RELEASE_TYPES = [
+      "major",
+      "premajor",
+      "minor",
+      "preminor",
+      "patch",
+      "prepatch",
+      "prerelease"
+    ];
+    module.exports = {
+      MAX_LENGTH,
+      MAX_SAFE_COMPONENT_LENGTH,
+      MAX_SAFE_BUILD_LENGTH,
+      MAX_SAFE_INTEGER,
+      RELEASE_TYPES,
+      SEMVER_SPEC_VERSION,
+      FLAG_INCLUDE_PRERELEASE: 1,
+      FLAG_LOOSE: 2
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/debug.js
+var require_debug = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/debug.js"(exports, module) {
+    "use strict";
+    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+    };
+    module.exports = debug;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/re.js
+var require_re = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/re.js"(exports, module) {
+    "use strict";
+    var {
+      MAX_SAFE_COMPONENT_LENGTH,
+      MAX_SAFE_BUILD_LENGTH,
+      MAX_LENGTH
+    } = require_constants();
+    var debug = require_debug();
+    exports = module.exports = {};
+    var re = exports.re = [];
+    var safeRe = exports.safeRe = [];
+    var src = exports.src = [];
+    var safeSrc = exports.safeSrc = [];
+    var t = exports.t = {};
+    var R = 0;
+    var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+    var safeRegexReplacements = [
+      ["\\s", 1],
+      ["\\d", MAX_LENGTH],
+      [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
+    ];
+    var makeSafeRegex = (value) => {
+      for (const [token, max] of safeRegexReplacements) {
+        value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
+      }
+      return value;
+    };
+    var createToken = (name, value, isGlobal) => {
+      const safe = makeSafeRegex(value);
+      const index = R++;
+      debug(name, index, value);
+      t[name] = index;
+      src[index] = value;
+      safeSrc[index] = safe;
+      re[index] = new RegExp(value, isGlobal ? "g" : void 0);
+      safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
+    };
+    createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
+    createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
+    createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
+    createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
+    createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
+    createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
+    createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIERLOOSE]})`);
+    createToken("PRERELEASE", `(?:-(${src[t.PRERELEASEIDENTIFIER]}(?:\\.${src[t.PRERELEASEIDENTIFIER]})*))`);
+    createToken("PRERELEASELOOSE", `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src[t.PRERELEASEIDENTIFIERLOOSE]})*))`);
+    createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
+    createToken("BUILD", `(?:\\+(${src[t.BUILDIDENTIFIER]}(?:\\.${src[t.BUILDIDENTIFIER]})*))`);
+    createToken("FULLPLAIN", `v?${src[t.MAINVERSION]}${src[t.PRERELEASE]}?${src[t.BUILD]}?`);
+    createToken("FULL", `^${src[t.FULLPLAIN]}$`);
+    createToken("LOOSEPLAIN", `[v=\\s]*${src[t.MAINVERSIONLOOSE]}${src[t.PRERELEASELOOSE]}?${src[t.BUILD]}?`);
+    createToken("LOOSE", `^${src[t.LOOSEPLAIN]}$`);
+    createToken("GTLT", "((?:<|>)?=?)");
+    createToken("XRANGEIDENTIFIERLOOSE", `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`);
+    createToken("XRANGEIDENTIFIER", `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`);
+    createToken("XRANGEPLAIN", `[v=\\s]*(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:${src[t.PRERELEASE]})?${src[t.BUILD]}?)?)?`);
+    createToken("XRANGEPLAINLOOSE", `[v=\\s]*(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:${src[t.PRERELEASELOOSE]})?${src[t.BUILD]}?)?)?`);
+    createToken("XRANGE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAIN]}$`);
+    createToken("XRANGELOOSE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("COERCEPLAIN", `${"(^|[^\\d])(\\d{1,"}${MAX_SAFE_COMPONENT_LENGTH}})(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`);
+    createToken("COERCE", `${src[t.COERCEPLAIN]}(?:$|[^\\d])`);
+    createToken("COERCEFULL", src[t.COERCEPLAIN] + `(?:${src[t.PRERELEASE]})?(?:${src[t.BUILD]})?(?:$|[^\\d])`);
+    createToken("COERCERTL", src[t.COERCE], true);
+    createToken("COERCERTLFULL", src[t.COERCEFULL], true);
+    createToken("LONETILDE", "(?:~>?)");
+    createToken("TILDETRIM", `(\\s*)${src[t.LONETILDE]}\\s+`, true);
+    exports.tildeTrimReplace = "$1~";
+    createToken("TILDE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAIN]}$`);
+    createToken("TILDELOOSE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("LONECARET", "(?:\\^)");
+    createToken("CARETTRIM", `(\\s*)${src[t.LONECARET]}\\s+`, true);
+    exports.caretTrimReplace = "$1^";
+    createToken("CARET", `^${src[t.LONECARET]}${src[t.XRANGEPLAIN]}$`);
+    createToken("CARETLOOSE", `^${src[t.LONECARET]}${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("COMPARATORLOOSE", `^${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]})$|^$`);
+    createToken("COMPARATOR", `^${src[t.GTLT]}\\s*(${src[t.FULLPLAIN]})$|^$`);
+    createToken("COMPARATORTRIM", `(\\s*)${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]}|${src[t.XRANGEPLAIN]})`, true);
+    exports.comparatorTrimReplace = "$1$2$3";
+    createToken("HYPHENRANGE", `^\\s*(${src[t.XRANGEPLAIN]})\\s+-\\s+(${src[t.XRANGEPLAIN]})\\s*$`);
+    createToken("HYPHENRANGELOOSE", `^\\s*(${src[t.XRANGEPLAINLOOSE]})\\s+-\\s+(${src[t.XRANGEPLAINLOOSE]})\\s*$`);
+    createToken("STAR", "(<|>)?=?\\s*\\*");
+    createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
+    createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/parse-options.js
+var require_parse_options = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/parse-options.js"(exports, module) {
+    "use strict";
+    var looseOption = Object.freeze({ loose: true });
+    var emptyOpts = Object.freeze({});
+    var parseOptions = (options) => {
+      if (!options) {
+        return emptyOpts;
+      }
+      if (typeof options !== "object") {
+        return looseOption;
+      }
+      return options;
+    };
+    module.exports = parseOptions;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/identifiers.js
+var require_identifiers = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/identifiers.js"(exports, module) {
+    "use strict";
+    var numeric2 = /^[0-9]+$/;
+    var compareIdentifiers = (a, b) => {
+      if (typeof a === "number" && typeof b === "number") {
+        return a === b ? 0 : a < b ? -1 : 1;
+      }
+      const anum = numeric2.test(a);
+      const bnum = numeric2.test(b);
+      if (anum && bnum) {
+        a = +a;
+        b = +b;
+      }
+      return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
+    };
+    var rcompareIdentifiers = (a, b) => compareIdentifiers(b, a);
+    module.exports = {
+      compareIdentifiers,
+      rcompareIdentifiers
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/classes/semver.js
+var require_semver = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/classes/semver.js"(exports, module) {
+    "use strict";
+    var debug = require_debug();
+    var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
+    var { safeRe: re, t } = require_re();
+    var parseOptions = require_parse_options();
+    var { compareIdentifiers } = require_identifiers();
+    var SemVer = class _SemVer {
+      constructor(version2, options) {
+        options = parseOptions(options);
+        if (version2 instanceof _SemVer) {
+          if (version2.loose === !!options.loose && version2.includePrerelease === !!options.includePrerelease) {
+            return version2;
+          } else {
+            version2 = version2.version;
+          }
+        } else if (typeof version2 !== "string") {
+          throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version2}".`);
+        }
+        if (version2.length > MAX_LENGTH) {
+          throw new TypeError(
+            `version is longer than ${MAX_LENGTH} characters`
+          );
+        }
+        debug("SemVer", version2, options);
+        this.options = options;
+        this.loose = !!options.loose;
+        this.includePrerelease = !!options.includePrerelease;
+        const m = version2.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
+        if (!m) {
+          throw new TypeError(`Invalid Version: ${version2}`);
+        }
+        this.raw = version2;
+        this.major = +m[1];
+        this.minor = +m[2];
+        this.patch = +m[3];
+        if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+          throw new TypeError("Invalid major version");
+        }
+        if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+          throw new TypeError("Invalid minor version");
+        }
+        if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+          throw new TypeError("Invalid patch version");
+        }
+        if (!m[4]) {
+          this.prerelease = [];
+        } else {
+          this.prerelease = m[4].split(".").map((id) => {
+            if (/^[0-9]+$/.test(id)) {
+              const num = +id;
+              if (num >= 0 && num < MAX_SAFE_INTEGER) {
+                return num;
+              }
+            }
+            return id;
+          });
+        }
+        this.build = m[5] ? m[5].split(".") : [];
+        this.format();
+      }
+      format() {
+        this.version = `${this.major}.${this.minor}.${this.patch}`;
+        if (this.prerelease.length) {
+          this.version += `-${this.prerelease.join(".")}`;
+        }
+        return this.version;
+      }
+      toString() {
+        return this.version;
+      }
+      compare(other) {
+        debug("SemVer.compare", this.version, this.options, other);
+        if (!(other instanceof _SemVer)) {
+          if (typeof other === "string" && other === this.version) {
+            return 0;
+          }
+          other = new _SemVer(other, this.options);
+        }
+        if (other.version === this.version) {
+          return 0;
+        }
+        return this.compareMain(other) || this.comparePre(other);
+      }
+      compareMain(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        if (this.major < other.major) {
+          return -1;
+        }
+        if (this.major > other.major) {
+          return 1;
+        }
+        if (this.minor < other.minor) {
+          return -1;
+        }
+        if (this.minor > other.minor) {
+          return 1;
+        }
+        if (this.patch < other.patch) {
+          return -1;
+        }
+        if (this.patch > other.patch) {
+          return 1;
+        }
+        return 0;
+      }
+      comparePre(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        if (this.prerelease.length && !other.prerelease.length) {
+          return -1;
+        } else if (!this.prerelease.length && other.prerelease.length) {
+          return 1;
+        } else if (!this.prerelease.length && !other.prerelease.length) {
+          return 0;
+        }
+        let i = 0;
+        do {
+          const a = this.prerelease[i];
+          const b = other.prerelease[i];
+          debug("prerelease compare", i, a, b);
+          if (a === void 0 && b === void 0) {
+            return 0;
+          } else if (b === void 0) {
+            return 1;
+          } else if (a === void 0) {
+            return -1;
+          } else if (a === b) {
+            continue;
+          } else {
+            return compareIdentifiers(a, b);
+          }
+        } while (++i);
+      }
+      compareBuild(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        let i = 0;
+        do {
+          const a = this.build[i];
+          const b = other.build[i];
+          debug("build compare", i, a, b);
+          if (a === void 0 && b === void 0) {
+            return 0;
+          } else if (b === void 0) {
+            return 1;
+          } else if (a === void 0) {
+            return -1;
+          } else if (a === b) {
+            continue;
+          } else {
+            return compareIdentifiers(a, b);
+          }
+        } while (++i);
+      }
+      // preminor will bump the version up to the next minor release, and immediately
+      // down to pre-release. premajor and prepatch work the same way.
+      inc(release, identifier, identifierBase) {
+        if (release.startsWith("pre")) {
+          if (!identifier && identifierBase === false) {
+            throw new Error("invalid increment argument: identifier is empty");
+          }
+          if (identifier) {
+            const match = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
+            if (!match || match[1] !== identifier) {
+              throw new Error(`invalid identifier: ${identifier}`);
+            }
+          }
+        }
+        switch (release) {
+          case "premajor":
+            this.prerelease.length = 0;
+            this.patch = 0;
+            this.minor = 0;
+            this.major++;
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "preminor":
+            this.prerelease.length = 0;
+            this.patch = 0;
+            this.minor++;
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "prepatch":
+            this.prerelease.length = 0;
+            this.inc("patch", identifier, identifierBase);
+            this.inc("pre", identifier, identifierBase);
+            break;
+          // If the input is a non-prerelease version, this acts the same as
+          // prepatch.
+          case "prerelease":
+            if (this.prerelease.length === 0) {
+              this.inc("patch", identifier, identifierBase);
+            }
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "release":
+            if (this.prerelease.length === 0) {
+              throw new Error(`version ${this.raw} is not a prerelease`);
+            }
+            this.prerelease.length = 0;
+            break;
+          case "major":
+            if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
+              this.major++;
+            }
+            this.minor = 0;
+            this.patch = 0;
+            this.prerelease = [];
+            break;
+          case "minor":
+            if (this.patch !== 0 || this.prerelease.length === 0) {
+              this.minor++;
+            }
+            this.patch = 0;
+            this.prerelease = [];
+            break;
+          case "patch":
+            if (this.prerelease.length === 0) {
+              this.patch++;
+            }
+            this.prerelease = [];
+            break;
+          // This probably shouldn't be used publicly.
+          // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
+          case "pre": {
+            const base = Number(identifierBase) ? 1 : 0;
+            if (this.prerelease.length === 0) {
+              this.prerelease = [base];
+            } else {
+              let i = this.prerelease.length;
+              while (--i >= 0) {
+                if (typeof this.prerelease[i] === "number") {
+                  this.prerelease[i]++;
+                  i = -2;
+                }
+              }
+              if (i === -1) {
+                if (identifier === this.prerelease.join(".") && identifierBase === false) {
+                  throw new Error("invalid increment argument: identifier already exists");
+                }
+                this.prerelease.push(base);
+              }
+            }
+            if (identifier) {
+              let prerelease = [identifier, base];
+              if (identifierBase === false) {
+                prerelease = [identifier];
+              }
+              if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
+                if (isNaN(this.prerelease[1])) {
+                  this.prerelease = prerelease;
+                }
+              } else {
+                this.prerelease = prerelease;
+              }
+            }
+            break;
+          }
+          default:
+            throw new Error(`invalid increment argument: ${release}`);
+        }
+        this.raw = this.format();
+        if (this.build.length) {
+          this.raw += `+${this.build.join(".")}`;
+        }
+        return this;
+      }
+    };
+    module.exports = SemVer;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/parse.js
+var require_parse = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/parse.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var parse = (version2, options, throwErrors = false) => {
+      if (version2 instanceof SemVer) {
+        return version2;
+      }
+      try {
+        return new SemVer(version2, options);
+      } catch (er) {
+        if (!throwErrors) {
+          return null;
+        }
+        throw er;
+      }
+    };
+    module.exports = parse;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/valid.js
+var require_valid = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/valid.js"(exports, module) {
+    "use strict";
+    var parse = require_parse();
+    var valid = (version2, options) => {
+      const v = parse(version2, options);
+      return v ? v.version : null;
+    };
+    module.exports = valid;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/clean.js
+var require_clean = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/clean.js"(exports, module) {
+    "use strict";
+    var parse = require_parse();
+    var clean = (version2, options) => {
+      const s = parse(version2.trim().replace(/^[=v]+/, ""), options);
+      return s ? s.version : null;
+    };
+    module.exports = clean;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/inc.js
+var require_inc = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/inc.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var inc = (version2, release, options, identifier, identifierBase) => {
+      if (typeof options === "string") {
+        identifierBase = identifier;
+        identifier = options;
+        options = void 0;
+      }
+      try {
+        return new SemVer(
+          version2 instanceof SemVer ? version2.version : version2,
+          options
+        ).inc(release, identifier, identifierBase).version;
+      } catch (er) {
+        return null;
+      }
+    };
+    module.exports = inc;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/diff.js
+var require_diff = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/diff.js"(exports, module) {
+    "use strict";
+    var parse = require_parse();
+    var diff = (version1, version2) => {
+      const v1 = parse(version1, null, true);
+      const v2 = parse(version2, null, true);
+      const comparison = v1.compare(v2);
+      if (comparison === 0) {
+        return null;
+      }
+      const v1Higher = comparison > 0;
+      const highVersion = v1Higher ? v1 : v2;
+      const lowVersion = v1Higher ? v2 : v1;
+      const highHasPre = !!highVersion.prerelease.length;
+      const lowHasPre = !!lowVersion.prerelease.length;
+      if (lowHasPre && !highHasPre) {
+        if (!lowVersion.patch && !lowVersion.minor) {
+          return "major";
+        }
+        if (lowVersion.compareMain(highVersion) === 0) {
+          if (lowVersion.minor && !lowVersion.patch) {
+            return "minor";
+          }
+          return "patch";
+        }
+      }
+      const prefix = highHasPre ? "pre" : "";
+      if (v1.major !== v2.major) {
+        return prefix + "major";
+      }
+      if (v1.minor !== v2.minor) {
+        return prefix + "minor";
+      }
+      if (v1.patch !== v2.patch) {
+        return prefix + "patch";
+      }
+      return "prerelease";
+    };
+    module.exports = diff;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/major.js
+var require_major = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/major.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var major = (a, loose) => new SemVer(a, loose).major;
+    module.exports = major;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/minor.js
+var require_minor = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/minor.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var minor = (a, loose) => new SemVer(a, loose).minor;
+    module.exports = minor;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/patch.js
+var require_patch = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/patch.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var patch = (a, loose) => new SemVer(a, loose).patch;
+    module.exports = patch;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/prerelease.js
+var require_prerelease = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/prerelease.js"(exports, module) {
+    "use strict";
+    var parse = require_parse();
+    var prerelease = (version2, options) => {
+      const parsed = parse(version2, options);
+      return parsed && parsed.prerelease.length ? parsed.prerelease : null;
+    };
+    module.exports = prerelease;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/compare.js
+var require_compare = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/compare.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
+    module.exports = compare;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/rcompare.js
+var require_rcompare = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/rcompare.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var rcompare = (a, b, loose) => compare(b, a, loose);
+    module.exports = rcompare;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/compare-loose.js
+var require_compare_loose = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/compare-loose.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var compareLoose = (a, b) => compare(a, b, true);
+    module.exports = compareLoose;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/compare-build.js
+var require_compare_build = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/compare-build.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var compareBuild = (a, b, loose) => {
+      const versionA = new SemVer(a, loose);
+      const versionB = new SemVer(b, loose);
+      return versionA.compare(versionB) || versionA.compareBuild(versionB);
+    };
+    module.exports = compareBuild;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/sort.js
+var require_sort = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/sort.js"(exports, module) {
+    "use strict";
+    var compareBuild = require_compare_build();
+    var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
+    module.exports = sort;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/rsort.js
+var require_rsort = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/rsort.js"(exports, module) {
+    "use strict";
+    var compareBuild = require_compare_build();
+    var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
+    module.exports = rsort;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/gt.js
+var require_gt = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/gt.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var gt2 = (a, b, loose) => compare(a, b, loose) > 0;
+    module.exports = gt2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/lt.js
+var require_lt = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/lt.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var lt2 = (a, b, loose) => compare(a, b, loose) < 0;
+    module.exports = lt2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/eq.js
+var require_eq = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/eq.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var eq2 = (a, b, loose) => compare(a, b, loose) === 0;
+    module.exports = eq2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/neq.js
+var require_neq = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/neq.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var neq = (a, b, loose) => compare(a, b, loose) !== 0;
+    module.exports = neq;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/gte.js
+var require_gte = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/gte.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var gte2 = (a, b, loose) => compare(a, b, loose) >= 0;
+    module.exports = gte2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/lte.js
+var require_lte = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/lte.js"(exports, module) {
+    "use strict";
+    var compare = require_compare();
+    var lte2 = (a, b, loose) => compare(a, b, loose) <= 0;
+    module.exports = lte2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/cmp.js
+var require_cmp = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/cmp.js"(exports, module) {
+    "use strict";
+    var eq2 = require_eq();
+    var neq = require_neq();
+    var gt2 = require_gt();
+    var gte2 = require_gte();
+    var lt2 = require_lt();
+    var lte2 = require_lte();
+    var cmp = (a, op, b, loose) => {
+      switch (op) {
+        case "===":
+          if (typeof a === "object") {
+            a = a.version;
+          }
+          if (typeof b === "object") {
+            b = b.version;
+          }
+          return a === b;
+        case "!==":
+          if (typeof a === "object") {
+            a = a.version;
+          }
+          if (typeof b === "object") {
+            b = b.version;
+          }
+          return a !== b;
+        case "":
+        case "=":
+        case "==":
+          return eq2(a, b, loose);
+        case "!=":
+          return neq(a, b, loose);
+        case ">":
+          return gt2(a, b, loose);
+        case ">=":
+          return gte2(a, b, loose);
+        case "<":
+          return lt2(a, b, loose);
+        case "<=":
+          return lte2(a, b, loose);
+        default:
+          throw new TypeError(`Invalid operator: ${op}`);
+      }
+    };
+    module.exports = cmp;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/coerce.js
+var require_coerce = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/coerce.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var parse = require_parse();
+    var { safeRe: re, t } = require_re();
+    var coerce2 = (version2, options) => {
+      if (version2 instanceof SemVer) {
+        return version2;
+      }
+      if (typeof version2 === "number") {
+        version2 = String(version2);
+      }
+      if (typeof version2 !== "string") {
+        return null;
+      }
+      options = options || {};
+      let match = null;
+      if (!options.rtl) {
+        match = version2.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+      } else {
+        const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
+        let next;
+        while ((next = coerceRtlRegex.exec(version2)) && (!match || match.index + match[0].length !== version2.length)) {
+          if (!match || next.index + next[0].length !== match.index + match[0].length) {
+            match = next;
+          }
+          coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length;
+        }
+        coerceRtlRegex.lastIndex = -1;
+      }
+      if (match === null) {
+        return null;
+      }
+      const major = match[2];
+      const minor = match[3] || "0";
+      const patch = match[4] || "0";
+      const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : "";
+      const build = options.includePrerelease && match[6] ? `+${match[6]}` : "";
+      return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options);
+    };
+    module.exports = coerce2;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/internal/lrucache.js
+var require_lrucache = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/internal/lrucache.js"(exports, module) {
+    "use strict";
+    var LRUCache = class {
+      constructor() {
+        this.max = 1e3;
+        this.map = /* @__PURE__ */ new Map();
+      }
+      get(key) {
+        const value = this.map.get(key);
+        if (value === void 0) {
+          return void 0;
+        } else {
+          this.map.delete(key);
+          this.map.set(key, value);
+          return value;
+        }
+      }
+      delete(key) {
+        return this.map.delete(key);
+      }
+      set(key, value) {
+        const deleted = this.delete(key);
+        if (!deleted && value !== void 0) {
+          if (this.map.size >= this.max) {
+            const firstKey = this.map.keys().next().value;
+            this.delete(firstKey);
+          }
+          this.map.set(key, value);
+        }
+        return this;
+      }
+    };
+    module.exports = LRUCache;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/classes/range.js
+var require_range = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/classes/range.js"(exports, module) {
+    "use strict";
+    var SPACE_CHARACTERS = /\s+/g;
+    var Range = class _Range {
+      constructor(range, options) {
+        options = parseOptions(options);
+        if (range instanceof _Range) {
+          if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) {
+            return range;
+          } else {
+            return new _Range(range.raw, options);
+          }
+        }
+        if (range instanceof Comparator) {
+          this.raw = range.value;
+          this.set = [[range]];
+          this.formatted = void 0;
+          return this;
+        }
+        this.options = options;
+        this.loose = !!options.loose;
+        this.includePrerelease = !!options.includePrerelease;
+        this.raw = range.trim().replace(SPACE_CHARACTERS, " ");
+        this.set = this.raw.split("||").map((r) => this.parseRange(r.trim())).filter((c) => c.length);
+        if (!this.set.length) {
+          throw new TypeError(`Invalid SemVer Range: ${this.raw}`);
+        }
+        if (this.set.length > 1) {
+          const first = this.set[0];
+          this.set = this.set.filter((c) => !isNullSet(c[0]));
+          if (this.set.length === 0) {
+            this.set = [first];
+          } else if (this.set.length > 1) {
+            for (const c of this.set) {
+              if (c.length === 1 && isAny(c[0])) {
+                this.set = [c];
+                break;
+              }
+            }
+          }
+        }
+        this.formatted = void 0;
+      }
+      get range() {
+        if (this.formatted === void 0) {
+          this.formatted = "";
+          for (let i = 0; i < this.set.length; i++) {
+            if (i > 0) {
+              this.formatted += "||";
+            }
+            const comps = this.set[i];
+            for (let k = 0; k < comps.length; k++) {
+              if (k > 0) {
+                this.formatted += " ";
+              }
+              this.formatted += comps[k].toString().trim();
+            }
+          }
+        }
+        return this.formatted;
+      }
+      format() {
+        return this.range;
+      }
+      toString() {
+        return this.range;
+      }
+      parseRange(range) {
+        const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
+        const memoKey = memoOpts + ":" + range;
+        const cached = cache.get(memoKey);
+        if (cached) {
+          return cached;
+        }
+        const loose = this.options.loose;
+        const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
+        range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
+        debug("hyphen replace", range);
+        range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
+        debug("comparator trim", range);
+        range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
+        debug("tilde trim", range);
+        range = range.replace(re[t.CARETTRIM], caretTrimReplace);
+        debug("caret trim", range);
+        let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
+        if (loose) {
+          rangeList = rangeList.filter((comp) => {
+            debug("loose invalid filter", comp, this.options);
+            return !!comp.match(re[t.COMPARATORLOOSE]);
+          });
+        }
+        debug("range list", rangeList);
+        const rangeMap = /* @__PURE__ */ new Map();
+        const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
+        for (const comp of comparators) {
+          if (isNullSet(comp)) {
+            return [comp];
+          }
+          rangeMap.set(comp.value, comp);
+        }
+        if (rangeMap.size > 1 && rangeMap.has("")) {
+          rangeMap.delete("");
+        }
+        const result = [...rangeMap.values()];
+        cache.set(memoKey, result);
+        return result;
+      }
+      intersects(range, options) {
+        if (!(range instanceof _Range)) {
+          throw new TypeError("a Range is required");
+        }
+        return this.set.some((thisComparators) => {
+          return isSatisfiable(thisComparators, options) && range.set.some((rangeComparators) => {
+            return isSatisfiable(rangeComparators, options) && thisComparators.every((thisComparator) => {
+              return rangeComparators.every((rangeComparator) => {
+                return thisComparator.intersects(rangeComparator, options);
+              });
+            });
+          });
+        });
+      }
+      // if ANY of the sets match ALL of its comparators, then pass
+      test(version2) {
+        if (!version2) {
+          return false;
+        }
+        if (typeof version2 === "string") {
+          try {
+            version2 = new SemVer(version2, this.options);
+          } catch (er) {
+            return false;
+          }
+        }
+        for (let i = 0; i < this.set.length; i++) {
+          if (testSet(this.set[i], version2, this.options)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+    module.exports = Range;
+    var LRU = require_lrucache();
+    var cache = new LRU();
+    var parseOptions = require_parse_options();
+    var Comparator = require_comparator();
+    var debug = require_debug();
+    var SemVer = require_semver();
+    var {
+      safeRe: re,
+      t,
+      comparatorTrimReplace,
+      tildeTrimReplace,
+      caretTrimReplace
+    } = require_re();
+    var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
+    var isNullSet = (c) => c.value === "<0.0.0-0";
+    var isAny = (c) => c.value === "";
+    var isSatisfiable = (comparators, options) => {
+      let result = true;
+      const remainingComparators = comparators.slice();
+      let testComparator = remainingComparators.pop();
+      while (result && remainingComparators.length) {
+        result = remainingComparators.every((otherComparator) => {
+          return testComparator.intersects(otherComparator, options);
+        });
+        testComparator = remainingComparators.pop();
+      }
+      return result;
+    };
+    var parseComparator = (comp, options) => {
+      comp = comp.replace(re[t.BUILD], "");
+      debug("comp", comp, options);
+      comp = replaceCarets(comp, options);
+      debug("caret", comp);
+      comp = replaceTildes(comp, options);
+      debug("tildes", comp);
+      comp = replaceXRanges(comp, options);
+      debug("xrange", comp);
+      comp = replaceStars(comp, options);
+      debug("stars", comp);
+      return comp;
+    };
+    var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
+    var replaceTildes = (comp, options) => {
+      return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options)).join(" ");
+    };
+    var replaceTilde = (comp, options) => {
+      const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE];
+      return comp.replace(r, (_, M, m, p, pr) => {
+        debug("tilde", comp, _, M, m, p, pr);
+        let ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = `>=${M}.0.0 <${+M + 1}.0.0-0`;
+        } else if (isX(p)) {
+          ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
+        } else if (pr) {
+          debug("replaceTilde pr", pr);
+          ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+        } else {
+          ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+        }
+        debug("tilde return", ret);
+        return ret;
+      });
+    };
+    var replaceCarets = (comp, options) => {
+      return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options)).join(" ");
+    };
+    var replaceCaret = (comp, options) => {
+      debug("caret", comp, options);
+      const r = options.loose ? re[t.CARETLOOSE] : re[t.CARET];
+      const z = options.includePrerelease ? "-0" : "";
+      return comp.replace(r, (_, M, m, p, pr) => {
+        debug("caret", comp, _, M, m, p, pr);
+        let ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
+        } else if (isX(p)) {
+          if (M === "0") {
+            ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
+          } else {
+            ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
+          }
+        } else if (pr) {
+          debug("replaceCaret pr", pr);
+          if (M === "0") {
+            if (m === "0") {
+              ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+            } else {
+              ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+            }
+          } else {
+            ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+          }
+        } else {
+          debug("no pr");
+          if (M === "0") {
+            if (m === "0") {
+              ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
+            } else {
+              ret = `>=${M}.${m}.${p}${z} <${M}.${+m + 1}.0-0`;
+            }
+          } else {
+            ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
+          }
+        }
+        debug("caret return", ret);
+        return ret;
+      });
+    };
+    var replaceXRanges = (comp, options) => {
+      debug("replaceXRanges", comp, options);
+      return comp.split(/\s+/).map((c) => replaceXRange(c, options)).join(" ");
+    };
+    var replaceXRange = (comp, options) => {
+      comp = comp.trim();
+      const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
+      return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
+        debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        const xM = isX(M);
+        const xm = xM || isX(m);
+        const xp = xm || isX(p);
+        const anyX = xp;
+        if (gtlt === "=" && anyX) {
+          gtlt = "";
+        }
+        pr = options.includePrerelease ? "-0" : "";
+        if (xM) {
+          if (gtlt === ">" || gtlt === "<") {
+            ret = "<0.0.0-0";
+          } else {
+            ret = "*";
+          }
+        } else if (gtlt && anyX) {
+          if (xm) {
+            m = 0;
+          }
+          p = 0;
+          if (gtlt === ">") {
+            gtlt = ">=";
+            if (xm) {
+              M = +M + 1;
+              m = 0;
+              p = 0;
+            } else {
+              m = +m + 1;
+              p = 0;
+            }
+          } else if (gtlt === "<=") {
+            gtlt = "<";
+            if (xm) {
+              M = +M + 1;
+            } else {
+              m = +m + 1;
+            }
+          }
+          if (gtlt === "<") {
+            pr = "-0";
+          }
+          ret = `${gtlt + M}.${m}.${p}${pr}`;
+        } else if (xm) {
+          ret = `>=${M}.0.0${pr} <${+M + 1}.0.0-0`;
+        } else if (xp) {
+          ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
+        }
+        debug("xRange return", ret);
+        return ret;
+      });
+    };
+    var replaceStars = (comp, options) => {
+      debug("replaceStars", comp, options);
+      return comp.trim().replace(re[t.STAR], "");
+    };
+    var replaceGTE0 = (comp, options) => {
+      debug("replaceGTE0", comp, options);
+      return comp.trim().replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], "");
+    };
+    var hyphenReplace = (incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
+      if (isX(fM)) {
+        from = "";
+      } else if (isX(fm)) {
+        from = `>=${fM}.0.0${incPr ? "-0" : ""}`;
+      } else if (isX(fp)) {
+        from = `>=${fM}.${fm}.0${incPr ? "-0" : ""}`;
+      } else if (fpr) {
+        from = `>=${from}`;
+      } else {
+        from = `>=${from}${incPr ? "-0" : ""}`;
+      }
+      if (isX(tM)) {
+        to = "";
+      } else if (isX(tm)) {
+        to = `<${+tM + 1}.0.0-0`;
+      } else if (isX(tp)) {
+        to = `<${tM}.${+tm + 1}.0-0`;
+      } else if (tpr) {
+        to = `<=${tM}.${tm}.${tp}-${tpr}`;
+      } else if (incPr) {
+        to = `<${tM}.${tm}.${+tp + 1}-0`;
+      } else {
+        to = `<=${to}`;
+      }
+      return `${from} ${to}`.trim();
+    };
+    var testSet = (set, version2, options) => {
+      for (let i = 0; i < set.length; i++) {
+        if (!set[i].test(version2)) {
+          return false;
+        }
+      }
+      if (version2.prerelease.length && !options.includePrerelease) {
+        for (let i = 0; i < set.length; i++) {
+          debug(set[i].semver);
+          if (set[i].semver === Comparator.ANY) {
+            continue;
+          }
+          if (set[i].semver.prerelease.length > 0) {
+            const allowed = set[i].semver;
+            if (allowed.major === version2.major && allowed.minor === version2.minor && allowed.patch === version2.patch) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      return true;
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/classes/comparator.js
+var require_comparator = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/classes/comparator.js"(exports, module) {
+    "use strict";
+    var ANY = Symbol("SemVer ANY");
+    var Comparator = class _Comparator {
+      static get ANY() {
+        return ANY;
+      }
+      constructor(comp, options) {
+        options = parseOptions(options);
+        if (comp instanceof _Comparator) {
+          if (comp.loose === !!options.loose) {
+            return comp;
+          } else {
+            comp = comp.value;
+          }
+        }
+        comp = comp.trim().split(/\s+/).join(" ");
+        debug("comparator", comp, options);
+        this.options = options;
+        this.loose = !!options.loose;
+        this.parse(comp);
+        if (this.semver === ANY) {
+          this.value = "";
+        } else {
+          this.value = this.operator + this.semver.version;
+        }
+        debug("comp", this);
+      }
+      parse(comp) {
+        const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
+        const m = comp.match(r);
+        if (!m) {
+          throw new TypeError(`Invalid comparator: ${comp}`);
+        }
+        this.operator = m[1] !== void 0 ? m[1] : "";
+        if (this.operator === "=") {
+          this.operator = "";
+        }
+        if (!m[2]) {
+          this.semver = ANY;
+        } else {
+          this.semver = new SemVer(m[2], this.options.loose);
+        }
+      }
+      toString() {
+        return this.value;
+      }
+      test(version2) {
+        debug("Comparator.test", version2, this.options.loose);
+        if (this.semver === ANY || version2 === ANY) {
+          return true;
+        }
+        if (typeof version2 === "string") {
+          try {
+            version2 = new SemVer(version2, this.options);
+          } catch (er) {
+            return false;
+          }
+        }
+        return cmp(version2, this.operator, this.semver, this.options);
+      }
+      intersects(comp, options) {
+        if (!(comp instanceof _Comparator)) {
+          throw new TypeError("a Comparator is required");
+        }
+        if (this.operator === "") {
+          if (this.value === "") {
+            return true;
+          }
+          return new Range(comp.value, options).test(this.value);
+        } else if (comp.operator === "") {
+          if (comp.value === "") {
+            return true;
+          }
+          return new Range(this.value, options).test(comp.semver);
+        }
+        options = parseOptions(options);
+        if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
+          return false;
+        }
+        if (!options.includePrerelease && (this.value.startsWith("<0.0.0") || comp.value.startsWith("<0.0.0"))) {
+          return false;
+        }
+        if (this.operator.startsWith(">") && comp.operator.startsWith(">")) {
+          return true;
+        }
+        if (this.operator.startsWith("<") && comp.operator.startsWith("<")) {
+          return true;
+        }
+        if (this.semver.version === comp.semver.version && this.operator.includes("=") && comp.operator.includes("=")) {
+          return true;
+        }
+        if (cmp(this.semver, "<", comp.semver, options) && this.operator.startsWith(">") && comp.operator.startsWith("<")) {
+          return true;
+        }
+        if (cmp(this.semver, ">", comp.semver, options) && this.operator.startsWith("<") && comp.operator.startsWith(">")) {
+          return true;
+        }
+        return false;
+      }
+    };
+    module.exports = Comparator;
+    var parseOptions = require_parse_options();
+    var { safeRe: re, t } = require_re();
+    var cmp = require_cmp();
+    var debug = require_debug();
+    var SemVer = require_semver();
+    var Range = require_range();
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/functions/satisfies.js
+var require_satisfies = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/functions/satisfies.js"(exports, module) {
+    "use strict";
+    var Range = require_range();
+    var satisfies = (version2, range, options) => {
+      try {
+        range = new Range(range, options);
+      } catch (er) {
+        return false;
+      }
+      return range.test(version2);
+    };
+    module.exports = satisfies;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/to-comparators.js
+var require_to_comparators = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/to-comparators.js"(exports, module) {
+    "use strict";
+    var Range = require_range();
+    var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+    module.exports = toComparators;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/max-satisfying.js
+var require_max_satisfying = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/max-satisfying.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range();
+    var maxSatisfying = (versions, range, options) => {
+      let max = null;
+      let maxSV = null;
+      let rangeObj = null;
+      try {
+        rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach((v) => {
+        if (rangeObj.test(v)) {
+          if (!max || maxSV.compare(v) === -1) {
+            max = v;
+            maxSV = new SemVer(max, options);
+          }
+        }
+      });
+      return max;
+    };
+    module.exports = maxSatisfying;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/min-satisfying.js
+var require_min_satisfying = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/min-satisfying.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range();
+    var minSatisfying = (versions, range, options) => {
+      let min = null;
+      let minSV = null;
+      let rangeObj = null;
+      try {
+        rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach((v) => {
+        if (rangeObj.test(v)) {
+          if (!min || minSV.compare(v) === 1) {
+            min = v;
+            minSV = new SemVer(min, options);
+          }
+        }
+      });
+      return min;
+    };
+    module.exports = minSatisfying;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/min-version.js
+var require_min_version = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/min-version.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range();
+    var gt2 = require_gt();
+    var minVersion = (range, loose) => {
+      range = new Range(range, loose);
+      let minver = new SemVer("0.0.0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = new SemVer("0.0.0-0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = null;
+      for (let i = 0; i < range.set.length; ++i) {
+        const comparators = range.set[i];
+        let setMin = null;
+        comparators.forEach((comparator) => {
+          const compver = new SemVer(comparator.semver.version);
+          switch (comparator.operator) {
+            case ">":
+              if (compver.prerelease.length === 0) {
+                compver.patch++;
+              } else {
+                compver.prerelease.push(0);
+              }
+              compver.raw = compver.format();
+            /* fallthrough */
+            case "":
+            case ">=":
+              if (!setMin || gt2(compver, setMin)) {
+                setMin = compver;
+              }
+              break;
+            case "<":
+            case "<=":
+              break;
+            /* istanbul ignore next */
+            default:
+              throw new Error(`Unexpected operation: ${comparator.operator}`);
+          }
+        });
+        if (setMin && (!minver || gt2(minver, setMin))) {
+          minver = setMin;
+        }
+      }
+      if (minver && range.test(minver)) {
+        return minver;
+      }
+      return null;
+    };
+    module.exports = minVersion;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/valid.js
+var require_valid2 = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/valid.js"(exports, module) {
+    "use strict";
+    var Range = require_range();
+    var validRange = (range, options) => {
+      try {
+        return new Range(range, options).range || "*";
+      } catch (er) {
+        return null;
+      }
+    };
+    module.exports = validRange;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/outside.js
+var require_outside = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/outside.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Comparator = require_comparator();
+    var { ANY } = Comparator;
+    var Range = require_range();
+    var satisfies = require_satisfies();
+    var gt2 = require_gt();
+    var lt2 = require_lt();
+    var lte2 = require_lte();
+    var gte2 = require_gte();
+    var outside = (version2, range, hilo, options) => {
+      version2 = new SemVer(version2, options);
+      range = new Range(range, options);
+      let gtfn, ltefn, ltfn, comp, ecomp;
+      switch (hilo) {
+        case ">":
+          gtfn = gt2;
+          ltefn = lte2;
+          ltfn = lt2;
+          comp = ">";
+          ecomp = ">=";
+          break;
+        case "<":
+          gtfn = lt2;
+          ltefn = gte2;
+          ltfn = gt2;
+          comp = "<";
+          ecomp = "<=";
+          break;
+        default:
+          throw new TypeError('Must provide a hilo val of "<" or ">"');
+      }
+      if (satisfies(version2, range, options)) {
+        return false;
+      }
+      for (let i = 0; i < range.set.length; ++i) {
+        const comparators = range.set[i];
+        let high = null;
+        let low = null;
+        comparators.forEach((comparator) => {
+          if (comparator.semver === ANY) {
+            comparator = new Comparator(">=0.0.0");
+          }
+          high = high || comparator;
+          low = low || comparator;
+          if (gtfn(comparator.semver, high.semver, options)) {
+            high = comparator;
+          } else if (ltfn(comparator.semver, low.semver, options)) {
+            low = comparator;
+          }
+        });
+        if (high.operator === comp || high.operator === ecomp) {
+          return false;
+        }
+        if ((!low.operator || low.operator === comp) && ltefn(version2, low.semver)) {
+          return false;
+        } else if (low.operator === ecomp && ltfn(version2, low.semver)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    module.exports = outside;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/gtr.js
+var require_gtr = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/gtr.js"(exports, module) {
+    "use strict";
+    var outside = require_outside();
+    var gtr = (version2, range, options) => outside(version2, range, ">", options);
+    module.exports = gtr;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/ltr.js
+var require_ltr = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/ltr.js"(exports, module) {
+    "use strict";
+    var outside = require_outside();
+    var ltr = (version2, range, options) => outside(version2, range, "<", options);
+    module.exports = ltr;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/intersects.js
+var require_intersects = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/intersects.js"(exports, module) {
+    "use strict";
+    var Range = require_range();
+    var intersects = (r1, r2, options) => {
+      r1 = new Range(r1, options);
+      r2 = new Range(r2, options);
+      return r1.intersects(r2, options);
+    };
+    module.exports = intersects;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/simplify.js
+var require_simplify = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/simplify.js"(exports, module) {
+    "use strict";
+    var satisfies = require_satisfies();
+    var compare = require_compare();
+    module.exports = (versions, range, options) => {
+      const set = [];
+      let first = null;
+      let prev = null;
+      const v = versions.sort((a, b) => compare(a, b, options));
+      for (const version2 of v) {
+        const included = satisfies(version2, range, options);
+        if (included) {
+          prev = version2;
+          if (!first) {
+            first = version2;
+          }
+        } else {
+          if (prev) {
+            set.push([first, prev]);
+          }
+          prev = null;
+          first = null;
+        }
+      }
+      if (first) {
+        set.push([first, null]);
+      }
+      const ranges = [];
+      for (const [min, max] of set) {
+        if (min === max) {
+          ranges.push(min);
+        } else if (!max && min === v[0]) {
+          ranges.push("*");
+        } else if (!max) {
+          ranges.push(`>=${min}`);
+        } else if (min === v[0]) {
+          ranges.push(`<=${max}`);
+        } else {
+          ranges.push(`${min} - ${max}`);
+        }
+      }
+      const simplified = ranges.join(" || ");
+      const original = typeof range.raw === "string" ? range.raw : String(range);
+      return simplified.length < original.length ? simplified : range;
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/ranges/subset.js
+var require_subset = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/ranges/subset.js"(exports, module) {
+    "use strict";
+    var Range = require_range();
+    var Comparator = require_comparator();
+    var { ANY } = Comparator;
+    var satisfies = require_satisfies();
+    var compare = require_compare();
+    var subset = (sub, dom, options = {}) => {
+      if (sub === dom) {
+        return true;
+      }
+      sub = new Range(sub, options);
+      dom = new Range(dom, options);
+      let sawNonNull = false;
+      OUTER: for (const simpleSub of sub.set) {
+        for (const simpleDom of dom.set) {
+          const isSub = simpleSubset(simpleSub, simpleDom, options);
+          sawNonNull = sawNonNull || isSub !== null;
+          if (isSub) {
+            continue OUTER;
+          }
+        }
+        if (sawNonNull) {
+          return false;
+        }
+      }
+      return true;
+    };
+    var minimumVersionWithPreRelease = [new Comparator(">=0.0.0-0")];
+    var minimumVersion = [new Comparator(">=0.0.0")];
+    var simpleSubset = (sub, dom, options) => {
+      if (sub === dom) {
+        return true;
+      }
+      if (sub.length === 1 && sub[0].semver === ANY) {
+        if (dom.length === 1 && dom[0].semver === ANY) {
+          return true;
+        } else if (options.includePrerelease) {
+          sub = minimumVersionWithPreRelease;
+        } else {
+          sub = minimumVersion;
+        }
+      }
+      if (dom.length === 1 && dom[0].semver === ANY) {
+        if (options.includePrerelease) {
+          return true;
+        } else {
+          dom = minimumVersion;
+        }
+      }
+      const eqSet = /* @__PURE__ */ new Set();
+      let gt2, lt2;
+      for (const c of sub) {
+        if (c.operator === ">" || c.operator === ">=") {
+          gt2 = higherGT(gt2, c, options);
+        } else if (c.operator === "<" || c.operator === "<=") {
+          lt2 = lowerLT(lt2, c, options);
+        } else {
+          eqSet.add(c.semver);
+        }
+      }
+      if (eqSet.size > 1) {
+        return null;
+      }
+      let gtltComp;
+      if (gt2 && lt2) {
+        gtltComp = compare(gt2.semver, lt2.semver, options);
+        if (gtltComp > 0) {
+          return null;
+        } else if (gtltComp === 0 && (gt2.operator !== ">=" || lt2.operator !== "<=")) {
+          return null;
+        }
+      }
+      for (const eq2 of eqSet) {
+        if (gt2 && !satisfies(eq2, String(gt2), options)) {
+          return null;
+        }
+        if (lt2 && !satisfies(eq2, String(lt2), options)) {
+          return null;
+        }
+        for (const c of dom) {
+          if (!satisfies(eq2, String(c), options)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      let higher, lower;
+      let hasDomLT, hasDomGT;
+      let needDomLTPre = lt2 && !options.includePrerelease && lt2.semver.prerelease.length ? lt2.semver : false;
+      let needDomGTPre = gt2 && !options.includePrerelease && gt2.semver.prerelease.length ? gt2.semver : false;
+      if (needDomLTPre && needDomLTPre.prerelease.length === 1 && lt2.operator === "<" && needDomLTPre.prerelease[0] === 0) {
+        needDomLTPre = false;
+      }
+      for (const c of dom) {
+        hasDomGT = hasDomGT || c.operator === ">" || c.operator === ">=";
+        hasDomLT = hasDomLT || c.operator === "<" || c.operator === "<=";
+        if (gt2) {
+          if (needDomGTPre) {
+            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomGTPre.major && c.semver.minor === needDomGTPre.minor && c.semver.patch === needDomGTPre.patch) {
+              needDomGTPre = false;
+            }
+          }
+          if (c.operator === ">" || c.operator === ">=") {
+            higher = higherGT(gt2, c, options);
+            if (higher === c && higher !== gt2) {
+              return false;
+            }
+          } else if (gt2.operator === ">=" && !satisfies(gt2.semver, String(c), options)) {
+            return false;
+          }
+        }
+        if (lt2) {
+          if (needDomLTPre) {
+            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomLTPre.major && c.semver.minor === needDomLTPre.minor && c.semver.patch === needDomLTPre.patch) {
+              needDomLTPre = false;
+            }
+          }
+          if (c.operator === "<" || c.operator === "<=") {
+            lower = lowerLT(lt2, c, options);
+            if (lower === c && lower !== lt2) {
+              return false;
+            }
+          } else if (lt2.operator === "<=" && !satisfies(lt2.semver, String(c), options)) {
+            return false;
+          }
+        }
+        if (!c.operator && (lt2 || gt2) && gtltComp !== 0) {
+          return false;
+        }
+      }
+      if (gt2 && hasDomLT && !lt2 && gtltComp !== 0) {
+        return false;
+      }
+      if (lt2 && hasDomGT && !gt2 && gtltComp !== 0) {
+        return false;
+      }
+      if (needDomGTPre || needDomLTPre) {
+        return false;
+      }
+      return true;
+    };
+    var higherGT = (a, b, options) => {
+      if (!a) {
+        return b;
+      }
+      const comp = compare(a.semver, b.semver, options);
+      return comp > 0 ? a : comp < 0 ? b : b.operator === ">" && a.operator === ">=" ? b : a;
+    };
+    var lowerLT = (a, b, options) => {
+      if (!a) {
+        return b;
+      }
+      const comp = compare(a.semver, b.semver, options);
+      return comp < 0 ? a : comp > 0 ? b : b.operator === "<" && a.operator === "<=" ? b : a;
+    };
+    module.exports = subset;
+  }
+});
+
+// node_modules/jsonwebtoken/node_modules/semver/index.js
+var require_semver2 = __commonJS({
+  "node_modules/jsonwebtoken/node_modules/semver/index.js"(exports, module) {
+    "use strict";
+    var internalRe = require_re();
+    var constants = require_constants();
+    var SemVer = require_semver();
+    var identifiers = require_identifiers();
+    var parse = require_parse();
+    var valid = require_valid();
+    var clean = require_clean();
+    var inc = require_inc();
+    var diff = require_diff();
+    var major = require_major();
+    var minor = require_minor();
+    var patch = require_patch();
+    var prerelease = require_prerelease();
+    var compare = require_compare();
+    var rcompare = require_rcompare();
+    var compareLoose = require_compare_loose();
+    var compareBuild = require_compare_build();
+    var sort = require_sort();
+    var rsort = require_rsort();
+    var gt2 = require_gt();
+    var lt2 = require_lt();
+    var eq2 = require_eq();
+    var neq = require_neq();
+    var gte2 = require_gte();
+    var lte2 = require_lte();
+    var cmp = require_cmp();
+    var coerce2 = require_coerce();
+    var Comparator = require_comparator();
+    var Range = require_range();
+    var satisfies = require_satisfies();
+    var toComparators = require_to_comparators();
+    var maxSatisfying = require_max_satisfying();
+    var minSatisfying = require_min_satisfying();
+    var minVersion = require_min_version();
+    var validRange = require_valid2();
+    var outside = require_outside();
+    var gtr = require_gtr();
+    var ltr = require_ltr();
+    var intersects = require_intersects();
+    var simplifyRange = require_simplify();
+    var subset = require_subset();
+    module.exports = {
+      parse,
+      valid,
+      clean,
+      inc,
+      diff,
+      major,
+      minor,
+      patch,
+      prerelease,
+      compare,
+      rcompare,
+      compareLoose,
+      compareBuild,
+      sort,
+      rsort,
+      gt: gt2,
+      lt: lt2,
+      eq: eq2,
+      neq,
+      gte: gte2,
+      lte: lte2,
+      cmp,
+      coerce: coerce2,
+      Comparator,
+      Range,
+      satisfies,
+      toComparators,
+      maxSatisfying,
+      minSatisfying,
+      minVersion,
+      validRange,
+      outside,
+      gtr,
+      ltr,
+      intersects,
+      simplifyRange,
+      subset,
+      SemVer,
+      re: internalRe.re,
+      src: internalRe.src,
+      tokens: internalRe.t,
+      SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
+      RELEASE_TYPES: constants.RELEASE_TYPES,
+      compareIdentifiers: identifiers.compareIdentifiers,
+      rcompareIdentifiers: identifiers.rcompareIdentifiers
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js
+var require_asymmetricKeyDetailsSupported = __commonJS({
+  "node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, ">=15.7.0");
+  }
+});
+
+// node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js
+var require_rsaPssKeyDetailsSupported = __commonJS({
+  "node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, ">=16.9.0");
+  }
+});
+
+// node_modules/jsonwebtoken/lib/validateAsymmetricKey.js
+var require_validateAsymmetricKey = __commonJS({
+  "node_modules/jsonwebtoken/lib/validateAsymmetricKey.js"(exports, module) {
+    var ASYMMETRIC_KEY_DETAILS_SUPPORTED = require_asymmetricKeyDetailsSupported();
+    var RSA_PSS_KEY_DETAILS_SUPPORTED = require_rsaPssKeyDetailsSupported();
+    var allowedAlgorithmsForKeys = {
+      "ec": ["ES256", "ES384", "ES512"],
+      "rsa": ["RS256", "PS256", "RS384", "PS384", "RS512", "PS512"],
+      "rsa-pss": ["PS256", "PS384", "PS512"]
+    };
+    var allowedCurves = {
+      ES256: "prime256v1",
+      ES384: "secp384r1",
+      ES512: "secp521r1"
+    };
+    module.exports = function(algorithm, key) {
+      if (!algorithm || !key) return;
+      const keyType = key.asymmetricKeyType;
+      if (!keyType) return;
+      const allowedAlgorithms = allowedAlgorithmsForKeys[keyType];
+      if (!allowedAlgorithms) {
+        throw new Error(`Unknown key type "${keyType}".`);
+      }
+      if (!allowedAlgorithms.includes(algorithm)) {
+        throw new Error(`"alg" parameter for "${keyType}" key type must be one of: ${allowedAlgorithms.join(", ")}.`);
+      }
+      if (ASYMMETRIC_KEY_DETAILS_SUPPORTED) {
+        switch (keyType) {
+          case "ec":
+            const keyCurve = key.asymmetricKeyDetails.namedCurve;
+            const allowedCurve = allowedCurves[algorithm];
+            if (keyCurve !== allowedCurve) {
+              throw new Error(`"alg" parameter "${algorithm}" requires curve "${allowedCurve}".`);
+            }
+            break;
+          case "rsa-pss":
+            if (RSA_PSS_KEY_DETAILS_SUPPORTED) {
+              const length = parseInt(algorithm.slice(-3), 10);
+              const { hashAlgorithm, mgf1HashAlgorithm, saltLength } = key.asymmetricKeyDetails;
+              if (hashAlgorithm !== `sha${length}` || mgf1HashAlgorithm !== hashAlgorithm) {
+                throw new Error(`Invalid key for this operation, its RSA-PSS parameters do not meet the requirements of "alg" ${algorithm}.`);
+              }
+              if (saltLength !== void 0 && saltLength > length >> 3) {
+                throw new Error(`Invalid key for this operation, its RSA-PSS parameter saltLength does not meet the requirements of "alg" ${algorithm}.`);
+              }
+            }
+            break;
+        }
+      }
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/lib/psSupported.js
+var require_psSupported = __commonJS({
+  "node_modules/jsonwebtoken/lib/psSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, "^6.12.0 || >=8.0.0");
+  }
+});
+
+// node_modules/jsonwebtoken/verify.js
+var require_verify = __commonJS({
+  "node_modules/jsonwebtoken/verify.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var NotBeforeError = require_NotBeforeError();
+    var TokenExpiredError = require_TokenExpiredError();
+    var decode = require_decode();
+    var timespan = require_timespan();
+    var validateAsymmetricKey = require_validateAsymmetricKey();
+    var PS_SUPPORTED = require_psSupported();
+    var jws = require_jws();
+    var { KeyObject, createSecretKey, createPublicKey } = __require("crypto");
+    var PUB_KEY_ALGS = ["RS256", "RS384", "RS512"];
+    var EC_KEY_ALGS = ["ES256", "ES384", "ES512"];
+    var RSA_KEY_ALGS = ["RS256", "RS384", "RS512"];
+    var HS_ALGS = ["HS256", "HS384", "HS512"];
+    if (PS_SUPPORTED) {
+      PUB_KEY_ALGS.splice(PUB_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
+      RSA_KEY_ALGS.splice(RSA_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
+    }
+    module.exports = function(jwtString, secretOrPublicKey, options, callback) {
+      if (typeof options === "function" && !callback) {
+        callback = options;
+        options = {};
+      }
+      if (!options) {
+        options = {};
+      }
+      options = Object.assign({}, options);
+      let done;
+      if (callback) {
+        done = callback;
+      } else {
+        done = function(err, data) {
+          if (err) throw err;
+          return data;
+        };
+      }
+      if (options.clockTimestamp && typeof options.clockTimestamp !== "number") {
+        return done(new JsonWebTokenError("clockTimestamp must be a number"));
+      }
+      if (options.nonce !== void 0 && (typeof options.nonce !== "string" || options.nonce.trim() === "")) {
+        return done(new JsonWebTokenError("nonce must be a non-empty string"));
+      }
+      if (options.allowInvalidAsymmetricKeyTypes !== void 0 && typeof options.allowInvalidAsymmetricKeyTypes !== "boolean") {
+        return done(new JsonWebTokenError("allowInvalidAsymmetricKeyTypes must be a boolean"));
+      }
+      const clockTimestamp = options.clockTimestamp || Math.floor(Date.now() / 1e3);
+      if (!jwtString) {
+        return done(new JsonWebTokenError("jwt must be provided"));
+      }
+      if (typeof jwtString !== "string") {
+        return done(new JsonWebTokenError("jwt must be a string"));
+      }
+      const parts = jwtString.split(".");
+      if (parts.length !== 3) {
+        return done(new JsonWebTokenError("jwt malformed"));
+      }
+      let decodedToken;
+      try {
+        decodedToken = decode(jwtString, { complete: true });
+      } catch (err) {
+        return done(err);
+      }
+      if (!decodedToken) {
+        return done(new JsonWebTokenError("invalid token"));
+      }
+      const header = decodedToken.header;
+      let getSecret;
+      if (typeof secretOrPublicKey === "function") {
+        if (!callback) {
+          return done(new JsonWebTokenError("verify must be called asynchronous if secret or public key is provided as a callback"));
+        }
+        getSecret = secretOrPublicKey;
+      } else {
+        getSecret = function(header2, secretCallback) {
+          return secretCallback(null, secretOrPublicKey);
+        };
+      }
+      return getSecret(header, function(err, secretOrPublicKey2) {
+        if (err) {
+          return done(new JsonWebTokenError("error in secret or public key callback: " + err.message));
+        }
+        const hasSignature = parts[2].trim() !== "";
+        if (!hasSignature && secretOrPublicKey2) {
+          return done(new JsonWebTokenError("jwt signature is required"));
+        }
+        if (hasSignature && !secretOrPublicKey2) {
+          return done(new JsonWebTokenError("secret or public key must be provided"));
+        }
+        if (!hasSignature && !options.algorithms) {
+          return done(new JsonWebTokenError('please specify "none" in "algorithms" to verify unsigned tokens'));
+        }
+        if (secretOrPublicKey2 != null && !(secretOrPublicKey2 instanceof KeyObject)) {
+          try {
+            secretOrPublicKey2 = createPublicKey(secretOrPublicKey2);
+          } catch (_) {
+            try {
+              secretOrPublicKey2 = createSecretKey(typeof secretOrPublicKey2 === "string" ? Buffer.from(secretOrPublicKey2) : secretOrPublicKey2);
+            } catch (_2) {
+              return done(new JsonWebTokenError("secretOrPublicKey is not valid key material"));
+            }
+          }
+        }
+        if (!options.algorithms) {
+          if (secretOrPublicKey2.type === "secret") {
+            options.algorithms = HS_ALGS;
+          } else if (["rsa", "rsa-pss"].includes(secretOrPublicKey2.asymmetricKeyType)) {
+            options.algorithms = RSA_KEY_ALGS;
+          } else if (secretOrPublicKey2.asymmetricKeyType === "ec") {
+            options.algorithms = EC_KEY_ALGS;
+          } else {
+            options.algorithms = PUB_KEY_ALGS;
+          }
+        }
+        if (options.algorithms.indexOf(decodedToken.header.alg) === -1) {
+          return done(new JsonWebTokenError("invalid algorithm"));
+        }
+        if (header.alg.startsWith("HS") && secretOrPublicKey2.type !== "secret") {
+          return done(new JsonWebTokenError(`secretOrPublicKey must be a symmetric key when using ${header.alg}`));
+        } else if (/^(?:RS|PS|ES)/.test(header.alg) && secretOrPublicKey2.type !== "public") {
+          return done(new JsonWebTokenError(`secretOrPublicKey must be an asymmetric key when using ${header.alg}`));
+        }
+        if (!options.allowInvalidAsymmetricKeyTypes) {
+          try {
+            validateAsymmetricKey(header.alg, secretOrPublicKey2);
+          } catch (e) {
+            return done(e);
+          }
+        }
+        let valid;
+        try {
+          valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey2);
+        } catch (e) {
+          return done(e);
+        }
+        if (!valid) {
+          return done(new JsonWebTokenError("invalid signature"));
+        }
+        const payload = decodedToken.payload;
+        if (typeof payload.nbf !== "undefined" && !options.ignoreNotBefore) {
+          if (typeof payload.nbf !== "number") {
+            return done(new JsonWebTokenError("invalid nbf value"));
+          }
+          if (payload.nbf > clockTimestamp + (options.clockTolerance || 0)) {
+            return done(new NotBeforeError("jwt not active", new Date(payload.nbf * 1e3)));
+          }
+        }
+        if (typeof payload.exp !== "undefined" && !options.ignoreExpiration) {
+          if (typeof payload.exp !== "number") {
+            return done(new JsonWebTokenError("invalid exp value"));
+          }
+          if (clockTimestamp >= payload.exp + (options.clockTolerance || 0)) {
+            return done(new TokenExpiredError("jwt expired", new Date(payload.exp * 1e3)));
+          }
+        }
+        if (options.audience) {
+          const audiences = Array.isArray(options.audience) ? options.audience : [options.audience];
+          const target = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+          const match = target.some(function(targetAudience) {
+            return audiences.some(function(audience) {
+              return audience instanceof RegExp ? audience.test(targetAudience) : audience === targetAudience;
+            });
+          });
+          if (!match) {
+            return done(new JsonWebTokenError("jwt audience invalid. expected: " + audiences.join(" or ")));
+          }
+        }
+        if (options.issuer) {
+          const invalid_issuer = typeof options.issuer === "string" && payload.iss !== options.issuer || Array.isArray(options.issuer) && options.issuer.indexOf(payload.iss) === -1;
+          if (invalid_issuer) {
+            return done(new JsonWebTokenError("jwt issuer invalid. expected: " + options.issuer));
+          }
+        }
+        if (options.subject) {
+          if (payload.sub !== options.subject) {
+            return done(new JsonWebTokenError("jwt subject invalid. expected: " + options.subject));
+          }
+        }
+        if (options.jwtid) {
+          if (payload.jti !== options.jwtid) {
+            return done(new JsonWebTokenError("jwt jwtid invalid. expected: " + options.jwtid));
+          }
+        }
+        if (options.nonce) {
+          if (payload.nonce !== options.nonce) {
+            return done(new JsonWebTokenError("jwt nonce invalid. expected: " + options.nonce));
+          }
+        }
+        if (options.maxAge) {
+          if (typeof payload.iat !== "number") {
+            return done(new JsonWebTokenError("iat required when maxAge is specified"));
+          }
+          const maxAgeTimestamp = timespan(options.maxAge, payload.iat);
+          if (typeof maxAgeTimestamp === "undefined") {
+            return done(new JsonWebTokenError('"maxAge" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+          }
+          if (clockTimestamp >= maxAgeTimestamp + (options.clockTolerance || 0)) {
+            return done(new TokenExpiredError("maxAge exceeded", new Date(maxAgeTimestamp * 1e3)));
+          }
+        }
+        if (options.complete === true) {
+          const signature = decodedToken.signature;
+          return done(null, {
+            header,
+            payload,
+            signature
+          });
+        }
+        return done(null, payload);
+      });
+    };
+  }
+});
+
+// node_modules/lodash.includes/index.js
+var require_lodash = __commonJS({
+  "node_modules/lodash.includes/index.js"(exports, module) {
+    var INFINITY = 1 / 0;
+    var MAX_SAFE_INTEGER = 9007199254740991;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var argsTag = "[object Arguments]";
+    var funcTag = "[object Function]";
+    var genTag = "[object GeneratorFunction]";
+    var stringTag = "[object String]";
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var reIsUint = /^(?:0|[1-9]\d*)$/;
+    var freeParseInt = parseInt;
+    function arrayMap(array, iteratee) {
+      var index = -1, length = array ? array.length : 0, result = Array(length);
+      while (++index < length) {
+        result[index] = iteratee(array[index], index, array);
+      }
+      return result;
+    }
+    function baseFindIndex(array, predicate, fromIndex, fromRight) {
+      var length = array.length, index = fromIndex + (fromRight ? 1 : -1);
+      while (fromRight ? index-- : ++index < length) {
+        if (predicate(array[index], index, array)) {
+          return index;
+        }
+      }
+      return -1;
+    }
+    function baseIndexOf(array, value, fromIndex) {
+      if (value !== value) {
+        return baseFindIndex(array, baseIsNaN, fromIndex);
+      }
+      var index = fromIndex - 1, length = array.length;
+      while (++index < length) {
+        if (array[index] === value) {
+          return index;
+        }
+      }
+      return -1;
+    }
+    function baseIsNaN(value) {
+      return value !== value;
+    }
+    function baseTimes(n, iteratee) {
+      var index = -1, result = Array(n);
+      while (++index < n) {
+        result[index] = iteratee(index);
+      }
+      return result;
+    }
+    function baseValues(object, props) {
+      return arrayMap(props, function(key) {
+        return object[key];
+      });
+    }
+    function overArg(func, transform) {
+      return function(arg) {
+        return func(transform(arg));
+      };
+    }
+    var objectProto = Object.prototype;
+    var hasOwnProperty = objectProto.hasOwnProperty;
+    var objectToString = objectProto.toString;
+    var propertyIsEnumerable = objectProto.propertyIsEnumerable;
+    var nativeKeys = overArg(Object.keys, Object);
+    var nativeMax = Math.max;
+    function arrayLikeKeys(value, inherited) {
+      var result = isArray(value) || isArguments(value) ? baseTimes(value.length, String) : [];
+      var length = result.length, skipIndexes = !!length;
+      for (var key in value) {
+        if ((inherited || hasOwnProperty.call(value, key)) && !(skipIndexes && (key == "length" || isIndex(key, length)))) {
+          result.push(key);
+        }
+      }
+      return result;
+    }
+    function baseKeys(object) {
+      if (!isPrototype(object)) {
+        return nativeKeys(object);
+      }
+      var result = [];
+      for (var key in Object(object)) {
+        if (hasOwnProperty.call(object, key) && key != "constructor") {
+          result.push(key);
+        }
+      }
+      return result;
+    }
+    function isIndex(value, length) {
+      length = length == null ? MAX_SAFE_INTEGER : length;
+      return !!length && (typeof value == "number" || reIsUint.test(value)) && (value > -1 && value % 1 == 0 && value < length);
+    }
+    function isPrototype(value) {
+      var Ctor = value && value.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
+      return value === proto;
+    }
+    function includes(collection, value, fromIndex, guard) {
+      collection = isArrayLike(collection) ? collection : values(collection);
+      fromIndex = fromIndex && !guard ? toInteger(fromIndex) : 0;
+      var length = collection.length;
+      if (fromIndex < 0) {
+        fromIndex = nativeMax(length + fromIndex, 0);
+      }
+      return isString(collection) ? fromIndex <= length && collection.indexOf(value, fromIndex) > -1 : !!length && baseIndexOf(collection, value, fromIndex) > -1;
+    }
+    function isArguments(value) {
+      return isArrayLikeObject(value) && hasOwnProperty.call(value, "callee") && (!propertyIsEnumerable.call(value, "callee") || objectToString.call(value) == argsTag);
+    }
+    var isArray = Array.isArray;
+    function isArrayLike(value) {
+      return value != null && isLength(value.length) && !isFunction(value);
+    }
+    function isArrayLikeObject(value) {
+      return isObjectLike(value) && isArrayLike(value);
+    }
+    function isFunction(value) {
+      var tag = isObject(value) ? objectToString.call(value) : "";
+      return tag == funcTag || tag == genTag;
+    }
+    function isLength(value) {
+      return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isString(value) {
+      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    function keys(object) {
+      return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
+    }
+    function values(object) {
+      return object ? baseValues(object, keys(object)) : [];
+    }
+    module.exports = includes;
+  }
+});
+
+// node_modules/lodash.isboolean/index.js
+var require_lodash2 = __commonJS({
+  "node_modules/lodash.isboolean/index.js"(exports, module) {
+    var boolTag = "[object Boolean]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isBoolean(value) {
+      return value === true || value === false || isObjectLike(value) && objectToString.call(value) == boolTag;
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    module.exports = isBoolean;
+  }
+});
+
+// node_modules/lodash.isinteger/index.js
+var require_lodash3 = __commonJS({
+  "node_modules/lodash.isinteger/index.js"(exports, module) {
+    var INFINITY = 1 / 0;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var freeParseInt = parseInt;
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isInteger(value) {
+      return typeof value == "number" && value == toInteger(value);
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    module.exports = isInteger;
+  }
+});
+
+// node_modules/lodash.isnumber/index.js
+var require_lodash4 = __commonJS({
+  "node_modules/lodash.isnumber/index.js"(exports, module) {
+    var numberTag = "[object Number]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isNumber(value) {
+      return typeof value == "number" || isObjectLike(value) && objectToString.call(value) == numberTag;
+    }
+    module.exports = isNumber;
+  }
+});
+
+// node_modules/lodash.isplainobject/index.js
+var require_lodash5 = __commonJS({
+  "node_modules/lodash.isplainobject/index.js"(exports, module) {
+    var objectTag = "[object Object]";
+    function isHostObject(value) {
+      var result = false;
+      if (value != null && typeof value.toString != "function") {
+        try {
+          result = !!(value + "");
+        } catch (e) {
+        }
+      }
+      return result;
+    }
+    function overArg(func, transform) {
+      return function(arg) {
+        return func(transform(arg));
+      };
+    }
+    var funcProto = Function.prototype;
+    var objectProto = Object.prototype;
+    var funcToString = funcProto.toString;
+    var hasOwnProperty = objectProto.hasOwnProperty;
+    var objectCtorString = funcToString.call(Object);
+    var objectToString = objectProto.toString;
+    var getPrototype = overArg(Object.getPrototypeOf, Object);
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isPlainObject(value) {
+      if (!isObjectLike(value) || objectToString.call(value) != objectTag || isHostObject(value)) {
+        return false;
+      }
+      var proto = getPrototype(value);
+      if (proto === null) {
+        return true;
+      }
+      var Ctor = hasOwnProperty.call(proto, "constructor") && proto.constructor;
+      return typeof Ctor == "function" && Ctor instanceof Ctor && funcToString.call(Ctor) == objectCtorString;
+    }
+    module.exports = isPlainObject;
+  }
+});
+
+// node_modules/lodash.isstring/index.js
+var require_lodash6 = __commonJS({
+  "node_modules/lodash.isstring/index.js"(exports, module) {
+    var stringTag = "[object String]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    var isArray = Array.isArray;
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isString(value) {
+      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
+    }
+    module.exports = isString;
+  }
+});
+
+// node_modules/lodash.once/index.js
+var require_lodash7 = __commonJS({
+  "node_modules/lodash.once/index.js"(exports, module) {
+    var FUNC_ERROR_TEXT = "Expected a function";
+    var INFINITY = 1 / 0;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var freeParseInt = parseInt;
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function before(n, func) {
+      var result;
+      if (typeof func != "function") {
+        throw new TypeError(FUNC_ERROR_TEXT);
+      }
+      n = toInteger(n);
+      return function() {
+        if (--n > 0) {
+          result = func.apply(this, arguments);
+        }
+        if (n <= 1) {
+          func = void 0;
+        }
+        return result;
+      };
+    }
+    function once(func) {
+      return before(2, func);
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    module.exports = once;
+  }
+});
+
+// node_modules/jsonwebtoken/sign.js
+var require_sign = __commonJS({
+  "node_modules/jsonwebtoken/sign.js"(exports, module) {
+    var timespan = require_timespan();
+    var PS_SUPPORTED = require_psSupported();
+    var validateAsymmetricKey = require_validateAsymmetricKey();
+    var jws = require_jws();
+    var includes = require_lodash();
+    var isBoolean = require_lodash2();
+    var isInteger = require_lodash3();
+    var isNumber = require_lodash4();
+    var isPlainObject = require_lodash5();
+    var isString = require_lodash6();
+    var once = require_lodash7();
+    var { KeyObject, createSecretKey, createPrivateKey } = __require("crypto");
+    var SUPPORTED_ALGS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "none"];
+    if (PS_SUPPORTED) {
+      SUPPORTED_ALGS.splice(3, 0, "PS256", "PS384", "PS512");
+    }
+    var sign_options_schema = {
+      expiresIn: { isValid: function(value) {
+        return isInteger(value) || isString(value) && value;
+      }, message: '"expiresIn" should be a number of seconds or string representing a timespan' },
+      notBefore: { isValid: function(value) {
+        return isInteger(value) || isString(value) && value;
+      }, message: '"notBefore" should be a number of seconds or string representing a timespan' },
+      audience: { isValid: function(value) {
+        return isString(value) || Array.isArray(value);
+      }, message: '"audience" must be a string or array' },
+      algorithm: { isValid: includes.bind(null, SUPPORTED_ALGS), message: '"algorithm" must be a valid string enum value' },
+      header: { isValid: isPlainObject, message: '"header" must be an object' },
+      encoding: { isValid: isString, message: '"encoding" must be a string' },
+      issuer: { isValid: isString, message: '"issuer" must be a string' },
+      subject: { isValid: isString, message: '"subject" must be a string' },
+      jwtid: { isValid: isString, message: '"jwtid" must be a string' },
+      noTimestamp: { isValid: isBoolean, message: '"noTimestamp" must be a boolean' },
+      keyid: { isValid: isString, message: '"keyid" must be a string' },
+      mutatePayload: { isValid: isBoolean, message: '"mutatePayload" must be a boolean' },
+      allowInsecureKeySizes: { isValid: isBoolean, message: '"allowInsecureKeySizes" must be a boolean' },
+      allowInvalidAsymmetricKeyTypes: { isValid: isBoolean, message: '"allowInvalidAsymmetricKeyTypes" must be a boolean' }
+    };
+    var registered_claims_schema = {
+      iat: { isValid: isNumber, message: '"iat" should be a number of seconds' },
+      exp: { isValid: isNumber, message: '"exp" should be a number of seconds' },
+      nbf: { isValid: isNumber, message: '"nbf" should be a number of seconds' }
+    };
+    function validate(schema, allowUnknown, object, parameterName) {
+      if (!isPlainObject(object)) {
+        throw new Error('Expected "' + parameterName + '" to be a plain object.');
+      }
+      Object.keys(object).forEach(function(key) {
+        const validator = schema[key];
+        if (!validator) {
+          if (!allowUnknown) {
+            throw new Error('"' + key + '" is not allowed in "' + parameterName + '"');
+          }
+          return;
+        }
+        if (!validator.isValid(object[key])) {
+          throw new Error(validator.message);
+        }
+      });
+    }
+    function validateOptions(options) {
+      return validate(sign_options_schema, false, options, "options");
+    }
+    function validatePayload(payload) {
+      return validate(registered_claims_schema, true, payload, "payload");
+    }
+    var options_to_payload = {
+      "audience": "aud",
+      "issuer": "iss",
+      "subject": "sub",
+      "jwtid": "jti"
+    };
+    var options_for_objects = [
+      "expiresIn",
+      "notBefore",
+      "noTimestamp",
+      "audience",
+      "issuer",
+      "subject",
+      "jwtid"
+    ];
+    module.exports = function(payload, secretOrPrivateKey, options, callback) {
+      if (typeof options === "function") {
+        callback = options;
+        options = {};
+      } else {
+        options = options || {};
+      }
+      const isObjectPayload = typeof payload === "object" && !Buffer.isBuffer(payload);
+      const header = Object.assign({
+        alg: options.algorithm || "HS256",
+        typ: isObjectPayload ? "JWT" : void 0,
+        kid: options.keyid
+      }, options.header);
+      function failure(err) {
+        if (callback) {
+          return callback(err);
+        }
+        throw err;
+      }
+      if (!secretOrPrivateKey && options.algorithm !== "none") {
+        return failure(new Error("secretOrPrivateKey must have a value"));
+      }
+      if (secretOrPrivateKey != null && !(secretOrPrivateKey instanceof KeyObject)) {
+        try {
+          secretOrPrivateKey = createPrivateKey(secretOrPrivateKey);
+        } catch (_) {
+          try {
+            secretOrPrivateKey = createSecretKey(typeof secretOrPrivateKey === "string" ? Buffer.from(secretOrPrivateKey) : secretOrPrivateKey);
+          } catch (_2) {
+            return failure(new Error("secretOrPrivateKey is not valid key material"));
+          }
+        }
+      }
+      if (header.alg.startsWith("HS") && secretOrPrivateKey.type !== "secret") {
+        return failure(new Error(`secretOrPrivateKey must be a symmetric key when using ${header.alg}`));
+      } else if (/^(?:RS|PS|ES)/.test(header.alg)) {
+        if (secretOrPrivateKey.type !== "private") {
+          return failure(new Error(`secretOrPrivateKey must be an asymmetric key when using ${header.alg}`));
+        }
+        if (!options.allowInsecureKeySizes && !header.alg.startsWith("ES") && secretOrPrivateKey.asymmetricKeyDetails !== void 0 && //KeyObject.asymmetricKeyDetails is supported in Node 15+
+        secretOrPrivateKey.asymmetricKeyDetails.modulusLength < 2048) {
+          return failure(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
+        }
+      }
+      if (typeof payload === "undefined") {
+        return failure(new Error("payload is required"));
+      } else if (isObjectPayload) {
+        try {
+          validatePayload(payload);
+        } catch (error) {
+          return failure(error);
+        }
+        if (!options.mutatePayload) {
+          payload = Object.assign({}, payload);
+        }
+      } else {
+        const invalid_options = options_for_objects.filter(function(opt) {
+          return typeof options[opt] !== "undefined";
+        });
+        if (invalid_options.length > 0) {
+          return failure(new Error("invalid " + invalid_options.join(",") + " option for " + typeof payload + " payload"));
+        }
+      }
+      if (typeof payload.exp !== "undefined" && typeof options.expiresIn !== "undefined") {
+        return failure(new Error('Bad "options.expiresIn" option the payload already has an "exp" property.'));
+      }
+      if (typeof payload.nbf !== "undefined" && typeof options.notBefore !== "undefined") {
+        return failure(new Error('Bad "options.notBefore" option the payload already has an "nbf" property.'));
+      }
+      try {
+        validateOptions(options);
+      } catch (error) {
+        return failure(error);
+      }
+      if (!options.allowInvalidAsymmetricKeyTypes) {
+        try {
+          validateAsymmetricKey(header.alg, secretOrPrivateKey);
+        } catch (error) {
+          return failure(error);
+        }
+      }
+      const timestamp2 = payload.iat || Math.floor(Date.now() / 1e3);
+      if (options.noTimestamp) {
+        delete payload.iat;
+      } else if (isObjectPayload) {
+        payload.iat = timestamp2;
+      }
+      if (typeof options.notBefore !== "undefined") {
+        try {
+          payload.nbf = timespan(options.notBefore, timestamp2);
+        } catch (err) {
+          return failure(err);
+        }
+        if (typeof payload.nbf === "undefined") {
+          return failure(new Error('"notBefore" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+        }
+      }
+      if (typeof options.expiresIn !== "undefined" && typeof payload === "object") {
+        try {
+          payload.exp = timespan(options.expiresIn, timestamp2);
+        } catch (err) {
+          return failure(err);
+        }
+        if (typeof payload.exp === "undefined") {
+          return failure(new Error('"expiresIn" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+        }
+      }
+      Object.keys(options_to_payload).forEach(function(key) {
+        const claim = options_to_payload[key];
+        if (typeof options[key] !== "undefined") {
+          if (typeof payload[claim] !== "undefined") {
+            return failure(new Error('Bad "options.' + key + '" option. The payload already has an "' + claim + '" property.'));
+          }
+          payload[claim] = options[key];
+        }
+      });
+      const encoding = options.encoding || "utf8";
+      if (typeof callback === "function") {
+        callback = callback && once(callback);
+        jws.createSign({
+          header,
+          privateKey: secretOrPrivateKey,
+          payload,
+          encoding
+        }).once("error", callback).once("done", function(signature) {
+          if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
+            return callback(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
+          }
+          callback(null, signature);
+        });
+      } else {
+        let signature = jws.sign({ header, payload, secret: secretOrPrivateKey, encoding });
+        if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
+          throw new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`);
+        }
+        return signature;
+      }
+    };
+  }
+});
+
+// node_modules/jsonwebtoken/index.js
+var require_jsonwebtoken = __commonJS({
+  "node_modules/jsonwebtoken/index.js"(exports, module) {
+    module.exports = {
+      decode: require_decode(),
+      verify: require_verify(),
+      sign: require_sign(),
+      JsonWebTokenError: require_JsonWebTokenError(),
+      NotBeforeError: require_NotBeforeError(),
+      TokenExpiredError: require_TokenExpiredError()
+    };
+  }
+});
+
+// node_modules/base32.js/base32.js
+var require_base32 = __commonJS({
+  "node_modules/base32.js/base32.js"(exports) {
+    "use strict";
+    var charmap = function(alphabet, mappings) {
+      mappings || (mappings = {});
+      alphabet.split("").forEach(function(c, i) {
+        if (!(c in mappings)) mappings[c] = i;
+      });
+      return mappings;
+    };
+    var rfc4648 = {
+      alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+      charmap: {
+        0: 14,
+        1: 8
+      }
+    };
+    rfc4648.charmap = charmap(rfc4648.alphabet, rfc4648.charmap);
+    var crockford = {
+      alphabet: "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
+      charmap: {
+        O: 0,
+        I: 1,
+        L: 1
+      }
+    };
+    crockford.charmap = charmap(crockford.alphabet, crockford.charmap);
+    function Decoder(options) {
+      this.buf = [];
+      this.shift = 8;
+      this.carry = 0;
+      if (options) {
+        switch (options.type) {
+          case "rfc4648":
+            this.charmap = exports.rfc4648.charmap;
+            break;
+          case "crockford":
+            this.charmap = exports.crockford.charmap;
+            break;
+          default:
+            throw new Error("invalid type");
+        }
+        if (options.charmap) this.charmap = options.charmap;
+      }
+    }
+    Decoder.prototype.charmap = rfc4648.charmap;
+    Decoder.prototype.write = function(str) {
+      var charmap2 = this.charmap;
+      var buf = this.buf;
+      var shift = this.shift;
+      var carry = this.carry;
+      str.toUpperCase().split("").forEach(function(char2) {
+        if (char2 == "=") return;
+        var symbol = charmap2[char2] & 255;
+        shift -= 5;
+        if (shift > 0) {
+          carry |= symbol << shift;
+        } else if (shift < 0) {
+          buf.push(carry | symbol >> -shift);
+          shift += 8;
+          carry = symbol << shift & 255;
+        } else {
+          buf.push(carry | symbol);
+          shift = 8;
+          carry = 0;
+        }
+      });
+      this.shift = shift;
+      this.carry = carry;
+      return this;
+    };
+    Decoder.prototype.finalize = function(str) {
+      if (str) {
+        this.write(str);
+      }
+      if (this.shift !== 8 && this.carry !== 0) {
+        this.buf.push(this.carry);
+        this.shift = 8;
+        this.carry = 0;
+      }
+      return this.buf;
+    };
+    function Encoder(options) {
+      this.buf = "";
+      this.shift = 3;
+      this.carry = 0;
+      if (options) {
+        switch (options.type) {
+          case "rfc4648":
+            this.alphabet = exports.rfc4648.alphabet;
+            break;
+          case "crockford":
+            this.alphabet = exports.crockford.alphabet;
+            break;
+          default:
+            throw new Error("invalid type");
+        }
+        if (options.alphabet) this.alphabet = options.alphabet;
+        else if (options.lc) this.alphabet = this.alphabet.toLowerCase();
+      }
+    }
+    Encoder.prototype.alphabet = rfc4648.alphabet;
+    Encoder.prototype.write = function(buf) {
+      var shift = this.shift;
+      var carry = this.carry;
+      var symbol;
+      var byte;
+      var i;
+      for (i = 0; i < buf.length; i++) {
+        byte = buf[i];
+        symbol = carry | byte >> shift;
+        this.buf += this.alphabet[symbol & 31];
+        if (shift > 5) {
+          shift -= 5;
+          symbol = byte >> shift;
+          this.buf += this.alphabet[symbol & 31];
+        }
+        shift = 5 - shift;
+        carry = byte << shift;
+        shift = 8 - shift;
+      }
+      this.shift = shift;
+      this.carry = carry;
+      return this;
+    };
+    Encoder.prototype.finalize = function(buf) {
+      if (buf) {
+        this.write(buf);
+      }
+      if (this.shift !== 3) {
+        this.buf += this.alphabet[this.carry & 31];
+        this.shift = 3;
+        this.carry = 0;
+      }
+      return this.buf;
+    };
+    exports.encode = function(buf, options) {
+      return new Encoder(options).finalize(buf);
+    };
+    exports.decode = function(str, options) {
+      return new Decoder(options).finalize(str);
+    };
+    exports.Decoder = Decoder;
+    exports.Encoder = Encoder;
+    exports.charmap = charmap;
+    exports.crockford = crockford;
+    exports.rfc4648 = rfc4648;
+  }
+});
+
+// node_modules/base32.js/index.js
+var require_base322 = __commonJS({
+  "node_modules/base32.js/index.js"(exports, module) {
+    "use strict";
+    var base32 = require_base32();
+    var finalizeDecode = base32.Decoder.prototype.finalize;
+    base32.Decoder.prototype.finalize = function(buf) {
+      var bytes = finalizeDecode.call(this, buf);
+      return new Buffer(bytes);
+    };
+    module.exports = base32;
+  }
+});
+
+// node_modules/speakeasy/index.js
+var require_speakeasy = __commonJS({
+  "node_modules/speakeasy/index.js"(exports) {
+    "use strict";
+    var base32 = require_base322();
+    var crypto = __require("crypto");
+    var url = __require("url");
+    var util2 = __require("util");
+    exports.digest = function digest(options) {
+      var i;
+      var secret = options.secret;
+      var counter = options.counter;
+      var encoding = options.encoding || "ascii";
+      var algorithm = (options.algorithm || "sha1").toLowerCase();
+      if (options.key != null) {
+        console.warn("Speakeasy - Deprecation Notice - Specifying the secret using `key` is no longer supported. Use `secret` instead.");
+        secret = options.key;
+      }
+      if (!Buffer.isBuffer(secret)) {
+        secret = encoding === "base32" ? base32.decode(secret) : new Buffer(secret, encoding);
+      }
+      var buf = new Buffer(8);
+      var tmp = counter;
+      for (i = 0; i < 8; i++) {
+        buf[7 - i] = tmp & 255;
+        tmp = tmp >> 8;
+      }
+      var hmac = crypto.createHmac(algorithm, secret);
+      hmac.update(buf);
+      return hmac.digest();
+    };
+    exports.hotp = function hotpGenerate(options) {
+      var digits = (options.digits != null ? options.digits : options.length) || 6;
+      if (options.length != null) console.warn("Speakeasy - Deprecation Notice - Specifying token digits using `length` is no longer supported. Use `digits` instead.");
+      var digest = options.digest || exports.digest(options);
+      var offset = digest[digest.length - 1] & 15;
+      var code = (digest[offset] & 127) << 24 | (digest[offset + 1] & 255) << 16 | (digest[offset + 2] & 255) << 8 | digest[offset + 3] & 255;
+      code = new Array(digits + 1).join("0") + code.toString(10);
+      return code.substr(-digits);
+    };
+    exports.counter = exports.hotp;
+    exports.hotp.verifyDelta = function hotpVerifyDelta(options) {
+      var i;
+      options = Object.create(options);
+      var token = String(options.token);
+      var digits = parseInt(options.digits, 10) || 6;
+      var window = parseInt(options.window, 10) || 0;
+      var counter = parseInt(options.counter, 10) || 0;
+      if (token.length !== digits) {
+        return;
+      }
+      token = parseInt(token, 10);
+      if (isNaN(token)) {
+        return;
+      }
+      for (i = counter; i <= counter + window; ++i) {
+        options.counter = i;
+        if (parseInt(exports.hotp(options), 10) === token) {
+          return { delta: i - counter };
+        }
+      }
+    };
+    exports.hotp.verify = function hotpVerify(options) {
+      return exports.hotp.verifyDelta(options) != null;
+    };
+    exports._counter = function _counter(options) {
+      var step = options.step || 30;
+      var time2 = options.time != null ? options.time * 1e3 : Date.now();
+      var epoch = (options.epoch != null ? options.epoch * 1e3 : options.initial_time * 1e3) || 0;
+      if (options.initial_time != null) console.warn("Speakeasy - Deprecation Notice - Specifying the epoch using `initial_time` is no longer supported. Use `epoch` instead.");
+      return Math.floor((time2 - epoch) / step / 1e3);
+    };
+    exports.totp = function totpGenerate(options) {
+      options = Object.create(options);
+      if (options.counter == null) options.counter = exports._counter(options);
+      return this.hotp(options);
+    };
+    exports.time = exports.totp;
+    exports.totp.verifyDelta = function totpVerifyDelta(options) {
+      options = Object.create(options);
+      var window = parseInt(options.window, 10) || 0;
+      if (options.counter == null) options.counter = exports._counter(options);
+      options.counter -= window;
+      options.window += window;
+      var delta = exports.hotp.verifyDelta(options);
+      if (delta) {
+        delta.delta -= window;
+      }
+      return delta;
+    };
+    exports.totp.verify = function totpVerify(options) {
+      return exports.totp.verifyDelta(options) != null;
+    };
+    exports.generateSecret = function generateSecret(options) {
+      if (!options) options = {};
+      var length = options.length || 32;
+      var name = encodeURIComponent(options.name || "SecretKey");
+      var qr_codes = options.qr_codes || false;
+      var google_auth_qr = options.google_auth_qr || false;
+      var otpauth_url = options.otpauth_url != null ? options.otpauth_url : true;
+      var symbols = true;
+      if (options.symbols !== void 0 && options.symbols === false) {
+        symbols = false;
+      }
+      var key = this.generateSecretASCII(length, symbols);
+      var SecretKey = {};
+      SecretKey.ascii = key;
+      SecretKey.hex = Buffer(key, "ascii").toString("hex");
+      SecretKey.base32 = base32.encode(Buffer(key)).toString().replace(/=/g, "");
+      if (qr_codes) {
+        console.warn("Speakeasy - Deprecation Notice - generateSecret() QR codes are deprecated and no longer supported. Please use your own QR code implementation.");
+        SecretKey.qr_code_ascii = "https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=" + encodeURIComponent(SecretKey.ascii);
+        SecretKey.qr_code_hex = "https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=" + encodeURIComponent(SecretKey.hex);
+        SecretKey.qr_code_base32 = "https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=" + encodeURIComponent(SecretKey.base32);
+      }
+      if (otpauth_url) {
+        SecretKey.otpauth_url = exports.otpauthURL({
+          secret: SecretKey.ascii,
+          label: name
+        });
+      }
+      if (google_auth_qr) {
+        console.warn("Speakeasy - Deprecation Notice - generateSecret() Google Auth QR code is deprecated and no longer supported. Please use your own QR code implementation.");
+        SecretKey.google_auth_qr = "https://chart.googleapis.com/chart?chs=166x166&chld=L|0&cht=qr&chl=" + encodeURIComponent(exports.otpauthURL({ secret: SecretKey.base32, label: name }));
+      }
+      return SecretKey;
+    };
+    exports.generate_key = util2.deprecate(function(options) {
+      return exports.generateSecret(options);
+    }, "Speakeasy - Deprecation Notice - `generate_key()` is depreciated, please use `generateSecret()` instead.");
+    exports.generateSecretASCII = function generateSecretASCII(length, symbols) {
+      var bytes = crypto.randomBytes(length || 32);
+      var set = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
+      if (symbols) {
+        set += "!@#$%^&*()<>?/[]{},.:;";
+      }
+      var output = "";
+      for (var i = 0, l = bytes.length; i < l; i++) {
+        output += set[Math.floor(bytes[i] / 255 * (set.length - 1))];
+      }
+      return output;
+    };
+    exports.generate_key_ascii = util2.deprecate(function(length, symbols) {
+      return exports.generateSecretASCII(length, symbols);
+    }, "Speakeasy - Deprecation Notice - `generate_key_ascii()` is depreciated, please use `generateSecretASCII()` instead.");
+    exports.otpauthURL = function otpauthURL(options) {
+      var secret = options.secret;
+      var label = options.label;
+      var issuer = options.issuer;
+      var type = (options.type || "totp").toLowerCase();
+      var counter = options.counter;
+      var algorithm = options.algorithm;
+      var digits = options.digits;
+      var period = options.period;
+      var encoding = options.encoding || "ascii";
+      switch (type) {
+        case "totp":
+        case "hotp":
+          break;
+        default:
+          throw new Error("Speakeasy - otpauthURL - Invalid type `" + type + "`; must be `hotp` or `totp`");
+      }
+      if (!secret) throw new Error("Speakeasy - otpauthURL - Missing secret");
+      if (!label) throw new Error("Speakeasy - otpauthURL - Missing label");
+      if (type === "hotp" && (counter === null || typeof counter === "undefined")) {
+        throw new Error("Speakeasy - otpauthURL - Missing counter value for HOTP");
+      }
+      if (encoding !== "base32") secret = new Buffer(secret, encoding);
+      if (Buffer.isBuffer(secret)) secret = base32.encode(secret);
+      var query = { secret };
+      if (issuer) query.issuer = issuer;
+      if (algorithm != null) {
+        switch (algorithm.toUpperCase()) {
+          case "SHA1":
+          case "SHA256":
+          case "SHA512":
+            break;
+          default:
+            console.warn("Speakeasy - otpauthURL - Warning - Algorithm generally should be SHA1, SHA256, or SHA512");
+        }
+        query.algorithm = algorithm.toUpperCase();
+      }
+      if (digits != null) {
+        if (isNaN(digits)) {
+          throw new Error("Speakeasy - otpauthURL - Invalid digits `" + digits + "`");
+        } else {
+          switch (parseInt(digits, 10)) {
+            case 6:
+            case 8:
+              break;
+            default:
+              console.warn("Speakeasy - otpauthURL - Warning - Digits generally should be either 6 or 8");
+          }
+        }
+        query.digits = digits;
+      }
+      if (period != null) {
+        period = parseInt(period, 10);
+        if (~~period !== period) {
+          throw new Error("Speakeasy - otpauthURL - Invalid period `" + period + "`");
+        }
+        query.period = period;
+      }
+      return url.format({
+        protocol: "otpauth",
+        slashes: true,
+        hostname: type,
+        pathname: label,
+        query
+      });
+    };
+  }
+});
+
+// node_modules/qrcode/lib/can-promise.js
+var require_can_promise = __commonJS({
+  "node_modules/qrcode/lib/can-promise.js"(exports, module) {
+    module.exports = function() {
+      return typeof Promise === "function" && Promise.prototype && Promise.prototype.then;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/utils.js
+var require_utils = __commonJS({
+  "node_modules/qrcode/lib/core/utils.js"(exports) {
+    var toSJISFunction;
+    var CODEWORDS_COUNT = [
+      0,
+      // Not used
+      26,
+      44,
+      70,
+      100,
+      134,
+      172,
+      196,
+      242,
+      292,
+      346,
+      404,
+      466,
+      532,
+      581,
+      655,
+      733,
+      815,
+      901,
+      991,
+      1085,
+      1156,
+      1258,
+      1364,
+      1474,
+      1588,
+      1706,
+      1828,
+      1921,
+      2051,
+      2185,
+      2323,
+      2465,
+      2611,
+      2761,
+      2876,
+      3034,
+      3196,
+      3362,
+      3532,
+      3706
+    ];
+    exports.getSymbolSize = function getSymbolSize(version2) {
+      if (!version2) throw new Error('"version" cannot be null or undefined');
+      if (version2 < 1 || version2 > 40) throw new Error('"version" should be in range from 1 to 40');
+      return version2 * 4 + 17;
+    };
+    exports.getSymbolTotalCodewords = function getSymbolTotalCodewords(version2) {
+      return CODEWORDS_COUNT[version2];
+    };
+    exports.getBCHDigit = function(data) {
+      let digit = 0;
+      while (data !== 0) {
+        digit++;
+        data >>>= 1;
+      }
+      return digit;
+    };
+    exports.setToSJISFunction = function setToSJISFunction(f) {
+      if (typeof f !== "function") {
+        throw new Error('"toSJISFunc" is not a valid function.');
+      }
+      toSJISFunction = f;
+    };
+    exports.isKanjiModeEnabled = function() {
+      return typeof toSJISFunction !== "undefined";
+    };
+    exports.toSJIS = function toSJIS(kanji) {
+      return toSJISFunction(kanji);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/error-correction-level.js
+var require_error_correction_level = __commonJS({
+  "node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
+    exports.L = { bit: 1 };
+    exports.M = { bit: 0 };
+    exports.Q = { bit: 3 };
+    exports.H = { bit: 2 };
+    function fromString(string) {
+      if (typeof string !== "string") {
+        throw new Error("Param is not a string");
+      }
+      const lcStr = string.toLowerCase();
+      switch (lcStr) {
+        case "l":
+        case "low":
+          return exports.L;
+        case "m":
+        case "medium":
+          return exports.M;
+        case "q":
+        case "quartile":
+          return exports.Q;
+        case "h":
+        case "high":
+          return exports.H;
+        default:
+          throw new Error("Unknown EC Level: " + string);
+      }
+    }
+    exports.isValid = function isValid2(level) {
+      return level && typeof level.bit !== "undefined" && level.bit >= 0 && level.bit < 4;
+    };
+    exports.from = function from(value, defaultValue) {
+      if (exports.isValid(value)) {
+        return value;
+      }
+      try {
+        return fromString(value);
+      } catch (e) {
+        return defaultValue;
+      }
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/bit-buffer.js
+var require_bit_buffer = __commonJS({
+  "node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
+    function BitBuffer() {
+      this.buffer = [];
+      this.length = 0;
+    }
+    BitBuffer.prototype = {
+      get: function(index) {
+        const bufIndex = Math.floor(index / 8);
+        return (this.buffer[bufIndex] >>> 7 - index % 8 & 1) === 1;
+      },
+      put: function(num, length) {
+        for (let i = 0; i < length; i++) {
+          this.putBit((num >>> length - i - 1 & 1) === 1);
+        }
+      },
+      getLengthInBits: function() {
+        return this.length;
+      },
+      putBit: function(bit2) {
+        const bufIndex = Math.floor(this.length / 8);
+        if (this.buffer.length <= bufIndex) {
+          this.buffer.push(0);
+        }
+        if (bit2) {
+          this.buffer[bufIndex] |= 128 >>> this.length % 8;
+        }
+        this.length++;
+      }
+    };
+    module.exports = BitBuffer;
+  }
+});
+
+// node_modules/qrcode/lib/core/bit-matrix.js
+var require_bit_matrix = __commonJS({
+  "node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
+    function BitMatrix(size) {
+      if (!size || size < 1) {
+        throw new Error("BitMatrix size must be defined and greater than 0");
+      }
+      this.size = size;
+      this.data = new Uint8Array(size * size);
+      this.reservedBit = new Uint8Array(size * size);
+    }
+    BitMatrix.prototype.set = function(row, col, value, reserved) {
+      const index = row * this.size + col;
+      this.data[index] = value;
+      if (reserved) this.reservedBit[index] = true;
+    };
+    BitMatrix.prototype.get = function(row, col) {
+      return this.data[row * this.size + col];
+    };
+    BitMatrix.prototype.xor = function(row, col, value) {
+      this.data[row * this.size + col] ^= value;
+    };
+    BitMatrix.prototype.isReserved = function(row, col) {
+      return this.reservedBit[row * this.size + col];
+    };
+    module.exports = BitMatrix;
+  }
+});
+
+// node_modules/qrcode/lib/core/alignment-pattern.js
+var require_alignment_pattern = __commonJS({
+  "node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
+    var getSymbolSize = require_utils().getSymbolSize;
+    exports.getRowColCoords = function getRowColCoords(version2) {
+      if (version2 === 1) return [];
+      const posCount = Math.floor(version2 / 7) + 2;
+      const size = getSymbolSize(version2);
+      const intervals = size === 145 ? 26 : Math.ceil((size - 13) / (2 * posCount - 2)) * 2;
+      const positions = [size - 7];
+      for (let i = 1; i < posCount - 1; i++) {
+        positions[i] = positions[i - 1] - intervals;
+      }
+      positions.push(6);
+      return positions.reverse();
+    };
+    exports.getPositions = function getPositions(version2) {
+      const coords = [];
+      const pos = exports.getRowColCoords(version2);
+      const posLength = pos.length;
+      for (let i = 0; i < posLength; i++) {
+        for (let j = 0; j < posLength; j++) {
+          if (i === 0 && j === 0 || // top-left
+          i === 0 && j === posLength - 1 || // bottom-left
+          i === posLength - 1 && j === 0) {
+            continue;
+          }
+          coords.push([pos[i], pos[j]]);
+        }
+      }
+      return coords;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/finder-pattern.js
+var require_finder_pattern = __commonJS({
+  "node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
+    var getSymbolSize = require_utils().getSymbolSize;
+    var FINDER_PATTERN_SIZE = 7;
+    exports.getPositions = function getPositions(version2) {
+      const size = getSymbolSize(version2);
+      return [
+        // top-left
+        [0, 0],
+        // top-right
+        [size - FINDER_PATTERN_SIZE, 0],
+        // bottom-left
+        [0, size - FINDER_PATTERN_SIZE]
+      ];
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/mask-pattern.js
+var require_mask_pattern = __commonJS({
+  "node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
+    exports.Patterns = {
+      PATTERN000: 0,
+      PATTERN001: 1,
+      PATTERN010: 2,
+      PATTERN011: 3,
+      PATTERN100: 4,
+      PATTERN101: 5,
+      PATTERN110: 6,
+      PATTERN111: 7
+    };
+    var PenaltyScores = {
+      N1: 3,
+      N2: 3,
+      N3: 40,
+      N4: 10
+    };
+    exports.isValid = function isValid2(mask) {
+      return mask != null && mask !== "" && !isNaN(mask) && mask >= 0 && mask <= 7;
+    };
+    exports.from = function from(value) {
+      return exports.isValid(value) ? parseInt(value, 10) : void 0;
+    };
+    exports.getPenaltyN1 = function getPenaltyN1(data) {
+      const size = data.size;
+      let points = 0;
+      let sameCountCol = 0;
+      let sameCountRow = 0;
+      let lastCol = null;
+      let lastRow = null;
+      for (let row = 0; row < size; row++) {
+        sameCountCol = sameCountRow = 0;
+        lastCol = lastRow = null;
+        for (let col = 0; col < size; col++) {
+          let module2 = data.get(row, col);
+          if (module2 === lastCol) {
+            sameCountCol++;
+          } else {
+            if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
+            lastCol = module2;
+            sameCountCol = 1;
+          }
+          module2 = data.get(col, row);
+          if (module2 === lastRow) {
+            sameCountRow++;
+          } else {
+            if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
+            lastRow = module2;
+            sameCountRow = 1;
+          }
+        }
+        if (sameCountCol >= 5) points += PenaltyScores.N1 + (sameCountCol - 5);
+        if (sameCountRow >= 5) points += PenaltyScores.N1 + (sameCountRow - 5);
+      }
+      return points;
+    };
+    exports.getPenaltyN2 = function getPenaltyN2(data) {
+      const size = data.size;
+      let points = 0;
+      for (let row = 0; row < size - 1; row++) {
+        for (let col = 0; col < size - 1; col++) {
+          const last = data.get(row, col) + data.get(row, col + 1) + data.get(row + 1, col) + data.get(row + 1, col + 1);
+          if (last === 4 || last === 0) points++;
+        }
+      }
+      return points * PenaltyScores.N2;
+    };
+    exports.getPenaltyN3 = function getPenaltyN3(data) {
+      const size = data.size;
+      let points = 0;
+      let bitsCol = 0;
+      let bitsRow = 0;
+      for (let row = 0; row < size; row++) {
+        bitsCol = bitsRow = 0;
+        for (let col = 0; col < size; col++) {
+          bitsCol = bitsCol << 1 & 2047 | data.get(row, col);
+          if (col >= 10 && (bitsCol === 1488 || bitsCol === 93)) points++;
+          bitsRow = bitsRow << 1 & 2047 | data.get(col, row);
+          if (col >= 10 && (bitsRow === 1488 || bitsRow === 93)) points++;
+        }
+      }
+      return points * PenaltyScores.N3;
+    };
+    exports.getPenaltyN4 = function getPenaltyN4(data) {
+      let darkCount = 0;
+      const modulesCount = data.data.length;
+      for (let i = 0; i < modulesCount; i++) darkCount += data.data[i];
+      const k = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
+      return k * PenaltyScores.N4;
+    };
+    function getMaskAt(maskPattern, i, j) {
+      switch (maskPattern) {
+        case exports.Patterns.PATTERN000:
+          return (i + j) % 2 === 0;
+        case exports.Patterns.PATTERN001:
+          return i % 2 === 0;
+        case exports.Patterns.PATTERN010:
+          return j % 3 === 0;
+        case exports.Patterns.PATTERN011:
+          return (i + j) % 3 === 0;
+        case exports.Patterns.PATTERN100:
+          return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
+        case exports.Patterns.PATTERN101:
+          return i * j % 2 + i * j % 3 === 0;
+        case exports.Patterns.PATTERN110:
+          return (i * j % 2 + i * j % 3) % 2 === 0;
+        case exports.Patterns.PATTERN111:
+          return (i * j % 3 + (i + j) % 2) % 2 === 0;
+        default:
+          throw new Error("bad maskPattern:" + maskPattern);
+      }
+    }
+    exports.applyMask = function applyMask(pattern, data) {
+      const size = data.size;
+      for (let col = 0; col < size; col++) {
+        for (let row = 0; row < size; row++) {
+          if (data.isReserved(row, col)) continue;
+          data.xor(row, col, getMaskAt(pattern, row, col));
+        }
+      }
+    };
+    exports.getBestMask = function getBestMask(data, setupFormatFunc) {
+      const numPatterns = Object.keys(exports.Patterns).length;
+      let bestPattern = 0;
+      let lowerPenalty = Infinity;
+      for (let p = 0; p < numPatterns; p++) {
+        setupFormatFunc(p);
+        exports.applyMask(p, data);
+        const penalty = exports.getPenaltyN1(data) + exports.getPenaltyN2(data) + exports.getPenaltyN3(data) + exports.getPenaltyN4(data);
+        exports.applyMask(p, data);
+        if (penalty < lowerPenalty) {
+          lowerPenalty = penalty;
+          bestPattern = p;
+        }
+      }
+      return bestPattern;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/error-correction-code.js
+var require_error_correction_code = __commonJS({
+  "node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
+    var ECLevel = require_error_correction_level();
+    var EC_BLOCKS_TABLE = [
+      // L  M  Q  H
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      2,
+      1,
+      2,
+      2,
+      4,
+      1,
+      2,
+      4,
+      4,
+      2,
+      4,
+      4,
+      4,
+      2,
+      4,
+      6,
+      5,
+      2,
+      4,
+      6,
+      6,
+      2,
+      5,
+      8,
+      8,
+      4,
+      5,
+      8,
+      8,
+      4,
+      5,
+      8,
+      11,
+      4,
+      8,
+      10,
+      11,
+      4,
+      9,
+      12,
+      16,
+      4,
+      9,
+      16,
+      16,
+      6,
+      10,
+      12,
+      18,
+      6,
+      10,
+      17,
+      16,
+      6,
+      11,
+      16,
+      19,
+      6,
+      13,
+      18,
+      21,
+      7,
+      14,
+      21,
+      25,
+      8,
+      16,
+      20,
+      25,
+      8,
+      17,
+      23,
+      25,
+      9,
+      17,
+      23,
+      34,
+      9,
+      18,
+      25,
+      30,
+      10,
+      20,
+      27,
+      32,
+      12,
+      21,
+      29,
+      35,
+      12,
+      23,
+      34,
+      37,
+      12,
+      25,
+      34,
+      40,
+      13,
+      26,
+      35,
+      42,
+      14,
+      28,
+      38,
+      45,
+      15,
+      29,
+      40,
+      48,
+      16,
+      31,
+      43,
+      51,
+      17,
+      33,
+      45,
+      54,
+      18,
+      35,
+      48,
+      57,
+      19,
+      37,
+      51,
+      60,
+      19,
+      38,
+      53,
+      63,
+      20,
+      40,
+      56,
+      66,
+      21,
+      43,
+      59,
+      70,
+      22,
+      45,
+      62,
+      74,
+      24,
+      47,
+      65,
+      77,
+      25,
+      49,
+      68,
+      81
+    ];
+    var EC_CODEWORDS_TABLE = [
+      // L  M  Q  H
+      7,
+      10,
+      13,
+      17,
+      10,
+      16,
+      22,
+      28,
+      15,
+      26,
+      36,
+      44,
+      20,
+      36,
+      52,
+      64,
+      26,
+      48,
+      72,
+      88,
+      36,
+      64,
+      96,
+      112,
+      40,
+      72,
+      108,
+      130,
+      48,
+      88,
+      132,
+      156,
+      60,
+      110,
+      160,
+      192,
+      72,
+      130,
+      192,
+      224,
+      80,
+      150,
+      224,
+      264,
+      96,
+      176,
+      260,
+      308,
+      104,
+      198,
+      288,
+      352,
+      120,
+      216,
+      320,
+      384,
+      132,
+      240,
+      360,
+      432,
+      144,
+      280,
+      408,
+      480,
+      168,
+      308,
+      448,
+      532,
+      180,
+      338,
+      504,
+      588,
+      196,
+      364,
+      546,
+      650,
+      224,
+      416,
+      600,
+      700,
+      224,
+      442,
+      644,
+      750,
+      252,
+      476,
+      690,
+      816,
+      270,
+      504,
+      750,
+      900,
+      300,
+      560,
+      810,
+      960,
+      312,
+      588,
+      870,
+      1050,
+      336,
+      644,
+      952,
+      1110,
+      360,
+      700,
+      1020,
+      1200,
+      390,
+      728,
+      1050,
+      1260,
+      420,
+      784,
+      1140,
+      1350,
+      450,
+      812,
+      1200,
+      1440,
+      480,
+      868,
+      1290,
+      1530,
+      510,
+      924,
+      1350,
+      1620,
+      540,
+      980,
+      1440,
+      1710,
+      570,
+      1036,
+      1530,
+      1800,
+      570,
+      1064,
+      1590,
+      1890,
+      600,
+      1120,
+      1680,
+      1980,
+      630,
+      1204,
+      1770,
+      2100,
+      660,
+      1260,
+      1860,
+      2220,
+      720,
+      1316,
+      1950,
+      2310,
+      750,
+      1372,
+      2040,
+      2430
+    ];
+    exports.getBlocksCount = function getBlocksCount(version2, errorCorrectionLevel) {
+      switch (errorCorrectionLevel) {
+        case ECLevel.L:
+          return EC_BLOCKS_TABLE[(version2 - 1) * 4 + 0];
+        case ECLevel.M:
+          return EC_BLOCKS_TABLE[(version2 - 1) * 4 + 1];
+        case ECLevel.Q:
+          return EC_BLOCKS_TABLE[(version2 - 1) * 4 + 2];
+        case ECLevel.H:
+          return EC_BLOCKS_TABLE[(version2 - 1) * 4 + 3];
+        default:
+          return void 0;
+      }
+    };
+    exports.getTotalCodewordsCount = function getTotalCodewordsCount(version2, errorCorrectionLevel) {
+      switch (errorCorrectionLevel) {
+        case ECLevel.L:
+          return EC_CODEWORDS_TABLE[(version2 - 1) * 4 + 0];
+        case ECLevel.M:
+          return EC_CODEWORDS_TABLE[(version2 - 1) * 4 + 1];
+        case ECLevel.Q:
+          return EC_CODEWORDS_TABLE[(version2 - 1) * 4 + 2];
+        case ECLevel.H:
+          return EC_CODEWORDS_TABLE[(version2 - 1) * 4 + 3];
+        default:
+          return void 0;
+      }
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/galois-field.js
+var require_galois_field = __commonJS({
+  "node_modules/qrcode/lib/core/galois-field.js"(exports) {
+    var EXP_TABLE = new Uint8Array(512);
+    var LOG_TABLE = new Uint8Array(256);
+    (function initTables() {
+      let x = 1;
+      for (let i = 0; i < 255; i++) {
+        EXP_TABLE[i] = x;
+        LOG_TABLE[x] = i;
+        x <<= 1;
+        if (x & 256) {
+          x ^= 285;
+        }
+      }
+      for (let i = 255; i < 512; i++) {
+        EXP_TABLE[i] = EXP_TABLE[i - 255];
+      }
+    })();
+    exports.log = function log2(n) {
+      if (n < 1) throw new Error("log(" + n + ")");
+      return LOG_TABLE[n];
+    };
+    exports.exp = function exp(n) {
+      return EXP_TABLE[n];
+    };
+    exports.mul = function mul(x, y) {
+      if (x === 0 || y === 0) return 0;
+      return EXP_TABLE[LOG_TABLE[x] + LOG_TABLE[y]];
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/polynomial.js
+var require_polynomial = __commonJS({
+  "node_modules/qrcode/lib/core/polynomial.js"(exports) {
+    var GF = require_galois_field();
+    exports.mul = function mul(p1, p2) {
+      const coeff = new Uint8Array(p1.length + p2.length - 1);
+      for (let i = 0; i < p1.length; i++) {
+        for (let j = 0; j < p2.length; j++) {
+          coeff[i + j] ^= GF.mul(p1[i], p2[j]);
+        }
+      }
+      return coeff;
+    };
+    exports.mod = function mod(divident, divisor) {
+      let result = new Uint8Array(divident);
+      while (result.length - divisor.length >= 0) {
+        const coeff = result[0];
+        for (let i = 0; i < divisor.length; i++) {
+          result[i] ^= GF.mul(divisor[i], coeff);
+        }
+        let offset = 0;
+        while (offset < result.length && result[offset] === 0) offset++;
+        result = result.slice(offset);
+      }
+      return result;
+    };
+    exports.generateECPolynomial = function generateECPolynomial(degree) {
+      let poly = new Uint8Array([1]);
+      for (let i = 0; i < degree; i++) {
+        poly = exports.mul(poly, new Uint8Array([1, GF.exp(i)]));
+      }
+      return poly;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/reed-solomon-encoder.js
+var require_reed_solomon_encoder = __commonJS({
+  "node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
+    var Polynomial = require_polynomial();
+    function ReedSolomonEncoder(degree) {
+      this.genPoly = void 0;
+      this.degree = degree;
+      if (this.degree) this.initialize(this.degree);
+    }
+    ReedSolomonEncoder.prototype.initialize = function initialize(degree) {
+      this.degree = degree;
+      this.genPoly = Polynomial.generateECPolynomial(this.degree);
+    };
+    ReedSolomonEncoder.prototype.encode = function encode(data) {
+      if (!this.genPoly) {
+        throw new Error("Encoder not initialized");
+      }
+      const paddedData = new Uint8Array(data.length + this.degree);
+      paddedData.set(data);
+      const remainder = Polynomial.mod(paddedData, this.genPoly);
+      const start = this.degree - remainder.length;
+      if (start > 0) {
+        const buff = new Uint8Array(this.degree);
+        buff.set(remainder, start);
+        return buff;
+      }
+      return remainder;
+    };
+    module.exports = ReedSolomonEncoder;
+  }
+});
+
+// node_modules/qrcode/lib/core/version-check.js
+var require_version_check = __commonJS({
+  "node_modules/qrcode/lib/core/version-check.js"(exports) {
+    exports.isValid = function isValid2(version2) {
+      return !isNaN(version2) && version2 >= 1 && version2 <= 40;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/regex.js
+var require_regex = __commonJS({
+  "node_modules/qrcode/lib/core/regex.js"(exports) {
+    var numeric2 = "[0-9]+";
+    var alphanumeric = "[A-Z $%*+\\-./:]+";
+    var kanji = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
+    kanji = kanji.replace(/u/g, "\\u");
+    var byte = "(?:(?![A-Z0-9 $%*+\\-./:]|" + kanji + ")(?:.|[\r\n]))+";
+    exports.KANJI = new RegExp(kanji, "g");
+    exports.BYTE_KANJI = new RegExp("[^A-Z0-9 $%*+\\-./:]+", "g");
+    exports.BYTE = new RegExp(byte, "g");
+    exports.NUMERIC = new RegExp(numeric2, "g");
+    exports.ALPHANUMERIC = new RegExp(alphanumeric, "g");
+    var TEST_KANJI = new RegExp("^" + kanji + "$");
+    var TEST_NUMERIC = new RegExp("^" + numeric2 + "$");
+    var TEST_ALPHANUMERIC = new RegExp("^[A-Z0-9 $%*+\\-./:]+$");
+    exports.testKanji = function testKanji(str) {
+      return TEST_KANJI.test(str);
+    };
+    exports.testNumeric = function testNumeric(str) {
+      return TEST_NUMERIC.test(str);
+    };
+    exports.testAlphanumeric = function testAlphanumeric(str) {
+      return TEST_ALPHANUMERIC.test(str);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/mode.js
+var require_mode = __commonJS({
+  "node_modules/qrcode/lib/core/mode.js"(exports) {
+    var VersionCheck = require_version_check();
+    var Regex = require_regex();
+    exports.NUMERIC = {
+      id: "Numeric",
+      bit: 1 << 0,
+      ccBits: [10, 12, 14]
+    };
+    exports.ALPHANUMERIC = {
+      id: "Alphanumeric",
+      bit: 1 << 1,
+      ccBits: [9, 11, 13]
+    };
+    exports.BYTE = {
+      id: "Byte",
+      bit: 1 << 2,
+      ccBits: [8, 16, 16]
+    };
+    exports.KANJI = {
+      id: "Kanji",
+      bit: 1 << 3,
+      ccBits: [8, 10, 12]
+    };
+    exports.MIXED = {
+      bit: -1
+    };
+    exports.getCharCountIndicator = function getCharCountIndicator(mode, version2) {
+      if (!mode.ccBits) throw new Error("Invalid mode: " + mode);
+      if (!VersionCheck.isValid(version2)) {
+        throw new Error("Invalid version: " + version2);
+      }
+      if (version2 >= 1 && version2 < 10) return mode.ccBits[0];
+      else if (version2 < 27) return mode.ccBits[1];
+      return mode.ccBits[2];
+    };
+    exports.getBestModeForData = function getBestModeForData(dataStr) {
+      if (Regex.testNumeric(dataStr)) return exports.NUMERIC;
+      else if (Regex.testAlphanumeric(dataStr)) return exports.ALPHANUMERIC;
+      else if (Regex.testKanji(dataStr)) return exports.KANJI;
+      else return exports.BYTE;
+    };
+    exports.toString = function toString(mode) {
+      if (mode && mode.id) return mode.id;
+      throw new Error("Invalid mode");
+    };
+    exports.isValid = function isValid2(mode) {
+      return mode && mode.bit && mode.ccBits;
+    };
+    function fromString(string) {
+      if (typeof string !== "string") {
+        throw new Error("Param is not a string");
+      }
+      const lcStr = string.toLowerCase();
+      switch (lcStr) {
+        case "numeric":
+          return exports.NUMERIC;
+        case "alphanumeric":
+          return exports.ALPHANUMERIC;
+        case "kanji":
+          return exports.KANJI;
+        case "byte":
+          return exports.BYTE;
+        default:
+          throw new Error("Unknown mode: " + string);
+      }
+    }
+    exports.from = function from(value, defaultValue) {
+      if (exports.isValid(value)) {
+        return value;
+      }
+      try {
+        return fromString(value);
+      } catch (e) {
+        return defaultValue;
+      }
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/version.js
+var require_version = __commonJS({
+  "node_modules/qrcode/lib/core/version.js"(exports) {
+    var Utils = require_utils();
+    var ECCode = require_error_correction_code();
+    var ECLevel = require_error_correction_level();
+    var Mode = require_mode();
+    var VersionCheck = require_version_check();
+    var G18 = 1 << 12 | 1 << 11 | 1 << 10 | 1 << 9 | 1 << 8 | 1 << 5 | 1 << 2 | 1 << 0;
+    var G18_BCH = Utils.getBCHDigit(G18);
+    function getBestVersionForDataLength(mode, length, errorCorrectionLevel) {
+      for (let currentVersion = 1; currentVersion <= 40; currentVersion++) {
+        if (length <= exports.getCapacity(currentVersion, errorCorrectionLevel, mode)) {
+          return currentVersion;
+        }
+      }
+      return void 0;
+    }
+    function getReservedBitsCount(mode, version2) {
+      return Mode.getCharCountIndicator(mode, version2) + 4;
+    }
+    function getTotalBitsFromDataArray(segments, version2) {
+      let totalBits = 0;
+      segments.forEach(function(data) {
+        const reservedBits = getReservedBitsCount(data.mode, version2);
+        totalBits += reservedBits + data.getBitsLength();
+      });
+      return totalBits;
+    }
+    function getBestVersionForMixedData(segments, errorCorrectionLevel) {
+      for (let currentVersion = 1; currentVersion <= 40; currentVersion++) {
+        const length = getTotalBitsFromDataArray(segments, currentVersion);
+        if (length <= exports.getCapacity(currentVersion, errorCorrectionLevel, Mode.MIXED)) {
+          return currentVersion;
+        }
+      }
+      return void 0;
+    }
+    exports.from = function from(value, defaultValue) {
+      if (VersionCheck.isValid(value)) {
+        return parseInt(value, 10);
+      }
+      return defaultValue;
+    };
+    exports.getCapacity = function getCapacity(version2, errorCorrectionLevel, mode) {
+      if (!VersionCheck.isValid(version2)) {
+        throw new Error("Invalid QR Code version");
+      }
+      if (typeof mode === "undefined") mode = Mode.BYTE;
+      const totalCodewords = Utils.getSymbolTotalCodewords(version2);
+      const ecTotalCodewords = ECCode.getTotalCodewordsCount(version2, errorCorrectionLevel);
+      const dataTotalCodewordsBits = (totalCodewords - ecTotalCodewords) * 8;
+      if (mode === Mode.MIXED) return dataTotalCodewordsBits;
+      const usableBits = dataTotalCodewordsBits - getReservedBitsCount(mode, version2);
+      switch (mode) {
+        case Mode.NUMERIC:
+          return Math.floor(usableBits / 10 * 3);
+        case Mode.ALPHANUMERIC:
+          return Math.floor(usableBits / 11 * 2);
+        case Mode.KANJI:
+          return Math.floor(usableBits / 13);
+        case Mode.BYTE:
+        default:
+          return Math.floor(usableBits / 8);
+      }
+    };
+    exports.getBestVersionForData = function getBestVersionForData(data, errorCorrectionLevel) {
+      let seg;
+      const ecl = ECLevel.from(errorCorrectionLevel, ECLevel.M);
+      if (Array.isArray(data)) {
+        if (data.length > 1) {
+          return getBestVersionForMixedData(data, ecl);
+        }
+        if (data.length === 0) {
+          return 1;
+        }
+        seg = data[0];
+      } else {
+        seg = data;
+      }
+      return getBestVersionForDataLength(seg.mode, seg.getLength(), ecl);
+    };
+    exports.getEncodedBits = function getEncodedBits(version2) {
+      if (!VersionCheck.isValid(version2) || version2 < 7) {
+        throw new Error("Invalid QR Code version");
+      }
+      let d = version2 << 12;
+      while (Utils.getBCHDigit(d) - G18_BCH >= 0) {
+        d ^= G18 << Utils.getBCHDigit(d) - G18_BCH;
+      }
+      return version2 << 12 | d;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/format-info.js
+var require_format_info = __commonJS({
+  "node_modules/qrcode/lib/core/format-info.js"(exports) {
+    var Utils = require_utils();
+    var G15 = 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0;
+    var G15_MASK = 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1;
+    var G15_BCH = Utils.getBCHDigit(G15);
+    exports.getEncodedBits = function getEncodedBits(errorCorrectionLevel, mask) {
+      const data = errorCorrectionLevel.bit << 3 | mask;
+      let d = data << 10;
+      while (Utils.getBCHDigit(d) - G15_BCH >= 0) {
+        d ^= G15 << Utils.getBCHDigit(d) - G15_BCH;
+      }
+      return (data << 10 | d) ^ G15_MASK;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/numeric-data.js
+var require_numeric_data = __commonJS({
+  "node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
+    var Mode = require_mode();
+    function NumericData(data) {
+      this.mode = Mode.NUMERIC;
+      this.data = data.toString();
+    }
+    NumericData.getBitsLength = function getBitsLength(length) {
+      return 10 * Math.floor(length / 3) + (length % 3 ? length % 3 * 3 + 1 : 0);
+    };
+    NumericData.prototype.getLength = function getLength() {
+      return this.data.length;
+    };
+    NumericData.prototype.getBitsLength = function getBitsLength() {
+      return NumericData.getBitsLength(this.data.length);
+    };
+    NumericData.prototype.write = function write(bitBuffer) {
+      let i, group, value;
+      for (i = 0; i + 3 <= this.data.length; i += 3) {
+        group = this.data.substr(i, 3);
+        value = parseInt(group, 10);
+        bitBuffer.put(value, 10);
+      }
+      const remainingNum = this.data.length - i;
+      if (remainingNum > 0) {
+        group = this.data.substr(i);
+        value = parseInt(group, 10);
+        bitBuffer.put(value, remainingNum * 3 + 1);
+      }
+    };
+    module.exports = NumericData;
+  }
+});
+
+// node_modules/qrcode/lib/core/alphanumeric-data.js
+var require_alphanumeric_data = __commonJS({
+  "node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
+    var Mode = require_mode();
+    var ALPHA_NUM_CHARS = [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z",
+      " ",
+      "$",
+      "%",
+      "*",
+      "+",
+      "-",
+      ".",
+      "/",
+      ":"
+    ];
+    function AlphanumericData(data) {
+      this.mode = Mode.ALPHANUMERIC;
+      this.data = data;
+    }
+    AlphanumericData.getBitsLength = function getBitsLength(length) {
+      return 11 * Math.floor(length / 2) + 6 * (length % 2);
+    };
+    AlphanumericData.prototype.getLength = function getLength() {
+      return this.data.length;
+    };
+    AlphanumericData.prototype.getBitsLength = function getBitsLength() {
+      return AlphanumericData.getBitsLength(this.data.length);
+    };
+    AlphanumericData.prototype.write = function write(bitBuffer) {
+      let i;
+      for (i = 0; i + 2 <= this.data.length; i += 2) {
+        let value = ALPHA_NUM_CHARS.indexOf(this.data[i]) * 45;
+        value += ALPHA_NUM_CHARS.indexOf(this.data[i + 1]);
+        bitBuffer.put(value, 11);
+      }
+      if (this.data.length % 2) {
+        bitBuffer.put(ALPHA_NUM_CHARS.indexOf(this.data[i]), 6);
+      }
+    };
+    module.exports = AlphanumericData;
+  }
+});
+
+// node_modules/qrcode/lib/core/byte-data.js
+var require_byte_data = __commonJS({
+  "node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
+    var Mode = require_mode();
+    function ByteData(data) {
+      this.mode = Mode.BYTE;
+      if (typeof data === "string") {
+        this.data = new TextEncoder().encode(data);
+      } else {
+        this.data = new Uint8Array(data);
+      }
+    }
+    ByteData.getBitsLength = function getBitsLength(length) {
+      return length * 8;
+    };
+    ByteData.prototype.getLength = function getLength() {
+      return this.data.length;
+    };
+    ByteData.prototype.getBitsLength = function getBitsLength() {
+      return ByteData.getBitsLength(this.data.length);
+    };
+    ByteData.prototype.write = function(bitBuffer) {
+      for (let i = 0, l = this.data.length; i < l; i++) {
+        bitBuffer.put(this.data[i], 8);
+      }
+    };
+    module.exports = ByteData;
+  }
+});
+
+// node_modules/qrcode/lib/core/kanji-data.js
+var require_kanji_data = __commonJS({
+  "node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
+    var Mode = require_mode();
+    var Utils = require_utils();
+    function KanjiData(data) {
+      this.mode = Mode.KANJI;
+      this.data = data;
+    }
+    KanjiData.getBitsLength = function getBitsLength(length) {
+      return length * 13;
+    };
+    KanjiData.prototype.getLength = function getLength() {
+      return this.data.length;
+    };
+    KanjiData.prototype.getBitsLength = function getBitsLength() {
+      return KanjiData.getBitsLength(this.data.length);
+    };
+    KanjiData.prototype.write = function(bitBuffer) {
+      let i;
+      for (i = 0; i < this.data.length; i++) {
+        let value = Utils.toSJIS(this.data[i]);
+        if (value >= 33088 && value <= 40956) {
+          value -= 33088;
+        } else if (value >= 57408 && value <= 60351) {
+          value -= 49472;
+        } else {
+          throw new Error(
+            "Invalid SJIS character: " + this.data[i] + "\nMake sure your charset is UTF-8"
+          );
+        }
+        value = (value >>> 8 & 255) * 192 + (value & 255);
+        bitBuffer.put(value, 13);
+      }
+    };
+    module.exports = KanjiData;
+  }
+});
+
+// node_modules/dijkstrajs/dijkstra.js
+var require_dijkstra = __commonJS({
+  "node_modules/dijkstrajs/dijkstra.js"(exports, module) {
+    "use strict";
+    var dijkstra = {
+      single_source_shortest_paths: function(graph, s, d) {
+        var predecessors = {};
+        var costs = {};
+        costs[s] = 0;
+        var open = dijkstra.PriorityQueue.make();
+        open.push(s, 0);
+        var closest, u, v, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
+        while (!open.empty()) {
+          closest = open.pop();
+          u = closest.value;
+          cost_of_s_to_u = closest.cost;
+          adjacent_nodes = graph[u] || {};
+          for (v in adjacent_nodes) {
+            if (adjacent_nodes.hasOwnProperty(v)) {
+              cost_of_e = adjacent_nodes[v];
+              cost_of_s_to_u_plus_cost_of_e = cost_of_s_to_u + cost_of_e;
+              cost_of_s_to_v = costs[v];
+              first_visit = typeof costs[v] === "undefined";
+              if (first_visit || cost_of_s_to_v > cost_of_s_to_u_plus_cost_of_e) {
+                costs[v] = cost_of_s_to_u_plus_cost_of_e;
+                open.push(v, cost_of_s_to_u_plus_cost_of_e);
+                predecessors[v] = u;
+              }
+            }
+          }
+        }
+        if (typeof d !== "undefined" && typeof costs[d] === "undefined") {
+          var msg = ["Could not find a path from ", s, " to ", d, "."].join("");
+          throw new Error(msg);
+        }
+        return predecessors;
+      },
+      extract_shortest_path_from_predecessor_list: function(predecessors, d) {
+        var nodes = [];
+        var u = d;
+        var predecessor;
+        while (u) {
+          nodes.push(u);
+          predecessor = predecessors[u];
+          u = predecessors[u];
+        }
+        nodes.reverse();
+        return nodes;
+      },
+      find_path: function(graph, s, d) {
+        var predecessors = dijkstra.single_source_shortest_paths(graph, s, d);
+        return dijkstra.extract_shortest_path_from_predecessor_list(
+          predecessors,
+          d
+        );
+      },
+      /**
+       * A very naive priority queue implementation.
+       */
+      PriorityQueue: {
+        make: function(opts) {
+          var T = dijkstra.PriorityQueue, t = {}, key;
+          opts = opts || {};
+          for (key in T) {
+            if (T.hasOwnProperty(key)) {
+              t[key] = T[key];
+            }
+          }
+          t.queue = [];
+          t.sorter = opts.sorter || T.default_sorter;
+          return t;
+        },
+        default_sorter: function(a, b) {
+          return a.cost - b.cost;
+        },
+        /**
+         * Add a new item to the queue and ensure the highest priority element
+         * is at the front of the queue.
+         */
+        push: function(value, cost) {
+          var item = { value, cost };
+          this.queue.push(item);
+          this.queue.sort(this.sorter);
+        },
+        /**
+         * Return the highest priority element in the queue.
+         */
+        pop: function() {
+          return this.queue.shift();
+        },
+        empty: function() {
+          return this.queue.length === 0;
+        }
+      }
+    };
+    if (typeof module !== "undefined") {
+      module.exports = dijkstra;
+    }
+  }
+});
+
+// node_modules/qrcode/lib/core/segments.js
+var require_segments = __commonJS({
+  "node_modules/qrcode/lib/core/segments.js"(exports) {
+    var Mode = require_mode();
+    var NumericData = require_numeric_data();
+    var AlphanumericData = require_alphanumeric_data();
+    var ByteData = require_byte_data();
+    var KanjiData = require_kanji_data();
+    var Regex = require_regex();
+    var Utils = require_utils();
+    var dijkstra = require_dijkstra();
+    function getStringByteLength(str) {
+      return unescape(encodeURIComponent(str)).length;
+    }
+    function getSegments(regex, mode, str) {
+      const segments = [];
+      let result;
+      while ((result = regex.exec(str)) !== null) {
+        segments.push({
+          data: result[0],
+          index: result.index,
+          mode,
+          length: result[0].length
+        });
+      }
+      return segments;
+    }
+    function getSegmentsFromString(dataStr) {
+      const numSegs = getSegments(Regex.NUMERIC, Mode.NUMERIC, dataStr);
+      const alphaNumSegs = getSegments(Regex.ALPHANUMERIC, Mode.ALPHANUMERIC, dataStr);
+      let byteSegs;
+      let kanjiSegs;
+      if (Utils.isKanjiModeEnabled()) {
+        byteSegs = getSegments(Regex.BYTE, Mode.BYTE, dataStr);
+        kanjiSegs = getSegments(Regex.KANJI, Mode.KANJI, dataStr);
+      } else {
+        byteSegs = getSegments(Regex.BYTE_KANJI, Mode.BYTE, dataStr);
+        kanjiSegs = [];
+      }
+      const segs = numSegs.concat(alphaNumSegs, byteSegs, kanjiSegs);
+      return segs.sort(function(s1, s2) {
+        return s1.index - s2.index;
+      }).map(function(obj) {
+        return {
+          data: obj.data,
+          mode: obj.mode,
+          length: obj.length
+        };
+      });
+    }
+    function getSegmentBitsLength(length, mode) {
+      switch (mode) {
+        case Mode.NUMERIC:
+          return NumericData.getBitsLength(length);
+        case Mode.ALPHANUMERIC:
+          return AlphanumericData.getBitsLength(length);
+        case Mode.KANJI:
+          return KanjiData.getBitsLength(length);
+        case Mode.BYTE:
+          return ByteData.getBitsLength(length);
+      }
+    }
+    function mergeSegments(segs) {
+      return segs.reduce(function(acc, curr) {
+        const prevSeg = acc.length - 1 >= 0 ? acc[acc.length - 1] : null;
+        if (prevSeg && prevSeg.mode === curr.mode) {
+          acc[acc.length - 1].data += curr.data;
+          return acc;
+        }
+        acc.push(curr);
+        return acc;
+      }, []);
+    }
+    function buildNodes(segs) {
+      const nodes = [];
+      for (let i = 0; i < segs.length; i++) {
+        const seg = segs[i];
+        switch (seg.mode) {
+          case Mode.NUMERIC:
+            nodes.push([
+              seg,
+              { data: seg.data, mode: Mode.ALPHANUMERIC, length: seg.length },
+              { data: seg.data, mode: Mode.BYTE, length: seg.length }
+            ]);
+            break;
+          case Mode.ALPHANUMERIC:
+            nodes.push([
+              seg,
+              { data: seg.data, mode: Mode.BYTE, length: seg.length }
+            ]);
+            break;
+          case Mode.KANJI:
+            nodes.push([
+              seg,
+              { data: seg.data, mode: Mode.BYTE, length: getStringByteLength(seg.data) }
+            ]);
+            break;
+          case Mode.BYTE:
+            nodes.push([
+              { data: seg.data, mode: Mode.BYTE, length: getStringByteLength(seg.data) }
+            ]);
+        }
+      }
+      return nodes;
+    }
+    function buildGraph(nodes, version2) {
+      const table = {};
+      const graph = { start: {} };
+      let prevNodeIds = ["start"];
+      for (let i = 0; i < nodes.length; i++) {
+        const nodeGroup = nodes[i];
+        const currentNodeIds = [];
+        for (let j = 0; j < nodeGroup.length; j++) {
+          const node = nodeGroup[j];
+          const key = "" + i + j;
+          currentNodeIds.push(key);
+          table[key] = { node, lastCount: 0 };
+          graph[key] = {};
+          for (let n = 0; n < prevNodeIds.length; n++) {
+            const prevNodeId = prevNodeIds[n];
+            if (table[prevNodeId] && table[prevNodeId].node.mode === node.mode) {
+              graph[prevNodeId][key] = getSegmentBitsLength(table[prevNodeId].lastCount + node.length, node.mode) - getSegmentBitsLength(table[prevNodeId].lastCount, node.mode);
+              table[prevNodeId].lastCount += node.length;
+            } else {
+              if (table[prevNodeId]) table[prevNodeId].lastCount = node.length;
+              graph[prevNodeId][key] = getSegmentBitsLength(node.length, node.mode) + 4 + Mode.getCharCountIndicator(node.mode, version2);
+            }
+          }
+        }
+        prevNodeIds = currentNodeIds;
+      }
+      for (let n = 0; n < prevNodeIds.length; n++) {
+        graph[prevNodeIds[n]].end = 0;
+      }
+      return { map: graph, table };
+    }
+    function buildSingleSegment(data, modesHint) {
+      let mode;
+      const bestMode = Mode.getBestModeForData(data);
+      mode = Mode.from(modesHint, bestMode);
+      if (mode !== Mode.BYTE && mode.bit < bestMode.bit) {
+        throw new Error('"' + data + '" cannot be encoded with mode ' + Mode.toString(mode) + ".\n Suggested mode is: " + Mode.toString(bestMode));
+      }
+      if (mode === Mode.KANJI && !Utils.isKanjiModeEnabled()) {
+        mode = Mode.BYTE;
+      }
+      switch (mode) {
+        case Mode.NUMERIC:
+          return new NumericData(data);
+        case Mode.ALPHANUMERIC:
+          return new AlphanumericData(data);
+        case Mode.KANJI:
+          return new KanjiData(data);
+        case Mode.BYTE:
+          return new ByteData(data);
+      }
+    }
+    exports.fromArray = function fromArray(array) {
+      return array.reduce(function(acc, seg) {
+        if (typeof seg === "string") {
+          acc.push(buildSingleSegment(seg, null));
+        } else if (seg.data) {
+          acc.push(buildSingleSegment(seg.data, seg.mode));
+        }
+        return acc;
+      }, []);
+    };
+    exports.fromString = function fromString(data, version2) {
+      const segs = getSegmentsFromString(data, Utils.isKanjiModeEnabled());
+      const nodes = buildNodes(segs);
+      const graph = buildGraph(nodes, version2);
+      const path = dijkstra.find_path(graph.map, "start", "end");
+      const optimizedSegs = [];
+      for (let i = 1; i < path.length - 1; i++) {
+        optimizedSegs.push(graph.table[path[i]].node);
+      }
+      return exports.fromArray(mergeSegments(optimizedSegs));
+    };
+    exports.rawSplit = function rawSplit(data) {
+      return exports.fromArray(
+        getSegmentsFromString(data, Utils.isKanjiModeEnabled())
+      );
+    };
+  }
+});
+
+// node_modules/qrcode/lib/core/qrcode.js
+var require_qrcode = __commonJS({
+  "node_modules/qrcode/lib/core/qrcode.js"(exports) {
+    var Utils = require_utils();
+    var ECLevel = require_error_correction_level();
+    var BitBuffer = require_bit_buffer();
+    var BitMatrix = require_bit_matrix();
+    var AlignmentPattern = require_alignment_pattern();
+    var FinderPattern = require_finder_pattern();
+    var MaskPattern = require_mask_pattern();
+    var ECCode = require_error_correction_code();
+    var ReedSolomonEncoder = require_reed_solomon_encoder();
+    var Version = require_version();
+    var FormatInfo = require_format_info();
+    var Mode = require_mode();
+    var Segments = require_segments();
+    function setupFinderPattern(matrix, version2) {
+      const size = matrix.size;
+      const pos = FinderPattern.getPositions(version2);
+      for (let i = 0; i < pos.length; i++) {
+        const row = pos[i][0];
+        const col = pos[i][1];
+        for (let r = -1; r <= 7; r++) {
+          if (row + r <= -1 || size <= row + r) continue;
+          for (let c = -1; c <= 7; c++) {
+            if (col + c <= -1 || size <= col + c) continue;
+            if (r >= 0 && r <= 6 && (c === 0 || c === 6) || c >= 0 && c <= 6 && (r === 0 || r === 6) || r >= 2 && r <= 4 && c >= 2 && c <= 4) {
+              matrix.set(row + r, col + c, true, true);
+            } else {
+              matrix.set(row + r, col + c, false, true);
+            }
+          }
+        }
+      }
+    }
+    function setupTimingPattern(matrix) {
+      const size = matrix.size;
+      for (let r = 8; r < size - 8; r++) {
+        const value = r % 2 === 0;
+        matrix.set(r, 6, value, true);
+        matrix.set(6, r, value, true);
+      }
+    }
+    function setupAlignmentPattern(matrix, version2) {
+      const pos = AlignmentPattern.getPositions(version2);
+      for (let i = 0; i < pos.length; i++) {
+        const row = pos[i][0];
+        const col = pos[i][1];
+        for (let r = -2; r <= 2; r++) {
+          for (let c = -2; c <= 2; c++) {
+            if (r === -2 || r === 2 || c === -2 || c === 2 || r === 0 && c === 0) {
+              matrix.set(row + r, col + c, true, true);
+            } else {
+              matrix.set(row + r, col + c, false, true);
+            }
+          }
+        }
+      }
+    }
+    function setupVersionInfo(matrix, version2) {
+      const size = matrix.size;
+      const bits = Version.getEncodedBits(version2);
+      let row, col, mod;
+      for (let i = 0; i < 18; i++) {
+        row = Math.floor(i / 3);
+        col = i % 3 + size - 8 - 3;
+        mod = (bits >> i & 1) === 1;
+        matrix.set(row, col, mod, true);
+        matrix.set(col, row, mod, true);
+      }
+    }
+    function setupFormatInfo(matrix, errorCorrectionLevel, maskPattern) {
+      const size = matrix.size;
+      const bits = FormatInfo.getEncodedBits(errorCorrectionLevel, maskPattern);
+      let i, mod;
+      for (i = 0; i < 15; i++) {
+        mod = (bits >> i & 1) === 1;
+        if (i < 6) {
+          matrix.set(i, 8, mod, true);
+        } else if (i < 8) {
+          matrix.set(i + 1, 8, mod, true);
+        } else {
+          matrix.set(size - 15 + i, 8, mod, true);
+        }
+        if (i < 8) {
+          matrix.set(8, size - i - 1, mod, true);
+        } else if (i < 9) {
+          matrix.set(8, 15 - i - 1 + 1, mod, true);
+        } else {
+          matrix.set(8, 15 - i - 1, mod, true);
+        }
+      }
+      matrix.set(size - 8, 8, 1, true);
+    }
+    function setupData(matrix, data) {
+      const size = matrix.size;
+      let inc = -1;
+      let row = size - 1;
+      let bitIndex = 7;
+      let byteIndex = 0;
+      for (let col = size - 1; col > 0; col -= 2) {
+        if (col === 6) col--;
+        while (true) {
+          for (let c = 0; c < 2; c++) {
+            if (!matrix.isReserved(row, col - c)) {
+              let dark = false;
+              if (byteIndex < data.length) {
+                dark = (data[byteIndex] >>> bitIndex & 1) === 1;
+              }
+              matrix.set(row, col - c, dark);
+              bitIndex--;
+              if (bitIndex === -1) {
+                byteIndex++;
+                bitIndex = 7;
+              }
+            }
+          }
+          row += inc;
+          if (row < 0 || size <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    }
+    function createData(version2, errorCorrectionLevel, segments) {
+      const buffer = new BitBuffer();
+      segments.forEach(function(data) {
+        buffer.put(data.mode.bit, 4);
+        buffer.put(data.getLength(), Mode.getCharCountIndicator(data.mode, version2));
+        data.write(buffer);
+      });
+      const totalCodewords = Utils.getSymbolTotalCodewords(version2);
+      const ecTotalCodewords = ECCode.getTotalCodewordsCount(version2, errorCorrectionLevel);
+      const dataTotalCodewordsBits = (totalCodewords - ecTotalCodewords) * 8;
+      if (buffer.getLengthInBits() + 4 <= dataTotalCodewordsBits) {
+        buffer.put(0, 4);
+      }
+      while (buffer.getLengthInBits() % 8 !== 0) {
+        buffer.putBit(0);
+      }
+      const remainingByte = (dataTotalCodewordsBits - buffer.getLengthInBits()) / 8;
+      for (let i = 0; i < remainingByte; i++) {
+        buffer.put(i % 2 ? 17 : 236, 8);
+      }
+      return createCodewords(buffer, version2, errorCorrectionLevel);
+    }
+    function createCodewords(bitBuffer, version2, errorCorrectionLevel) {
+      const totalCodewords = Utils.getSymbolTotalCodewords(version2);
+      const ecTotalCodewords = ECCode.getTotalCodewordsCount(version2, errorCorrectionLevel);
+      const dataTotalCodewords = totalCodewords - ecTotalCodewords;
+      const ecTotalBlocks = ECCode.getBlocksCount(version2, errorCorrectionLevel);
+      const blocksInGroup2 = totalCodewords % ecTotalBlocks;
+      const blocksInGroup1 = ecTotalBlocks - blocksInGroup2;
+      const totalCodewordsInGroup1 = Math.floor(totalCodewords / ecTotalBlocks);
+      const dataCodewordsInGroup1 = Math.floor(dataTotalCodewords / ecTotalBlocks);
+      const dataCodewordsInGroup2 = dataCodewordsInGroup1 + 1;
+      const ecCount = totalCodewordsInGroup1 - dataCodewordsInGroup1;
+      const rs = new ReedSolomonEncoder(ecCount);
+      let offset = 0;
+      const dcData = new Array(ecTotalBlocks);
+      const ecData = new Array(ecTotalBlocks);
+      let maxDataSize = 0;
+      const buffer = new Uint8Array(bitBuffer.buffer);
+      for (let b = 0; b < ecTotalBlocks; b++) {
+        const dataSize = b < blocksInGroup1 ? dataCodewordsInGroup1 : dataCodewordsInGroup2;
+        dcData[b] = buffer.slice(offset, offset + dataSize);
+        ecData[b] = rs.encode(dcData[b]);
+        offset += dataSize;
+        maxDataSize = Math.max(maxDataSize, dataSize);
+      }
+      const data = new Uint8Array(totalCodewords);
+      let index = 0;
+      let i, r;
+      for (i = 0; i < maxDataSize; i++) {
+        for (r = 0; r < ecTotalBlocks; r++) {
+          if (i < dcData[r].length) {
+            data[index++] = dcData[r][i];
+          }
+        }
+      }
+      for (i = 0; i < ecCount; i++) {
+        for (r = 0; r < ecTotalBlocks; r++) {
+          data[index++] = ecData[r][i];
+        }
+      }
+      return data;
+    }
+    function createSymbol(data, version2, errorCorrectionLevel, maskPattern) {
+      let segments;
+      if (Array.isArray(data)) {
+        segments = Segments.fromArray(data);
+      } else if (typeof data === "string") {
+        let estimatedVersion = version2;
+        if (!estimatedVersion) {
+          const rawSegments = Segments.rawSplit(data);
+          estimatedVersion = Version.getBestVersionForData(rawSegments, errorCorrectionLevel);
+        }
+        segments = Segments.fromString(data, estimatedVersion || 40);
+      } else {
+        throw new Error("Invalid data");
+      }
+      const bestVersion = Version.getBestVersionForData(segments, errorCorrectionLevel);
+      if (!bestVersion) {
+        throw new Error("The amount of data is too big to be stored in a QR Code");
+      }
+      if (!version2) {
+        version2 = bestVersion;
+      } else if (version2 < bestVersion) {
+        throw new Error(
+          "\nThe chosen QR Code version cannot contain this amount of data.\nMinimum version required to store current data is: " + bestVersion + ".\n"
+        );
+      }
+      const dataBits = createData(version2, errorCorrectionLevel, segments);
+      const moduleCount = Utils.getSymbolSize(version2);
+      const modules = new BitMatrix(moduleCount);
+      setupFinderPattern(modules, version2);
+      setupTimingPattern(modules);
+      setupAlignmentPattern(modules, version2);
+      setupFormatInfo(modules, errorCorrectionLevel, 0);
+      if (version2 >= 7) {
+        setupVersionInfo(modules, version2);
+      }
+      setupData(modules, dataBits);
+      if (isNaN(maskPattern)) {
+        maskPattern = MaskPattern.getBestMask(
+          modules,
+          setupFormatInfo.bind(null, modules, errorCorrectionLevel)
+        );
+      }
+      MaskPattern.applyMask(maskPattern, modules);
+      setupFormatInfo(modules, errorCorrectionLevel, maskPattern);
+      return {
+        modules,
+        version: version2,
+        errorCorrectionLevel,
+        maskPattern,
+        segments
+      };
+    }
+    exports.create = function create(data, options) {
+      if (typeof data === "undefined" || data === "") {
+        throw new Error("No input text");
+      }
+      let errorCorrectionLevel = ECLevel.M;
+      let version2;
+      let mask;
+      if (typeof options !== "undefined") {
+        errorCorrectionLevel = ECLevel.from(options.errorCorrectionLevel, ECLevel.M);
+        version2 = Version.from(options.version);
+        mask = MaskPattern.from(options.maskPattern);
+        if (options.toSJISFunc) {
+          Utils.setToSJISFunction(options.toSJISFunc);
+        }
+      }
+      return createSymbol(data, version2, errorCorrectionLevel, mask);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/chunkstream.js
+var require_chunkstream = __commonJS({
+  "node_modules/pngjs/lib/chunkstream.js"(exports, module) {
+    "use strict";
+    var util2 = __require("util");
+    var Stream = __require("stream");
+    var ChunkStream = module.exports = function() {
+      Stream.call(this);
+      this._buffers = [];
+      this._buffered = 0;
+      this._reads = [];
+      this._paused = false;
+      this._encoding = "utf8";
+      this.writable = true;
+    };
+    util2.inherits(ChunkStream, Stream);
+    ChunkStream.prototype.read = function(length, callback) {
+      this._reads.push({
+        length: Math.abs(length),
+        // if length < 0 then at most this length
+        allowLess: length < 0,
+        func: callback
+      });
+      process.nextTick(
+        function() {
+          this._process();
+          if (this._paused && this._reads && this._reads.length > 0) {
+            this._paused = false;
+            this.emit("drain");
+          }
+        }.bind(this)
+      );
+    };
+    ChunkStream.prototype.write = function(data, encoding) {
+      if (!this.writable) {
+        this.emit("error", new Error("Stream not writable"));
+        return false;
+      }
+      let dataBuffer;
+      if (Buffer.isBuffer(data)) {
+        dataBuffer = data;
+      } else {
+        dataBuffer = Buffer.from(data, encoding || this._encoding);
+      }
+      this._buffers.push(dataBuffer);
+      this._buffered += dataBuffer.length;
+      this._process();
+      if (this._reads && this._reads.length === 0) {
+        this._paused = true;
+      }
+      return this.writable && !this._paused;
+    };
+    ChunkStream.prototype.end = function(data, encoding) {
+      if (data) {
+        this.write(data, encoding);
+      }
+      this.writable = false;
+      if (!this._buffers) {
+        return;
+      }
+      if (this._buffers.length === 0) {
+        this._end();
+      } else {
+        this._buffers.push(null);
+        this._process();
+      }
+    };
+    ChunkStream.prototype.destroySoon = ChunkStream.prototype.end;
+    ChunkStream.prototype._end = function() {
+      if (this._reads.length > 0) {
+        this.emit("error", new Error("Unexpected end of input"));
+      }
+      this.destroy();
+    };
+    ChunkStream.prototype.destroy = function() {
+      if (!this._buffers) {
+        return;
+      }
+      this.writable = false;
+      this._reads = null;
+      this._buffers = null;
+      this.emit("close");
+    };
+    ChunkStream.prototype._processReadAllowingLess = function(read) {
+      this._reads.shift();
+      let smallerBuf = this._buffers[0];
+      if (smallerBuf.length > read.length) {
+        this._buffered -= read.length;
+        this._buffers[0] = smallerBuf.slice(read.length);
+        read.func.call(this, smallerBuf.slice(0, read.length));
+      } else {
+        this._buffered -= smallerBuf.length;
+        this._buffers.shift();
+        read.func.call(this, smallerBuf);
+      }
+    };
+    ChunkStream.prototype._processRead = function(read) {
+      this._reads.shift();
+      let pos = 0;
+      let count = 0;
+      let data = Buffer.alloc(read.length);
+      while (pos < read.length) {
+        let buf = this._buffers[count++];
+        let len = Math.min(buf.length, read.length - pos);
+        buf.copy(data, pos, 0, len);
+        pos += len;
+        if (len !== buf.length) {
+          this._buffers[--count] = buf.slice(len);
+        }
+      }
+      if (count > 0) {
+        this._buffers.splice(0, count);
+      }
+      this._buffered -= read.length;
+      read.func.call(this, data);
+    };
+    ChunkStream.prototype._process = function() {
+      try {
+        while (this._buffered > 0 && this._reads && this._reads.length > 0) {
+          let read = this._reads[0];
+          if (read.allowLess) {
+            this._processReadAllowingLess(read);
+          } else if (this._buffered >= read.length) {
+            this._processRead(read);
+          } else {
+            break;
+          }
+        }
+        if (this._buffers && !this.writable) {
+          this._end();
+        }
+      } catch (ex) {
+        this.emit("error", ex);
+      }
+    };
+  }
+});
+
+// node_modules/pngjs/lib/interlace.js
+var require_interlace = __commonJS({
+  "node_modules/pngjs/lib/interlace.js"(exports) {
+    "use strict";
+    var imagePasses = [
+      {
+        // pass 1 - 1px
+        x: [0],
+        y: [0]
+      },
+      {
+        // pass 2 - 1px
+        x: [4],
+        y: [0]
+      },
+      {
+        // pass 3 - 2px
+        x: [0, 4],
+        y: [4]
+      },
+      {
+        // pass 4 - 4px
+        x: [2, 6],
+        y: [0, 4]
+      },
+      {
+        // pass 5 - 8px
+        x: [0, 2, 4, 6],
+        y: [2, 6]
+      },
+      {
+        // pass 6 - 16px
+        x: [1, 3, 5, 7],
+        y: [0, 2, 4, 6]
+      },
+      {
+        // pass 7 - 32px
+        x: [0, 1, 2, 3, 4, 5, 6, 7],
+        y: [1, 3, 5, 7]
+      }
+    ];
+    exports.getImagePasses = function(width, height) {
+      let images = [];
+      let xLeftOver = width % 8;
+      let yLeftOver = height % 8;
+      let xRepeats = (width - xLeftOver) / 8;
+      let yRepeats = (height - yLeftOver) / 8;
+      for (let i = 0; i < imagePasses.length; i++) {
+        let pass = imagePasses[i];
+        let passWidth = xRepeats * pass.x.length;
+        let passHeight = yRepeats * pass.y.length;
+        for (let j = 0; j < pass.x.length; j++) {
+          if (pass.x[j] < xLeftOver) {
+            passWidth++;
+          } else {
+            break;
+          }
+        }
+        for (let j = 0; j < pass.y.length; j++) {
+          if (pass.y[j] < yLeftOver) {
+            passHeight++;
+          } else {
+            break;
+          }
+        }
+        if (passWidth > 0 && passHeight > 0) {
+          images.push({ width: passWidth, height: passHeight, index: i });
+        }
+      }
+      return images;
+    };
+    exports.getInterlaceIterator = function(width) {
+      return function(x, y, pass) {
+        let outerXLeftOver = x % imagePasses[pass].x.length;
+        let outerX = (x - outerXLeftOver) / imagePasses[pass].x.length * 8 + imagePasses[pass].x[outerXLeftOver];
+        let outerYLeftOver = y % imagePasses[pass].y.length;
+        let outerY = (y - outerYLeftOver) / imagePasses[pass].y.length * 8 + imagePasses[pass].y[outerYLeftOver];
+        return outerX * 4 + outerY * width * 4;
+      };
+    };
+  }
+});
+
+// node_modules/pngjs/lib/paeth-predictor.js
+var require_paeth_predictor = __commonJS({
+  "node_modules/pngjs/lib/paeth-predictor.js"(exports, module) {
+    "use strict";
+    module.exports = function paethPredictor(left, above, upLeft) {
+      let paeth = left + above - upLeft;
+      let pLeft = Math.abs(paeth - left);
+      let pAbove = Math.abs(paeth - above);
+      let pUpLeft = Math.abs(paeth - upLeft);
+      if (pLeft <= pAbove && pLeft <= pUpLeft) {
+        return left;
+      }
+      if (pAbove <= pUpLeft) {
+        return above;
+      }
+      return upLeft;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/filter-parse.js
+var require_filter_parse = __commonJS({
+  "node_modules/pngjs/lib/filter-parse.js"(exports, module) {
+    "use strict";
+    var interlaceUtils = require_interlace();
+    var paethPredictor = require_paeth_predictor();
+    function getByteWidth(width, bpp, depth) {
+      let byteWidth = width * bpp;
+      if (depth !== 8) {
+        byteWidth = Math.ceil(byteWidth / (8 / depth));
+      }
+      return byteWidth;
+    }
+    var Filter = module.exports = function(bitmapInfo, dependencies) {
+      let width = bitmapInfo.width;
+      let height = bitmapInfo.height;
+      let interlace = bitmapInfo.interlace;
+      let bpp = bitmapInfo.bpp;
+      let depth = bitmapInfo.depth;
+      this.read = dependencies.read;
+      this.write = dependencies.write;
+      this.complete = dependencies.complete;
+      this._imageIndex = 0;
+      this._images = [];
+      if (interlace) {
+        let passes = interlaceUtils.getImagePasses(width, height);
+        for (let i = 0; i < passes.length; i++) {
+          this._images.push({
+            byteWidth: getByteWidth(passes[i].width, bpp, depth),
+            height: passes[i].height,
+            lineIndex: 0
+          });
+        }
+      } else {
+        this._images.push({
+          byteWidth: getByteWidth(width, bpp, depth),
+          height,
+          lineIndex: 0
+        });
+      }
+      if (depth === 8) {
+        this._xComparison = bpp;
+      } else if (depth === 16) {
+        this._xComparison = bpp * 2;
+      } else {
+        this._xComparison = 1;
+      }
+    };
+    Filter.prototype.start = function() {
+      this.read(
+        this._images[this._imageIndex].byteWidth + 1,
+        this._reverseFilterLine.bind(this)
+      );
+    };
+    Filter.prototype._unFilterType1 = function(rawData, unfilteredLine, byteWidth) {
+      let xComparison = this._xComparison;
+      let xBiggerThan = xComparison - 1;
+      for (let x = 0; x < byteWidth; x++) {
+        let rawByte = rawData[1 + x];
+        let f1Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        unfilteredLine[x] = rawByte + f1Left;
+      }
+    };
+    Filter.prototype._unFilterType2 = function(rawData, unfilteredLine, byteWidth) {
+      let lastLine = this._lastLine;
+      for (let x = 0; x < byteWidth; x++) {
+        let rawByte = rawData[1 + x];
+        let f2Up = lastLine ? lastLine[x] : 0;
+        unfilteredLine[x] = rawByte + f2Up;
+      }
+    };
+    Filter.prototype._unFilterType3 = function(rawData, unfilteredLine, byteWidth) {
+      let xComparison = this._xComparison;
+      let xBiggerThan = xComparison - 1;
+      let lastLine = this._lastLine;
+      for (let x = 0; x < byteWidth; x++) {
+        let rawByte = rawData[1 + x];
+        let f3Up = lastLine ? lastLine[x] : 0;
+        let f3Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        let f3Add = Math.floor((f3Left + f3Up) / 2);
+        unfilteredLine[x] = rawByte + f3Add;
+      }
+    };
+    Filter.prototype._unFilterType4 = function(rawData, unfilteredLine, byteWidth) {
+      let xComparison = this._xComparison;
+      let xBiggerThan = xComparison - 1;
+      let lastLine = this._lastLine;
+      for (let x = 0; x < byteWidth; x++) {
+        let rawByte = rawData[1 + x];
+        let f4Up = lastLine ? lastLine[x] : 0;
+        let f4Left = x > xBiggerThan ? unfilteredLine[x - xComparison] : 0;
+        let f4UpLeft = x > xBiggerThan && lastLine ? lastLine[x - xComparison] : 0;
+        let f4Add = paethPredictor(f4Left, f4Up, f4UpLeft);
+        unfilteredLine[x] = rawByte + f4Add;
+      }
+    };
+    Filter.prototype._reverseFilterLine = function(rawData) {
+      let filter = rawData[0];
+      let unfilteredLine;
+      let currentImage = this._images[this._imageIndex];
+      let byteWidth = currentImage.byteWidth;
+      if (filter === 0) {
+        unfilteredLine = rawData.slice(1, byteWidth + 1);
+      } else {
+        unfilteredLine = Buffer.alloc(byteWidth);
+        switch (filter) {
+          case 1:
+            this._unFilterType1(rawData, unfilteredLine, byteWidth);
+            break;
+          case 2:
+            this._unFilterType2(rawData, unfilteredLine, byteWidth);
+            break;
+          case 3:
+            this._unFilterType3(rawData, unfilteredLine, byteWidth);
+            break;
+          case 4:
+            this._unFilterType4(rawData, unfilteredLine, byteWidth);
+            break;
+          default:
+            throw new Error("Unrecognised filter type - " + filter);
+        }
+      }
+      this.write(unfilteredLine);
+      currentImage.lineIndex++;
+      if (currentImage.lineIndex >= currentImage.height) {
+        this._lastLine = null;
+        this._imageIndex++;
+        currentImage = this._images[this._imageIndex];
+      } else {
+        this._lastLine = unfilteredLine;
+      }
+      if (currentImage) {
+        this.read(currentImage.byteWidth + 1, this._reverseFilterLine.bind(this));
+      } else {
+        this._lastLine = null;
+        this.complete();
+      }
+    };
+  }
+});
+
+// node_modules/pngjs/lib/filter-parse-async.js
+var require_filter_parse_async = __commonJS({
+  "node_modules/pngjs/lib/filter-parse-async.js"(exports, module) {
+    "use strict";
+    var util2 = __require("util");
+    var ChunkStream = require_chunkstream();
+    var Filter = require_filter_parse();
+    var FilterAsync = module.exports = function(bitmapInfo) {
+      ChunkStream.call(this);
+      let buffers = [];
+      let that = this;
+      this._filter = new Filter(bitmapInfo, {
+        read: this.read.bind(this),
+        write: function(buffer) {
+          buffers.push(buffer);
+        },
+        complete: function() {
+          that.emit("complete", Buffer.concat(buffers));
+        }
+      });
+      this._filter.start();
+    };
+    util2.inherits(FilterAsync, ChunkStream);
+  }
+});
+
+// node_modules/pngjs/lib/constants.js
+var require_constants2 = __commonJS({
+  "node_modules/pngjs/lib/constants.js"(exports, module) {
+    "use strict";
+    module.exports = {
+      PNG_SIGNATURE: [137, 80, 78, 71, 13, 10, 26, 10],
+      TYPE_IHDR: 1229472850,
+      TYPE_IEND: 1229278788,
+      TYPE_IDAT: 1229209940,
+      TYPE_PLTE: 1347179589,
+      TYPE_tRNS: 1951551059,
+      // eslint-disable-line camelcase
+      TYPE_gAMA: 1732332865,
+      // eslint-disable-line camelcase
+      // color-type bits
+      COLORTYPE_GRAYSCALE: 0,
+      COLORTYPE_PALETTE: 1,
+      COLORTYPE_COLOR: 2,
+      COLORTYPE_ALPHA: 4,
+      // e.g. grayscale and alpha
+      // color-type combinations
+      COLORTYPE_PALETTE_COLOR: 3,
+      COLORTYPE_COLOR_ALPHA: 6,
+      COLORTYPE_TO_BPP_MAP: {
+        0: 1,
+        2: 3,
+        3: 1,
+        4: 2,
+        6: 4
+      },
+      GAMMA_DIVISION: 1e5
+    };
+  }
+});
+
+// node_modules/pngjs/lib/crc.js
+var require_crc = __commonJS({
+  "node_modules/pngjs/lib/crc.js"(exports, module) {
+    "use strict";
+    var crcTable = [];
+    (function() {
+      for (let i = 0; i < 256; i++) {
+        let currentCrc = i;
+        for (let j = 0; j < 8; j++) {
+          if (currentCrc & 1) {
+            currentCrc = 3988292384 ^ currentCrc >>> 1;
+          } else {
+            currentCrc = currentCrc >>> 1;
+          }
+        }
+        crcTable[i] = currentCrc;
+      }
+    })();
+    var CrcCalculator = module.exports = function() {
+      this._crc = -1;
+    };
+    CrcCalculator.prototype.write = function(data) {
+      for (let i = 0; i < data.length; i++) {
+        this._crc = crcTable[(this._crc ^ data[i]) & 255] ^ this._crc >>> 8;
+      }
+      return true;
+    };
+    CrcCalculator.prototype.crc32 = function() {
+      return this._crc ^ -1;
+    };
+    CrcCalculator.crc32 = function(buf) {
+      let crc = -1;
+      for (let i = 0; i < buf.length; i++) {
+        crc = crcTable[(crc ^ buf[i]) & 255] ^ crc >>> 8;
+      }
+      return crc ^ -1;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/parser.js
+var require_parser = __commonJS({
+  "node_modules/pngjs/lib/parser.js"(exports, module) {
+    "use strict";
+    var constants = require_constants2();
+    var CrcCalculator = require_crc();
+    var Parser = module.exports = function(options, dependencies) {
+      this._options = options;
+      options.checkCRC = options.checkCRC !== false;
+      this._hasIHDR = false;
+      this._hasIEND = false;
+      this._emittedHeadersFinished = false;
+      this._palette = [];
+      this._colorType = 0;
+      this._chunks = {};
+      this._chunks[constants.TYPE_IHDR] = this._handleIHDR.bind(this);
+      this._chunks[constants.TYPE_IEND] = this._handleIEND.bind(this);
+      this._chunks[constants.TYPE_IDAT] = this._handleIDAT.bind(this);
+      this._chunks[constants.TYPE_PLTE] = this._handlePLTE.bind(this);
+      this._chunks[constants.TYPE_tRNS] = this._handleTRNS.bind(this);
+      this._chunks[constants.TYPE_gAMA] = this._handleGAMA.bind(this);
+      this.read = dependencies.read;
+      this.error = dependencies.error;
+      this.metadata = dependencies.metadata;
+      this.gamma = dependencies.gamma;
+      this.transColor = dependencies.transColor;
+      this.palette = dependencies.palette;
+      this.parsed = dependencies.parsed;
+      this.inflateData = dependencies.inflateData;
+      this.finished = dependencies.finished;
+      this.simpleTransparency = dependencies.simpleTransparency;
+      this.headersFinished = dependencies.headersFinished || function() {
+      };
+    };
+    Parser.prototype.start = function() {
+      this.read(constants.PNG_SIGNATURE.length, this._parseSignature.bind(this));
+    };
+    Parser.prototype._parseSignature = function(data) {
+      let signature = constants.PNG_SIGNATURE;
+      for (let i = 0; i < signature.length; i++) {
+        if (data[i] !== signature[i]) {
+          this.error(new Error("Invalid file signature"));
+          return;
+        }
+      }
+      this.read(8, this._parseChunkBegin.bind(this));
+    };
+    Parser.prototype._parseChunkBegin = function(data) {
+      let length = data.readUInt32BE(0);
+      let type = data.readUInt32BE(4);
+      let name = "";
+      for (let i = 4; i < 8; i++) {
+        name += String.fromCharCode(data[i]);
+      }
+      let ancillary = Boolean(data[4] & 32);
+      if (!this._hasIHDR && type !== constants.TYPE_IHDR) {
+        this.error(new Error("Expected IHDR on beggining"));
+        return;
+      }
+      this._crc = new CrcCalculator();
+      this._crc.write(Buffer.from(name));
+      if (this._chunks[type]) {
+        return this._chunks[type](length);
+      }
+      if (!ancillary) {
+        this.error(new Error("Unsupported critical chunk type " + name));
+        return;
+      }
+      this.read(length + 4, this._skipChunk.bind(this));
+    };
+    Parser.prototype._skipChunk = function() {
+      this.read(8, this._parseChunkBegin.bind(this));
+    };
+    Parser.prototype._handleChunkEnd = function() {
+      this.read(4, this._parseChunkEnd.bind(this));
+    };
+    Parser.prototype._parseChunkEnd = function(data) {
+      let fileCrc = data.readInt32BE(0);
+      let calcCrc = this._crc.crc32();
+      if (this._options.checkCRC && calcCrc !== fileCrc) {
+        this.error(new Error("Crc error - " + fileCrc + " - " + calcCrc));
+        return;
+      }
+      if (!this._hasIEND) {
+        this.read(8, this._parseChunkBegin.bind(this));
+      }
+    };
+    Parser.prototype._handleIHDR = function(length) {
+      this.read(length, this._parseIHDR.bind(this));
+    };
+    Parser.prototype._parseIHDR = function(data) {
+      this._crc.write(data);
+      let width = data.readUInt32BE(0);
+      let height = data.readUInt32BE(4);
+      let depth = data[8];
+      let colorType = data[9];
+      let compr = data[10];
+      let filter = data[11];
+      let interlace = data[12];
+      if (depth !== 8 && depth !== 4 && depth !== 2 && depth !== 1 && depth !== 16) {
+        this.error(new Error("Unsupported bit depth " + depth));
+        return;
+      }
+      if (!(colorType in constants.COLORTYPE_TO_BPP_MAP)) {
+        this.error(new Error("Unsupported color type"));
+        return;
+      }
+      if (compr !== 0) {
+        this.error(new Error("Unsupported compression method"));
+        return;
+      }
+      if (filter !== 0) {
+        this.error(new Error("Unsupported filter method"));
+        return;
+      }
+      if (interlace !== 0 && interlace !== 1) {
+        this.error(new Error("Unsupported interlace method"));
+        return;
+      }
+      this._colorType = colorType;
+      let bpp = constants.COLORTYPE_TO_BPP_MAP[this._colorType];
+      this._hasIHDR = true;
+      this.metadata({
+        width,
+        height,
+        depth,
+        interlace: Boolean(interlace),
+        palette: Boolean(colorType & constants.COLORTYPE_PALETTE),
+        color: Boolean(colorType & constants.COLORTYPE_COLOR),
+        alpha: Boolean(colorType & constants.COLORTYPE_ALPHA),
+        bpp,
+        colorType
+      });
+      this._handleChunkEnd();
+    };
+    Parser.prototype._handlePLTE = function(length) {
+      this.read(length, this._parsePLTE.bind(this));
+    };
+    Parser.prototype._parsePLTE = function(data) {
+      this._crc.write(data);
+      let entries = Math.floor(data.length / 3);
+      for (let i = 0; i < entries; i++) {
+        this._palette.push([data[i * 3], data[i * 3 + 1], data[i * 3 + 2], 255]);
+      }
+      this.palette(this._palette);
+      this._handleChunkEnd();
+    };
+    Parser.prototype._handleTRNS = function(length) {
+      this.simpleTransparency();
+      this.read(length, this._parseTRNS.bind(this));
+    };
+    Parser.prototype._parseTRNS = function(data) {
+      this._crc.write(data);
+      if (this._colorType === constants.COLORTYPE_PALETTE_COLOR) {
+        if (this._palette.length === 0) {
+          this.error(new Error("Transparency chunk must be after palette"));
+          return;
+        }
+        if (data.length > this._palette.length) {
+          this.error(new Error("More transparent colors than palette size"));
+          return;
+        }
+        for (let i = 0; i < data.length; i++) {
+          this._palette[i][3] = data[i];
+        }
+        this.palette(this._palette);
+      }
+      if (this._colorType === constants.COLORTYPE_GRAYSCALE) {
+        this.transColor([data.readUInt16BE(0)]);
+      }
+      if (this._colorType === constants.COLORTYPE_COLOR) {
+        this.transColor([
+          data.readUInt16BE(0),
+          data.readUInt16BE(2),
+          data.readUInt16BE(4)
+        ]);
+      }
+      this._handleChunkEnd();
+    };
+    Parser.prototype._handleGAMA = function(length) {
+      this.read(length, this._parseGAMA.bind(this));
+    };
+    Parser.prototype._parseGAMA = function(data) {
+      this._crc.write(data);
+      this.gamma(data.readUInt32BE(0) / constants.GAMMA_DIVISION);
+      this._handleChunkEnd();
+    };
+    Parser.prototype._handleIDAT = function(length) {
+      if (!this._emittedHeadersFinished) {
+        this._emittedHeadersFinished = true;
+        this.headersFinished();
+      }
+      this.read(-length, this._parseIDAT.bind(this, length));
+    };
+    Parser.prototype._parseIDAT = function(length, data) {
+      this._crc.write(data);
+      if (this._colorType === constants.COLORTYPE_PALETTE_COLOR && this._palette.length === 0) {
+        throw new Error("Expected palette not found");
+      }
+      this.inflateData(data);
+      let leftOverLength = length - data.length;
+      if (leftOverLength > 0) {
+        this._handleIDAT(leftOverLength);
+      } else {
+        this._handleChunkEnd();
+      }
+    };
+    Parser.prototype._handleIEND = function(length) {
+      this.read(length, this._parseIEND.bind(this));
+    };
+    Parser.prototype._parseIEND = function(data) {
+      this._crc.write(data);
+      this._hasIEND = true;
+      this._handleChunkEnd();
+      if (this.finished) {
+        this.finished();
+      }
+    };
+  }
+});
+
+// node_modules/pngjs/lib/bitmapper.js
+var require_bitmapper = __commonJS({
+  "node_modules/pngjs/lib/bitmapper.js"(exports) {
+    "use strict";
+    var interlaceUtils = require_interlace();
+    var pixelBppMapper = [
+      // 0 - dummy entry
+      function() {
+      },
+      // 1 - L
+      // 0: 0, 1: 0, 2: 0, 3: 0xff
+      function(pxData, data, pxPos, rawPos) {
+        if (rawPos === data.length) {
+          throw new Error("Ran out of data");
+        }
+        let pixel = data[rawPos];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = 255;
+      },
+      // 2 - LA
+      // 0: 0, 1: 0, 2: 0, 3: 1
+      function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 1 >= data.length) {
+          throw new Error("Ran out of data");
+        }
+        let pixel = data[rawPos];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = data[rawPos + 1];
+      },
+      // 3 - RGB
+      // 0: 0, 1: 1, 2: 2, 3: 0xff
+      function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 2 >= data.length) {
+          throw new Error("Ran out of data");
+        }
+        pxData[pxPos] = data[rawPos];
+        pxData[pxPos + 1] = data[rawPos + 1];
+        pxData[pxPos + 2] = data[rawPos + 2];
+        pxData[pxPos + 3] = 255;
+      },
+      // 4 - RGBA
+      // 0: 0, 1: 1, 2: 2, 3: 3
+      function(pxData, data, pxPos, rawPos) {
+        if (rawPos + 3 >= data.length) {
+          throw new Error("Ran out of data");
+        }
+        pxData[pxPos] = data[rawPos];
+        pxData[pxPos + 1] = data[rawPos + 1];
+        pxData[pxPos + 2] = data[rawPos + 2];
+        pxData[pxPos + 3] = data[rawPos + 3];
+      }
+    ];
+    var pixelBppCustomMapper = [
+      // 0 - dummy entry
+      function() {
+      },
+      // 1 - L
+      // 0: 0, 1: 0, 2: 0, 3: 0xff
+      function(pxData, pixelData, pxPos, maxBit) {
+        let pixel = pixelData[0];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = maxBit;
+      },
+      // 2 - LA
+      // 0: 0, 1: 0, 2: 0, 3: 1
+      function(pxData, pixelData, pxPos) {
+        let pixel = pixelData[0];
+        pxData[pxPos] = pixel;
+        pxData[pxPos + 1] = pixel;
+        pxData[pxPos + 2] = pixel;
+        pxData[pxPos + 3] = pixelData[1];
+      },
+      // 3 - RGB
+      // 0: 0, 1: 1, 2: 2, 3: 0xff
+      function(pxData, pixelData, pxPos, maxBit) {
+        pxData[pxPos] = pixelData[0];
+        pxData[pxPos + 1] = pixelData[1];
+        pxData[pxPos + 2] = pixelData[2];
+        pxData[pxPos + 3] = maxBit;
+      },
+      // 4 - RGBA
+      // 0: 0, 1: 1, 2: 2, 3: 3
+      function(pxData, pixelData, pxPos) {
+        pxData[pxPos] = pixelData[0];
+        pxData[pxPos + 1] = pixelData[1];
+        pxData[pxPos + 2] = pixelData[2];
+        pxData[pxPos + 3] = pixelData[3];
+      }
+    ];
+    function bitRetriever(data, depth) {
+      let leftOver = [];
+      let i = 0;
+      function split() {
+        if (i === data.length) {
+          throw new Error("Ran out of data");
+        }
+        let byte = data[i];
+        i++;
+        let byte8, byte7, byte6, byte5, byte4, byte3, byte2, byte1;
+        switch (depth) {
+          default:
+            throw new Error("unrecognised depth");
+          case 16:
+            byte2 = data[i];
+            i++;
+            leftOver.push((byte << 8) + byte2);
+            break;
+          case 4:
+            byte2 = byte & 15;
+            byte1 = byte >> 4;
+            leftOver.push(byte1, byte2);
+            break;
+          case 2:
+            byte4 = byte & 3;
+            byte3 = byte >> 2 & 3;
+            byte2 = byte >> 4 & 3;
+            byte1 = byte >> 6 & 3;
+            leftOver.push(byte1, byte2, byte3, byte4);
+            break;
+          case 1:
+            byte8 = byte & 1;
+            byte7 = byte >> 1 & 1;
+            byte6 = byte >> 2 & 1;
+            byte5 = byte >> 3 & 1;
+            byte4 = byte >> 4 & 1;
+            byte3 = byte >> 5 & 1;
+            byte2 = byte >> 6 & 1;
+            byte1 = byte >> 7 & 1;
+            leftOver.push(byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8);
+            break;
+        }
+      }
+      return {
+        get: function(count) {
+          while (leftOver.length < count) {
+            split();
+          }
+          let returner = leftOver.slice(0, count);
+          leftOver = leftOver.slice(count);
+          return returner;
+        },
+        resetAfterLine: function() {
+          leftOver.length = 0;
+        },
+        end: function() {
+          if (i !== data.length) {
+            throw new Error("extra data found");
+          }
+        }
+      };
+    }
+    function mapImage8Bit(image, pxData, getPxPos, bpp, data, rawPos) {
+      let imageWidth = image.width;
+      let imageHeight = image.height;
+      let imagePass = image.index;
+      for (let y = 0; y < imageHeight; y++) {
+        for (let x = 0; x < imageWidth; x++) {
+          let pxPos = getPxPos(x, y, imagePass);
+          pixelBppMapper[bpp](pxData, data, pxPos, rawPos);
+          rawPos += bpp;
+        }
+      }
+      return rawPos;
+    }
+    function mapImageCustomBit(image, pxData, getPxPos, bpp, bits, maxBit) {
+      let imageWidth = image.width;
+      let imageHeight = image.height;
+      let imagePass = image.index;
+      for (let y = 0; y < imageHeight; y++) {
+        for (let x = 0; x < imageWidth; x++) {
+          let pixelData = bits.get(bpp);
+          let pxPos = getPxPos(x, y, imagePass);
+          pixelBppCustomMapper[bpp](pxData, pixelData, pxPos, maxBit);
+        }
+        bits.resetAfterLine();
+      }
+    }
+    exports.dataToBitMap = function(data, bitmapInfo) {
+      let width = bitmapInfo.width;
+      let height = bitmapInfo.height;
+      let depth = bitmapInfo.depth;
+      let bpp = bitmapInfo.bpp;
+      let interlace = bitmapInfo.interlace;
+      let bits;
+      if (depth !== 8) {
+        bits = bitRetriever(data, depth);
+      }
+      let pxData;
+      if (depth <= 8) {
+        pxData = Buffer.alloc(width * height * 4);
+      } else {
+        pxData = new Uint16Array(width * height * 4);
+      }
+      let maxBit = Math.pow(2, depth) - 1;
+      let rawPos = 0;
+      let images;
+      let getPxPos;
+      if (interlace) {
+        images = interlaceUtils.getImagePasses(width, height);
+        getPxPos = interlaceUtils.getInterlaceIterator(width, height);
+      } else {
+        let nonInterlacedPxPos = 0;
+        getPxPos = function() {
+          let returner = nonInterlacedPxPos;
+          nonInterlacedPxPos += 4;
+          return returner;
+        };
+        images = [{ width, height }];
+      }
+      for (let imageIndex = 0; imageIndex < images.length; imageIndex++) {
+        if (depth === 8) {
+          rawPos = mapImage8Bit(
+            images[imageIndex],
+            pxData,
+            getPxPos,
+            bpp,
+            data,
+            rawPos
+          );
+        } else {
+          mapImageCustomBit(
+            images[imageIndex],
+            pxData,
+            getPxPos,
+            bpp,
+            bits,
+            maxBit
+          );
+        }
+      }
+      if (depth === 8) {
+        if (rawPos !== data.length) {
+          throw new Error("extra data found");
+        }
+      } else {
+        bits.end();
+      }
+      return pxData;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/format-normaliser.js
+var require_format_normaliser = __commonJS({
+  "node_modules/pngjs/lib/format-normaliser.js"(exports, module) {
+    "use strict";
+    function dePalette(indata, outdata, width, height, palette) {
+      let pxPos = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let color = palette[indata[pxPos]];
+          if (!color) {
+            throw new Error("index " + indata[pxPos] + " not in palette");
+          }
+          for (let i = 0; i < 4; i++) {
+            outdata[pxPos + i] = color[i];
+          }
+          pxPos += 4;
+        }
+      }
+    }
+    function replaceTransparentColor(indata, outdata, width, height, transColor) {
+      let pxPos = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let makeTrans = false;
+          if (transColor.length === 1) {
+            if (transColor[0] === indata[pxPos]) {
+              makeTrans = true;
+            }
+          } else if (transColor[0] === indata[pxPos] && transColor[1] === indata[pxPos + 1] && transColor[2] === indata[pxPos + 2]) {
+            makeTrans = true;
+          }
+          if (makeTrans) {
+            for (let i = 0; i < 4; i++) {
+              outdata[pxPos + i] = 0;
+            }
+          }
+          pxPos += 4;
+        }
+      }
+    }
+    function scaleDepth(indata, outdata, width, height, depth) {
+      let maxOutSample = 255;
+      let maxInSample = Math.pow(2, depth) - 1;
+      let pxPos = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          for (let i = 0; i < 4; i++) {
+            outdata[pxPos + i] = Math.floor(
+              indata[pxPos + i] * maxOutSample / maxInSample + 0.5
+            );
+          }
+          pxPos += 4;
+        }
+      }
+    }
+    module.exports = function(indata, imageData) {
+      let depth = imageData.depth;
+      let width = imageData.width;
+      let height = imageData.height;
+      let colorType = imageData.colorType;
+      let transColor = imageData.transColor;
+      let palette = imageData.palette;
+      let outdata = indata;
+      if (colorType === 3) {
+        dePalette(indata, outdata, width, height, palette);
+      } else {
+        if (transColor) {
+          replaceTransparentColor(indata, outdata, width, height, transColor);
+        }
+        if (depth !== 8) {
+          if (depth === 16) {
+            outdata = Buffer.alloc(width * height * 4);
+          }
+          scaleDepth(indata, outdata, width, height, depth);
+        }
+      }
+      return outdata;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/parser-async.js
+var require_parser_async = __commonJS({
+  "node_modules/pngjs/lib/parser-async.js"(exports, module) {
+    "use strict";
+    var util2 = __require("util");
+    var zlib = __require("zlib");
+    var ChunkStream = require_chunkstream();
+    var FilterAsync = require_filter_parse_async();
+    var Parser = require_parser();
+    var bitmapper = require_bitmapper();
+    var formatNormaliser = require_format_normaliser();
+    var ParserAsync = module.exports = function(options) {
+      ChunkStream.call(this);
+      this._parser = new Parser(options, {
+        read: this.read.bind(this),
+        error: this._handleError.bind(this),
+        metadata: this._handleMetaData.bind(this),
+        gamma: this.emit.bind(this, "gamma"),
+        palette: this._handlePalette.bind(this),
+        transColor: this._handleTransColor.bind(this),
+        finished: this._finished.bind(this),
+        inflateData: this._inflateData.bind(this),
+        simpleTransparency: this._simpleTransparency.bind(this),
+        headersFinished: this._headersFinished.bind(this)
+      });
+      this._options = options;
+      this.writable = true;
+      this._parser.start();
+    };
+    util2.inherits(ParserAsync, ChunkStream);
+    ParserAsync.prototype._handleError = function(err) {
+      this.emit("error", err);
+      this.writable = false;
+      this.destroy();
+      if (this._inflate && this._inflate.destroy) {
+        this._inflate.destroy();
+      }
+      if (this._filter) {
+        this._filter.destroy();
+        this._filter.on("error", function() {
+        });
+      }
+      this.errord = true;
+    };
+    ParserAsync.prototype._inflateData = function(data) {
+      if (!this._inflate) {
+        if (this._bitmapInfo.interlace) {
+          this._inflate = zlib.createInflate();
+          this._inflate.on("error", this.emit.bind(this, "error"));
+          this._filter.on("complete", this._complete.bind(this));
+          this._inflate.pipe(this._filter);
+        } else {
+          let rowSize = (this._bitmapInfo.width * this._bitmapInfo.bpp * this._bitmapInfo.depth + 7 >> 3) + 1;
+          let imageSize = rowSize * this._bitmapInfo.height;
+          let chunkSize = Math.max(imageSize, zlib.Z_MIN_CHUNK);
+          this._inflate = zlib.createInflate({ chunkSize });
+          let leftToInflate = imageSize;
+          let emitError = this.emit.bind(this, "error");
+          this._inflate.on("error", function(err) {
+            if (!leftToInflate) {
+              return;
+            }
+            emitError(err);
+          });
+          this._filter.on("complete", this._complete.bind(this));
+          let filterWrite = this._filter.write.bind(this._filter);
+          this._inflate.on("data", function(chunk) {
+            if (!leftToInflate) {
+              return;
+            }
+            if (chunk.length > leftToInflate) {
+              chunk = chunk.slice(0, leftToInflate);
+            }
+            leftToInflate -= chunk.length;
+            filterWrite(chunk);
+          });
+          this._inflate.on("end", this._filter.end.bind(this._filter));
+        }
+      }
+      this._inflate.write(data);
+    };
+    ParserAsync.prototype._handleMetaData = function(metaData) {
+      this._metaData = metaData;
+      this._bitmapInfo = Object.create(metaData);
+      this._filter = new FilterAsync(this._bitmapInfo);
+    };
+    ParserAsync.prototype._handleTransColor = function(transColor) {
+      this._bitmapInfo.transColor = transColor;
+    };
+    ParserAsync.prototype._handlePalette = function(palette) {
+      this._bitmapInfo.palette = palette;
+    };
+    ParserAsync.prototype._simpleTransparency = function() {
+      this._metaData.alpha = true;
+    };
+    ParserAsync.prototype._headersFinished = function() {
+      this.emit("metadata", this._metaData);
+    };
+    ParserAsync.prototype._finished = function() {
+      if (this.errord) {
+        return;
+      }
+      if (!this._inflate) {
+        this.emit("error", "No Inflate block");
+      } else {
+        this._inflate.end();
+      }
+    };
+    ParserAsync.prototype._complete = function(filteredData) {
+      if (this.errord) {
+        return;
+      }
+      let normalisedBitmapData;
+      try {
+        let bitmapData = bitmapper.dataToBitMap(filteredData, this._bitmapInfo);
+        normalisedBitmapData = formatNormaliser(bitmapData, this._bitmapInfo);
+        bitmapData = null;
+      } catch (ex) {
+        this._handleError(ex);
+        return;
+      }
+      this.emit("parsed", normalisedBitmapData);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/bitpacker.js
+var require_bitpacker = __commonJS({
+  "node_modules/pngjs/lib/bitpacker.js"(exports, module) {
+    "use strict";
+    var constants = require_constants2();
+    module.exports = function(dataIn, width, height, options) {
+      let outHasAlpha = [constants.COLORTYPE_COLOR_ALPHA, constants.COLORTYPE_ALPHA].indexOf(
+        options.colorType
+      ) !== -1;
+      if (options.colorType === options.inputColorType) {
+        let bigEndian = (function() {
+          let buffer = new ArrayBuffer(2);
+          new DataView(buffer).setInt16(
+            0,
+            256,
+            true
+            /* littleEndian */
+          );
+          return new Int16Array(buffer)[0] !== 256;
+        })();
+        if (options.bitDepth === 8 || options.bitDepth === 16 && bigEndian) {
+          return dataIn;
+        }
+      }
+      let data = options.bitDepth !== 16 ? dataIn : new Uint16Array(dataIn.buffer);
+      let maxValue = 255;
+      let inBpp = constants.COLORTYPE_TO_BPP_MAP[options.inputColorType];
+      if (inBpp === 4 && !options.inputHasAlpha) {
+        inBpp = 3;
+      }
+      let outBpp = constants.COLORTYPE_TO_BPP_MAP[options.colorType];
+      if (options.bitDepth === 16) {
+        maxValue = 65535;
+        outBpp *= 2;
+      }
+      let outData = Buffer.alloc(width * height * outBpp);
+      let inIndex = 0;
+      let outIndex = 0;
+      let bgColor = options.bgColor || {};
+      if (bgColor.red === void 0) {
+        bgColor.red = maxValue;
+      }
+      if (bgColor.green === void 0) {
+        bgColor.green = maxValue;
+      }
+      if (bgColor.blue === void 0) {
+        bgColor.blue = maxValue;
+      }
+      function getRGBA() {
+        let red;
+        let green;
+        let blue;
+        let alpha = maxValue;
+        switch (options.inputColorType) {
+          case constants.COLORTYPE_COLOR_ALPHA:
+            alpha = data[inIndex + 3];
+            red = data[inIndex];
+            green = data[inIndex + 1];
+            blue = data[inIndex + 2];
+            break;
+          case constants.COLORTYPE_COLOR:
+            red = data[inIndex];
+            green = data[inIndex + 1];
+            blue = data[inIndex + 2];
+            break;
+          case constants.COLORTYPE_ALPHA:
+            alpha = data[inIndex + 1];
+            red = data[inIndex];
+            green = red;
+            blue = red;
+            break;
+          case constants.COLORTYPE_GRAYSCALE:
+            red = data[inIndex];
+            green = red;
+            blue = red;
+            break;
+          default:
+            throw new Error(
+              "input color type:" + options.inputColorType + " is not supported at present"
+            );
+        }
+        if (options.inputHasAlpha) {
+          if (!outHasAlpha) {
+            alpha /= maxValue;
+            red = Math.min(
+              Math.max(Math.round((1 - alpha) * bgColor.red + alpha * red), 0),
+              maxValue
+            );
+            green = Math.min(
+              Math.max(Math.round((1 - alpha) * bgColor.green + alpha * green), 0),
+              maxValue
+            );
+            blue = Math.min(
+              Math.max(Math.round((1 - alpha) * bgColor.blue + alpha * blue), 0),
+              maxValue
+            );
+          }
+        }
+        return { red, green, blue, alpha };
+      }
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let rgba = getRGBA(data, inIndex);
+          switch (options.colorType) {
+            case constants.COLORTYPE_COLOR_ALPHA:
+            case constants.COLORTYPE_COLOR:
+              if (options.bitDepth === 8) {
+                outData[outIndex] = rgba.red;
+                outData[outIndex + 1] = rgba.green;
+                outData[outIndex + 2] = rgba.blue;
+                if (outHasAlpha) {
+                  outData[outIndex + 3] = rgba.alpha;
+                }
+              } else {
+                outData.writeUInt16BE(rgba.red, outIndex);
+                outData.writeUInt16BE(rgba.green, outIndex + 2);
+                outData.writeUInt16BE(rgba.blue, outIndex + 4);
+                if (outHasAlpha) {
+                  outData.writeUInt16BE(rgba.alpha, outIndex + 6);
+                }
+              }
+              break;
+            case constants.COLORTYPE_ALPHA:
+            case constants.COLORTYPE_GRAYSCALE: {
+              let grayscale = (rgba.red + rgba.green + rgba.blue) / 3;
+              if (options.bitDepth === 8) {
+                outData[outIndex] = grayscale;
+                if (outHasAlpha) {
+                  outData[outIndex + 1] = rgba.alpha;
+                }
+              } else {
+                outData.writeUInt16BE(grayscale, outIndex);
+                if (outHasAlpha) {
+                  outData.writeUInt16BE(rgba.alpha, outIndex + 2);
+                }
+              }
+              break;
+            }
+            default:
+              throw new Error("unrecognised color Type " + options.colorType);
+          }
+          inIndex += inBpp;
+          outIndex += outBpp;
+        }
+      }
+      return outData;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/filter-pack.js
+var require_filter_pack = __commonJS({
+  "node_modules/pngjs/lib/filter-pack.js"(exports, module) {
+    "use strict";
+    var paethPredictor = require_paeth_predictor();
+    function filterNone(pxData, pxPos, byteWidth, rawData, rawPos) {
+      for (let x = 0; x < byteWidth; x++) {
+        rawData[rawPos + x] = pxData[pxPos + x];
+      }
+    }
+    function filterSumNone(pxData, pxPos, byteWidth) {
+      let sum = 0;
+      let length = pxPos + byteWidth;
+      for (let i = pxPos; i < length; i++) {
+        sum += Math.abs(pxData[i]);
+      }
+      return sum;
+    }
+    function filterSub(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let val = pxData[pxPos + x] - left;
+        rawData[rawPos + x] = val;
+      }
+    }
+    function filterSumSub(pxData, pxPos, byteWidth, bpp) {
+      let sum = 0;
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let val = pxData[pxPos + x] - left;
+        sum += Math.abs(val);
+      }
+      return sum;
+    }
+    function filterUp(pxData, pxPos, byteWidth, rawData, rawPos) {
+      for (let x = 0; x < byteWidth; x++) {
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - up;
+        rawData[rawPos + x] = val;
+      }
+    }
+    function filterSumUp(pxData, pxPos, byteWidth) {
+      let sum = 0;
+      let length = pxPos + byteWidth;
+      for (let x = pxPos; x < length; x++) {
+        let up = pxPos > 0 ? pxData[x - byteWidth] : 0;
+        let val = pxData[x] - up;
+        sum += Math.abs(val);
+      }
+      return sum;
+    }
+    function filterAvg(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - (left + up >> 1);
+        rawData[rawPos + x] = val;
+      }
+    }
+    function filterSumAvg(pxData, pxPos, byteWidth, bpp) {
+      let sum = 0;
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let val = pxData[pxPos + x] - (left + up >> 1);
+        sum += Math.abs(val);
+      }
+      return sum;
+    }
+    function filterPaeth(pxData, pxPos, byteWidth, rawData, rawPos, bpp) {
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let upleft = pxPos > 0 && x >= bpp ? pxData[pxPos + x - (byteWidth + bpp)] : 0;
+        let val = pxData[pxPos + x] - paethPredictor(left, up, upleft);
+        rawData[rawPos + x] = val;
+      }
+    }
+    function filterSumPaeth(pxData, pxPos, byteWidth, bpp) {
+      let sum = 0;
+      for (let x = 0; x < byteWidth; x++) {
+        let left = x >= bpp ? pxData[pxPos + x - bpp] : 0;
+        let up = pxPos > 0 ? pxData[pxPos + x - byteWidth] : 0;
+        let upleft = pxPos > 0 && x >= bpp ? pxData[pxPos + x - (byteWidth + bpp)] : 0;
+        let val = pxData[pxPos + x] - paethPredictor(left, up, upleft);
+        sum += Math.abs(val);
+      }
+      return sum;
+    }
+    var filters = {
+      0: filterNone,
+      1: filterSub,
+      2: filterUp,
+      3: filterAvg,
+      4: filterPaeth
+    };
+    var filterSums = {
+      0: filterSumNone,
+      1: filterSumSub,
+      2: filterSumUp,
+      3: filterSumAvg,
+      4: filterSumPaeth
+    };
+    module.exports = function(pxData, width, height, options, bpp) {
+      let filterTypes;
+      if (!("filterType" in options) || options.filterType === -1) {
+        filterTypes = [0, 1, 2, 3, 4];
+      } else if (typeof options.filterType === "number") {
+        filterTypes = [options.filterType];
+      } else {
+        throw new Error("unrecognised filter types");
+      }
+      if (options.bitDepth === 16) {
+        bpp *= 2;
+      }
+      let byteWidth = width * bpp;
+      let rawPos = 0;
+      let pxPos = 0;
+      let rawData = Buffer.alloc((byteWidth + 1) * height);
+      let sel = filterTypes[0];
+      for (let y = 0; y < height; y++) {
+        if (filterTypes.length > 1) {
+          let min = Infinity;
+          for (let i = 0; i < filterTypes.length; i++) {
+            let sum = filterSums[filterTypes[i]](pxData, pxPos, byteWidth, bpp);
+            if (sum < min) {
+              sel = filterTypes[i];
+              min = sum;
+            }
+          }
+        }
+        rawData[rawPos] = sel;
+        rawPos++;
+        filters[sel](pxData, pxPos, byteWidth, rawData, rawPos, bpp);
+        rawPos += byteWidth;
+        pxPos += byteWidth;
+      }
+      return rawData;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/packer.js
+var require_packer = __commonJS({
+  "node_modules/pngjs/lib/packer.js"(exports, module) {
+    "use strict";
+    var constants = require_constants2();
+    var CrcStream = require_crc();
+    var bitPacker = require_bitpacker();
+    var filter = require_filter_pack();
+    var zlib = __require("zlib");
+    var Packer = module.exports = function(options) {
+      this._options = options;
+      options.deflateChunkSize = options.deflateChunkSize || 32 * 1024;
+      options.deflateLevel = options.deflateLevel != null ? options.deflateLevel : 9;
+      options.deflateStrategy = options.deflateStrategy != null ? options.deflateStrategy : 3;
+      options.inputHasAlpha = options.inputHasAlpha != null ? options.inputHasAlpha : true;
+      options.deflateFactory = options.deflateFactory || zlib.createDeflate;
+      options.bitDepth = options.bitDepth || 8;
+      options.colorType = typeof options.colorType === "number" ? options.colorType : constants.COLORTYPE_COLOR_ALPHA;
+      options.inputColorType = typeof options.inputColorType === "number" ? options.inputColorType : constants.COLORTYPE_COLOR_ALPHA;
+      if ([
+        constants.COLORTYPE_GRAYSCALE,
+        constants.COLORTYPE_COLOR,
+        constants.COLORTYPE_COLOR_ALPHA,
+        constants.COLORTYPE_ALPHA
+      ].indexOf(options.colorType) === -1) {
+        throw new Error(
+          "option color type:" + options.colorType + " is not supported at present"
+        );
+      }
+      if ([
+        constants.COLORTYPE_GRAYSCALE,
+        constants.COLORTYPE_COLOR,
+        constants.COLORTYPE_COLOR_ALPHA,
+        constants.COLORTYPE_ALPHA
+      ].indexOf(options.inputColorType) === -1) {
+        throw new Error(
+          "option input color type:" + options.inputColorType + " is not supported at present"
+        );
+      }
+      if (options.bitDepth !== 8 && options.bitDepth !== 16) {
+        throw new Error(
+          "option bit depth:" + options.bitDepth + " is not supported at present"
+        );
+      }
+    };
+    Packer.prototype.getDeflateOptions = function() {
+      return {
+        chunkSize: this._options.deflateChunkSize,
+        level: this._options.deflateLevel,
+        strategy: this._options.deflateStrategy
+      };
+    };
+    Packer.prototype.createDeflate = function() {
+      return this._options.deflateFactory(this.getDeflateOptions());
+    };
+    Packer.prototype.filterData = function(data, width, height) {
+      let packedData = bitPacker(data, width, height, this._options);
+      let bpp = constants.COLORTYPE_TO_BPP_MAP[this._options.colorType];
+      let filteredData = filter(packedData, width, height, this._options, bpp);
+      return filteredData;
+    };
+    Packer.prototype._packChunk = function(type, data) {
+      let len = data ? data.length : 0;
+      let buf = Buffer.alloc(len + 12);
+      buf.writeUInt32BE(len, 0);
+      buf.writeUInt32BE(type, 4);
+      if (data) {
+        data.copy(buf, 8);
+      }
+      buf.writeInt32BE(
+        CrcStream.crc32(buf.slice(4, buf.length - 4)),
+        buf.length - 4
+      );
+      return buf;
+    };
+    Packer.prototype.packGAMA = function(gamma) {
+      let buf = Buffer.alloc(4);
+      buf.writeUInt32BE(Math.floor(gamma * constants.GAMMA_DIVISION), 0);
+      return this._packChunk(constants.TYPE_gAMA, buf);
+    };
+    Packer.prototype.packIHDR = function(width, height) {
+      let buf = Buffer.alloc(13);
+      buf.writeUInt32BE(width, 0);
+      buf.writeUInt32BE(height, 4);
+      buf[8] = this._options.bitDepth;
+      buf[9] = this._options.colorType;
+      buf[10] = 0;
+      buf[11] = 0;
+      buf[12] = 0;
+      return this._packChunk(constants.TYPE_IHDR, buf);
+    };
+    Packer.prototype.packIDAT = function(data) {
+      return this._packChunk(constants.TYPE_IDAT, data);
+    };
+    Packer.prototype.packIEND = function() {
+      return this._packChunk(constants.TYPE_IEND, null);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/packer-async.js
+var require_packer_async = __commonJS({
+  "node_modules/pngjs/lib/packer-async.js"(exports, module) {
+    "use strict";
+    var util2 = __require("util");
+    var Stream = __require("stream");
+    var constants = require_constants2();
+    var Packer = require_packer();
+    var PackerAsync = module.exports = function(opt) {
+      Stream.call(this);
+      let options = opt || {};
+      this._packer = new Packer(options);
+      this._deflate = this._packer.createDeflate();
+      this.readable = true;
+    };
+    util2.inherits(PackerAsync, Stream);
+    PackerAsync.prototype.pack = function(data, width, height, gamma) {
+      this.emit("data", Buffer.from(constants.PNG_SIGNATURE));
+      this.emit("data", this._packer.packIHDR(width, height));
+      if (gamma) {
+        this.emit("data", this._packer.packGAMA(gamma));
+      }
+      let filteredData = this._packer.filterData(data, width, height);
+      this._deflate.on("error", this.emit.bind(this, "error"));
+      this._deflate.on(
+        "data",
+        function(compressedData) {
+          this.emit("data", this._packer.packIDAT(compressedData));
+        }.bind(this)
+      );
+      this._deflate.on(
+        "end",
+        function() {
+          this.emit("data", this._packer.packIEND());
+          this.emit("end");
+        }.bind(this)
+      );
+      this._deflate.end(filteredData);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/sync-inflate.js
+var require_sync_inflate = __commonJS({
+  "node_modules/pngjs/lib/sync-inflate.js"(exports, module) {
+    "use strict";
+    var assert = __require("assert").ok;
+    var zlib = __require("zlib");
+    var util2 = __require("util");
+    var kMaxLength = __require("buffer").kMaxLength;
+    function Inflate(opts) {
+      if (!(this instanceof Inflate)) {
+        return new Inflate(opts);
+      }
+      if (opts && opts.chunkSize < zlib.Z_MIN_CHUNK) {
+        opts.chunkSize = zlib.Z_MIN_CHUNK;
+      }
+      zlib.Inflate.call(this, opts);
+      this._offset = this._offset === void 0 ? this._outOffset : this._offset;
+      this._buffer = this._buffer || this._outBuffer;
+      if (opts && opts.maxLength != null) {
+        this._maxLength = opts.maxLength;
+      }
+    }
+    function createInflate(opts) {
+      return new Inflate(opts);
+    }
+    function _close(engine, callback) {
+      if (callback) {
+        process.nextTick(callback);
+      }
+      if (!engine._handle) {
+        return;
+      }
+      engine._handle.close();
+      engine._handle = null;
+    }
+    Inflate.prototype._processChunk = function(chunk, flushFlag, asyncCb) {
+      if (typeof asyncCb === "function") {
+        return zlib.Inflate._processChunk.call(this, chunk, flushFlag, asyncCb);
+      }
+      let self = this;
+      let availInBefore = chunk && chunk.length;
+      let availOutBefore = this._chunkSize - this._offset;
+      let leftToInflate = this._maxLength;
+      let inOff = 0;
+      let buffers = [];
+      let nread = 0;
+      let error;
+      this.on("error", function(err) {
+        error = err;
+      });
+      function handleChunk(availInAfter, availOutAfter) {
+        if (self._hadError) {
+          return;
+        }
+        let have = availOutBefore - availOutAfter;
+        assert(have >= 0, "have should not go down");
+        if (have > 0) {
+          let out = self._buffer.slice(self._offset, self._offset + have);
+          self._offset += have;
+          if (out.length > leftToInflate) {
+            out = out.slice(0, leftToInflate);
+          }
+          buffers.push(out);
+          nread += out.length;
+          leftToInflate -= out.length;
+          if (leftToInflate === 0) {
+            return false;
+          }
+        }
+        if (availOutAfter === 0 || self._offset >= self._chunkSize) {
+          availOutBefore = self._chunkSize;
+          self._offset = 0;
+          self._buffer = Buffer.allocUnsafe(self._chunkSize);
+        }
+        if (availOutAfter === 0) {
+          inOff += availInBefore - availInAfter;
+          availInBefore = availInAfter;
+          return true;
+        }
+        return false;
+      }
+      assert(this._handle, "zlib binding closed");
+      let res;
+      do {
+        res = this._handle.writeSync(
+          flushFlag,
+          chunk,
+          // in
+          inOff,
+          // in_off
+          availInBefore,
+          // in_len
+          this._buffer,
+          // out
+          this._offset,
+          //out_off
+          availOutBefore
+        );
+        res = res || this._writeState;
+      } while (!this._hadError && handleChunk(res[0], res[1]));
+      if (this._hadError) {
+        throw error;
+      }
+      if (nread >= kMaxLength) {
+        _close(this);
+        throw new RangeError(
+          "Cannot create final Buffer. It would be larger than 0x" + kMaxLength.toString(16) + " bytes"
+        );
+      }
+      let buf = Buffer.concat(buffers, nread);
+      _close(this);
+      return buf;
+    };
+    util2.inherits(Inflate, zlib.Inflate);
+    function zlibBufferSync(engine, buffer) {
+      if (typeof buffer === "string") {
+        buffer = Buffer.from(buffer);
+      }
+      if (!(buffer instanceof Buffer)) {
+        throw new TypeError("Not a string or buffer");
+      }
+      let flushFlag = engine._finishFlushFlag;
+      if (flushFlag == null) {
+        flushFlag = zlib.Z_FINISH;
+      }
+      return engine._processChunk(buffer, flushFlag);
+    }
+    function inflateSync(buffer, opts) {
+      return zlibBufferSync(new Inflate(opts), buffer);
+    }
+    module.exports = exports = inflateSync;
+    exports.Inflate = Inflate;
+    exports.createInflate = createInflate;
+    exports.inflateSync = inflateSync;
+  }
+});
+
+// node_modules/pngjs/lib/sync-reader.js
+var require_sync_reader = __commonJS({
+  "node_modules/pngjs/lib/sync-reader.js"(exports, module) {
+    "use strict";
+    var SyncReader = module.exports = function(buffer) {
+      this._buffer = buffer;
+      this._reads = [];
+    };
+    SyncReader.prototype.read = function(length, callback) {
+      this._reads.push({
+        length: Math.abs(length),
+        // if length < 0 then at most this length
+        allowLess: length < 0,
+        func: callback
+      });
+    };
+    SyncReader.prototype.process = function() {
+      while (this._reads.length > 0 && this._buffer.length) {
+        let read = this._reads[0];
+        if (this._buffer.length && (this._buffer.length >= read.length || read.allowLess)) {
+          this._reads.shift();
+          let buf = this._buffer;
+          this._buffer = buf.slice(read.length);
+          read.func.call(this, buf.slice(0, read.length));
+        } else {
+          break;
+        }
+      }
+      if (this._reads.length > 0) {
+        return new Error("There are some read requests waitng on finished stream");
+      }
+      if (this._buffer.length > 0) {
+        return new Error("unrecognised content at end of stream");
+      }
+    };
+  }
+});
+
+// node_modules/pngjs/lib/filter-parse-sync.js
+var require_filter_parse_sync = __commonJS({
+  "node_modules/pngjs/lib/filter-parse-sync.js"(exports) {
+    "use strict";
+    var SyncReader = require_sync_reader();
+    var Filter = require_filter_parse();
+    exports.process = function(inBuffer, bitmapInfo) {
+      let outBuffers = [];
+      let reader = new SyncReader(inBuffer);
+      let filter = new Filter(bitmapInfo, {
+        read: reader.read.bind(reader),
+        write: function(bufferPart) {
+          outBuffers.push(bufferPart);
+        },
+        complete: function() {
+        }
+      });
+      filter.start();
+      reader.process();
+      return Buffer.concat(outBuffers);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/parser-sync.js
+var require_parser_sync = __commonJS({
+  "node_modules/pngjs/lib/parser-sync.js"(exports, module) {
+    "use strict";
+    var hasSyncZlib = true;
+    var zlib = __require("zlib");
+    var inflateSync = require_sync_inflate();
+    if (!zlib.deflateSync) {
+      hasSyncZlib = false;
+    }
+    var SyncReader = require_sync_reader();
+    var FilterSync = require_filter_parse_sync();
+    var Parser = require_parser();
+    var bitmapper = require_bitmapper();
+    var formatNormaliser = require_format_normaliser();
+    module.exports = function(buffer, options) {
+      if (!hasSyncZlib) {
+        throw new Error(
+          "To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0"
+        );
+      }
+      let err;
+      function handleError(_err_) {
+        err = _err_;
+      }
+      let metaData;
+      function handleMetaData(_metaData_) {
+        metaData = _metaData_;
+      }
+      function handleTransColor(transColor) {
+        metaData.transColor = transColor;
+      }
+      function handlePalette(palette) {
+        metaData.palette = palette;
+      }
+      function handleSimpleTransparency() {
+        metaData.alpha = true;
+      }
+      let gamma;
+      function handleGamma(_gamma_) {
+        gamma = _gamma_;
+      }
+      let inflateDataList = [];
+      function handleInflateData(inflatedData2) {
+        inflateDataList.push(inflatedData2);
+      }
+      let reader = new SyncReader(buffer);
+      let parser = new Parser(options, {
+        read: reader.read.bind(reader),
+        error: handleError,
+        metadata: handleMetaData,
+        gamma: handleGamma,
+        palette: handlePalette,
+        transColor: handleTransColor,
+        inflateData: handleInflateData,
+        simpleTransparency: handleSimpleTransparency
+      });
+      parser.start();
+      reader.process();
+      if (err) {
+        throw err;
+      }
+      let inflateData = Buffer.concat(inflateDataList);
+      inflateDataList.length = 0;
+      let inflatedData;
+      if (metaData.interlace) {
+        inflatedData = zlib.inflateSync(inflateData);
+      } else {
+        let rowSize = (metaData.width * metaData.bpp * metaData.depth + 7 >> 3) + 1;
+        let imageSize = rowSize * metaData.height;
+        inflatedData = inflateSync(inflateData, {
+          chunkSize: imageSize,
+          maxLength: imageSize
+        });
+      }
+      inflateData = null;
+      if (!inflatedData || !inflatedData.length) {
+        throw new Error("bad png - invalid inflate data response");
+      }
+      let unfilteredData = FilterSync.process(inflatedData, metaData);
+      inflateData = null;
+      let bitmapData = bitmapper.dataToBitMap(unfilteredData, metaData);
+      unfilteredData = null;
+      let normalisedBitmapData = formatNormaliser(bitmapData, metaData);
+      metaData.data = normalisedBitmapData;
+      metaData.gamma = gamma || 0;
+      return metaData;
+    };
+  }
+});
+
+// node_modules/pngjs/lib/packer-sync.js
+var require_packer_sync = __commonJS({
+  "node_modules/pngjs/lib/packer-sync.js"(exports, module) {
+    "use strict";
+    var hasSyncZlib = true;
+    var zlib = __require("zlib");
+    if (!zlib.deflateSync) {
+      hasSyncZlib = false;
+    }
+    var constants = require_constants2();
+    var Packer = require_packer();
+    module.exports = function(metaData, opt) {
+      if (!hasSyncZlib) {
+        throw new Error(
+          "To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0"
+        );
+      }
+      let options = opt || {};
+      let packer = new Packer(options);
+      let chunks = [];
+      chunks.push(Buffer.from(constants.PNG_SIGNATURE));
+      chunks.push(packer.packIHDR(metaData.width, metaData.height));
+      if (metaData.gamma) {
+        chunks.push(packer.packGAMA(metaData.gamma));
+      }
+      let filteredData = packer.filterData(
+        metaData.data,
+        metaData.width,
+        metaData.height
+      );
+      let compressedData = zlib.deflateSync(
+        filteredData,
+        packer.getDeflateOptions()
+      );
+      filteredData = null;
+      if (!compressedData || !compressedData.length) {
+        throw new Error("bad png - invalid compressed data response");
+      }
+      chunks.push(packer.packIDAT(compressedData));
+      chunks.push(packer.packIEND());
+      return Buffer.concat(chunks);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/png-sync.js
+var require_png_sync = __commonJS({
+  "node_modules/pngjs/lib/png-sync.js"(exports) {
+    "use strict";
+    var parse = require_parser_sync();
+    var pack = require_packer_sync();
+    exports.read = function(buffer, options) {
+      return parse(buffer, options || {});
+    };
+    exports.write = function(png, options) {
+      return pack(png, options);
+    };
+  }
+});
+
+// node_modules/pngjs/lib/png.js
+var require_png = __commonJS({
+  "node_modules/pngjs/lib/png.js"(exports) {
+    "use strict";
+    var util2 = __require("util");
+    var Stream = __require("stream");
+    var Parser = require_parser_async();
+    var Packer = require_packer_async();
+    var PNGSync = require_png_sync();
+    var PNG = exports.PNG = function(options) {
+      Stream.call(this);
+      options = options || {};
+      this.width = options.width | 0;
+      this.height = options.height | 0;
+      this.data = this.width > 0 && this.height > 0 ? Buffer.alloc(4 * this.width * this.height) : null;
+      if (options.fill && this.data) {
+        this.data.fill(0);
+      }
+      this.gamma = 0;
+      this.readable = this.writable = true;
+      this._parser = new Parser(options);
+      this._parser.on("error", this.emit.bind(this, "error"));
+      this._parser.on("close", this._handleClose.bind(this));
+      this._parser.on("metadata", this._metadata.bind(this));
+      this._parser.on("gamma", this._gamma.bind(this));
+      this._parser.on(
+        "parsed",
+        function(data) {
+          this.data = data;
+          this.emit("parsed", data);
+        }.bind(this)
+      );
+      this._packer = new Packer(options);
+      this._packer.on("data", this.emit.bind(this, "data"));
+      this._packer.on("end", this.emit.bind(this, "end"));
+      this._parser.on("close", this._handleClose.bind(this));
+      this._packer.on("error", this.emit.bind(this, "error"));
+    };
+    util2.inherits(PNG, Stream);
+    PNG.sync = PNGSync;
+    PNG.prototype.pack = function() {
+      if (!this.data || !this.data.length) {
+        this.emit("error", "No data provided");
+        return this;
+      }
+      process.nextTick(
+        function() {
+          this._packer.pack(this.data, this.width, this.height, this.gamma);
+        }.bind(this)
+      );
+      return this;
+    };
+    PNG.prototype.parse = function(data, callback) {
+      if (callback) {
+        let onParsed, onError;
+        onParsed = function(parsedData) {
+          this.removeListener("error", onError);
+          this.data = parsedData;
+          callback(null, this);
+        }.bind(this);
+        onError = function(err) {
+          this.removeListener("parsed", onParsed);
+          callback(err, null);
+        }.bind(this);
+        this.once("parsed", onParsed);
+        this.once("error", onError);
+      }
+      this.end(data);
+      return this;
+    };
+    PNG.prototype.write = function(data) {
+      this._parser.write(data);
+      return true;
+    };
+    PNG.prototype.end = function(data) {
+      this._parser.end(data);
+    };
+    PNG.prototype._metadata = function(metadata) {
+      this.width = metadata.width;
+      this.height = metadata.height;
+      this.emit("metadata", metadata);
+    };
+    PNG.prototype._gamma = function(gamma) {
+      this.gamma = gamma;
+    };
+    PNG.prototype._handleClose = function() {
+      if (!this._parser.writable && !this._packer.readable) {
+        this.emit("close");
+      }
+    };
+    PNG.bitblt = function(src, dst, srcX, srcY, width, height, deltaX, deltaY) {
+      srcX |= 0;
+      srcY |= 0;
+      width |= 0;
+      height |= 0;
+      deltaX |= 0;
+      deltaY |= 0;
+      if (srcX > src.width || srcY > src.height || srcX + width > src.width || srcY + height > src.height) {
+        throw new Error("bitblt reading outside image");
+      }
+      if (deltaX > dst.width || deltaY > dst.height || deltaX + width > dst.width || deltaY + height > dst.height) {
+        throw new Error("bitblt writing outside image");
+      }
+      for (let y = 0; y < height; y++) {
+        src.data.copy(
+          dst.data,
+          (deltaY + y) * dst.width + deltaX << 2,
+          (srcY + y) * src.width + srcX << 2,
+          (srcY + y) * src.width + srcX + width << 2
+        );
+      }
+    };
+    PNG.prototype.bitblt = function(dst, srcX, srcY, width, height, deltaX, deltaY) {
+      PNG.bitblt(this, dst, srcX, srcY, width, height, deltaX, deltaY);
+      return this;
+    };
+    PNG.adjustGamma = function(src) {
+      if (src.gamma) {
+        for (let y = 0; y < src.height; y++) {
+          for (let x = 0; x < src.width; x++) {
+            let idx = src.width * y + x << 2;
+            for (let i = 0; i < 3; i++) {
+              let sample = src.data[idx + i] / 255;
+              sample = Math.pow(sample, 1 / 2.2 / src.gamma);
+              src.data[idx + i] = Math.round(sample * 255);
+            }
+          }
+        }
+        src.gamma = 0;
+      }
+    };
+    PNG.prototype.adjustGamma = function() {
+      PNG.adjustGamma(this);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/utils.js
+var require_utils2 = __commonJS({
+  "node_modules/qrcode/lib/renderer/utils.js"(exports) {
+    function hex2rgba(hex) {
+      if (typeof hex === "number") {
+        hex = hex.toString();
+      }
+      if (typeof hex !== "string") {
+        throw new Error("Color should be defined as hex string");
+      }
+      let hexCode = hex.slice().replace("#", "").split("");
+      if (hexCode.length < 3 || hexCode.length === 5 || hexCode.length > 8) {
+        throw new Error("Invalid hex color: " + hex);
+      }
+      if (hexCode.length === 3 || hexCode.length === 4) {
+        hexCode = Array.prototype.concat.apply([], hexCode.map(function(c) {
+          return [c, c];
+        }));
+      }
+      if (hexCode.length === 6) hexCode.push("F", "F");
+      const hexValue = parseInt(hexCode.join(""), 16);
+      return {
+        r: hexValue >> 24 & 255,
+        g: hexValue >> 16 & 255,
+        b: hexValue >> 8 & 255,
+        a: hexValue & 255,
+        hex: "#" + hexCode.slice(0, 6).join("")
+      };
+    }
+    exports.getOptions = function getOptions(options) {
+      if (!options) options = {};
+      if (!options.color) options.color = {};
+      const margin = typeof options.margin === "undefined" || options.margin === null || options.margin < 0 ? 4 : options.margin;
+      const width = options.width && options.width >= 21 ? options.width : void 0;
+      const scale = options.scale || 4;
+      return {
+        width,
+        scale: width ? 4 : scale,
+        margin,
+        color: {
+          dark: hex2rgba(options.color.dark || "#000000ff"),
+          light: hex2rgba(options.color.light || "#ffffffff")
+        },
+        type: options.type,
+        rendererOpts: options.rendererOpts || {}
+      };
+    };
+    exports.getScale = function getScale(qrSize, opts) {
+      return opts.width && opts.width >= qrSize + opts.margin * 2 ? opts.width / (qrSize + opts.margin * 2) : opts.scale;
+    };
+    exports.getImageWidth = function getImageWidth(qrSize, opts) {
+      const scale = exports.getScale(qrSize, opts);
+      return Math.floor((qrSize + opts.margin * 2) * scale);
+    };
+    exports.qrToImageData = function qrToImageData(imgData, qr, opts) {
+      const size = qr.modules.size;
+      const data = qr.modules.data;
+      const scale = exports.getScale(size, opts);
+      const symbolSize = Math.floor((size + opts.margin * 2) * scale);
+      const scaledMargin = opts.margin * scale;
+      const palette = [opts.color.light, opts.color.dark];
+      for (let i = 0; i < symbolSize; i++) {
+        for (let j = 0; j < symbolSize; j++) {
+          let posDst = (i * symbolSize + j) * 4;
+          let pxColor = opts.color.light;
+          if (i >= scaledMargin && j >= scaledMargin && i < symbolSize - scaledMargin && j < symbolSize - scaledMargin) {
+            const iSrc = Math.floor((i - scaledMargin) / scale);
+            const jSrc = Math.floor((j - scaledMargin) / scale);
+            pxColor = palette[data[iSrc * size + jSrc] ? 1 : 0];
+          }
+          imgData[posDst++] = pxColor.r;
+          imgData[posDst++] = pxColor.g;
+          imgData[posDst++] = pxColor.b;
+          imgData[posDst] = pxColor.a;
+        }
+      }
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/png.js
+var require_png2 = __commonJS({
+  "node_modules/qrcode/lib/renderer/png.js"(exports) {
+    var fs = __require("fs");
+    var PNG = require_png().PNG;
+    var Utils = require_utils2();
+    exports.render = function render(qrData, options) {
+      const opts = Utils.getOptions(options);
+      const pngOpts = opts.rendererOpts;
+      const size = Utils.getImageWidth(qrData.modules.size, opts);
+      pngOpts.width = size;
+      pngOpts.height = size;
+      const pngImage = new PNG(pngOpts);
+      Utils.qrToImageData(pngImage.data, qrData, opts);
+      return pngImage;
+    };
+    exports.renderToDataURL = function renderToDataURL(qrData, options, cb) {
+      if (typeof cb === "undefined") {
+        cb = options;
+        options = void 0;
+      }
+      exports.renderToBuffer(qrData, options, function(err, output) {
+        if (err) cb(err);
+        let url = "data:image/png;base64,";
+        url += output.toString("base64");
+        cb(null, url);
+      });
+    };
+    exports.renderToBuffer = function renderToBuffer(qrData, options, cb) {
+      if (typeof cb === "undefined") {
+        cb = options;
+        options = void 0;
+      }
+      const png = exports.render(qrData, options);
+      const buffer = [];
+      png.on("error", cb);
+      png.on("data", function(data) {
+        buffer.push(data);
+      });
+      png.on("end", function() {
+        cb(null, Buffer.concat(buffer));
+      });
+      png.pack();
+    };
+    exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+      if (typeof cb === "undefined") {
+        cb = options;
+        options = void 0;
+      }
+      let called = false;
+      const done = (...args) => {
+        if (called) return;
+        called = true;
+        cb.apply(null, args);
+      };
+      const stream = fs.createWriteStream(path);
+      stream.on("error", done);
+      stream.on("close", done);
+      exports.renderToFileStream(stream, qrData, options);
+    };
+    exports.renderToFileStream = function renderToFileStream(stream, qrData, options) {
+      const png = exports.render(qrData, options);
+      png.pack().pipe(stream);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/utf8.js
+var require_utf8 = __commonJS({
+  "node_modules/qrcode/lib/renderer/utf8.js"(exports) {
+    var Utils = require_utils2();
+    var BLOCK_CHAR = {
+      WW: " ",
+      WB: "\u2584",
+      BB: "\u2588",
+      BW: "\u2580"
+    };
+    var INVERTED_BLOCK_CHAR = {
+      BB: " ",
+      BW: "\u2584",
+      WW: "\u2588",
+      WB: "\u2580"
+    };
+    function getBlockChar(top, bottom, blocks) {
+      if (top && bottom) return blocks.BB;
+      if (top && !bottom) return blocks.BW;
+      if (!top && bottom) return blocks.WB;
+      return blocks.WW;
+    }
+    exports.render = function(qrData, options, cb) {
+      const opts = Utils.getOptions(options);
+      let blocks = BLOCK_CHAR;
+      if (opts.color.dark.hex === "#ffffff" || opts.color.light.hex === "#000000") {
+        blocks = INVERTED_BLOCK_CHAR;
+      }
+      const size = qrData.modules.size;
+      const data = qrData.modules.data;
+      let output = "";
+      let hMargin = Array(size + opts.margin * 2 + 1).join(blocks.WW);
+      hMargin = Array(opts.margin / 2 + 1).join(hMargin + "\n");
+      const vMargin = Array(opts.margin + 1).join(blocks.WW);
+      output += hMargin;
+      for (let i = 0; i < size; i += 2) {
+        output += vMargin;
+        for (let j = 0; j < size; j++) {
+          const topModule = data[i * size + j];
+          const bottomModule = data[(i + 1) * size + j];
+          output += getBlockChar(topModule, bottomModule, blocks);
+        }
+        output += vMargin + "\n";
+      }
+      output += hMargin.slice(0, -1);
+      if (typeof cb === "function") {
+        cb(null, output);
+      }
+      return output;
+    };
+    exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+      if (typeof cb === "undefined") {
+        cb = options;
+        options = void 0;
+      }
+      const fs = __require("fs");
+      const utf8 = exports.render(qrData, options);
+      fs.writeFile(path, utf8, cb);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/terminal/terminal.js
+var require_terminal = __commonJS({
+  "node_modules/qrcode/lib/renderer/terminal/terminal.js"(exports) {
+    exports.render = function(qrData, options, cb) {
+      const size = qrData.modules.size;
+      const data = qrData.modules.data;
+      const black = "\x1B[40m  \x1B[0m";
+      const white = "\x1B[47m  \x1B[0m";
+      let output = "";
+      const hMargin = Array(size + 3).join(white);
+      const vMargin = Array(2).join(white);
+      output += hMargin + "\n";
+      for (let i = 0; i < size; ++i) {
+        output += white;
+        for (let j = 0; j < size; j++) {
+          output += data[i * size + j] ? black : white;
+        }
+        output += vMargin + "\n";
+      }
+      output += hMargin + "\n";
+      if (typeof cb === "function") {
+        cb(null, output);
+      }
+      return output;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/terminal/terminal-small.js
+var require_terminal_small = __commonJS({
+  "node_modules/qrcode/lib/renderer/terminal/terminal-small.js"(exports) {
+    var backgroundWhite = "\x1B[47m";
+    var backgroundBlack = "\x1B[40m";
+    var foregroundWhite = "\x1B[37m";
+    var foregroundBlack = "\x1B[30m";
+    var reset = "\x1B[0m";
+    var lineSetupNormal = backgroundWhite + foregroundBlack;
+    var lineSetupInverse = backgroundBlack + foregroundWhite;
+    var createPalette = function(lineSetup, foregroundWhite2, foregroundBlack2) {
+      return {
+        // 1 ... white, 2 ... black, 0 ... transparent (default)
+        "00": reset + " " + lineSetup,
+        "01": reset + foregroundWhite2 + "\u2584" + lineSetup,
+        "02": reset + foregroundBlack2 + "\u2584" + lineSetup,
+        10: reset + foregroundWhite2 + "\u2580" + lineSetup,
+        11: " ",
+        12: "\u2584",
+        20: reset + foregroundBlack2 + "\u2580" + lineSetup,
+        21: "\u2580",
+        22: "\u2588"
+      };
+    };
+    var mkCodePixel = function(modules, size, x, y) {
+      const sizePlus = size + 1;
+      if (x >= sizePlus || y >= sizePlus || y < -1 || x < -1) return "0";
+      if (x >= size || y >= size || y < 0 || x < 0) return "1";
+      const idx = y * size + x;
+      return modules[idx] ? "2" : "1";
+    };
+    var mkCode = function(modules, size, x, y) {
+      return mkCodePixel(modules, size, x, y) + mkCodePixel(modules, size, x, y + 1);
+    };
+    exports.render = function(qrData, options, cb) {
+      const size = qrData.modules.size;
+      const data = qrData.modules.data;
+      const inverse = !!(options && options.inverse);
+      const lineSetup = options && options.inverse ? lineSetupInverse : lineSetupNormal;
+      const white = inverse ? foregroundBlack : foregroundWhite;
+      const black = inverse ? foregroundWhite : foregroundBlack;
+      const palette = createPalette(lineSetup, white, black);
+      const newLine = reset + "\n" + lineSetup;
+      let output = lineSetup;
+      for (let y = -1; y < size + 1; y += 2) {
+        for (let x = -1; x < size; x++) {
+          output += palette[mkCode(data, size, x, y)];
+        }
+        output += palette[mkCode(data, size, size, y)] + newLine;
+      }
+      output += reset;
+      if (typeof cb === "function") {
+        cb(null, output);
+      }
+      return output;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/terminal.js
+var require_terminal2 = __commonJS({
+  "node_modules/qrcode/lib/renderer/terminal.js"(exports) {
+    var big = require_terminal();
+    var small = require_terminal_small();
+    exports.render = function(qrData, options, cb) {
+      if (options && options.small) {
+        return small.render(qrData, options, cb);
+      }
+      return big.render(qrData, options, cb);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/svg-tag.js
+var require_svg_tag = __commonJS({
+  "node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
+    var Utils = require_utils2();
+    function getColorAttrib(color, attrib) {
+      const alpha = color.a / 255;
+      const str = attrib + '="' + color.hex + '"';
+      return alpha < 1 ? str + " " + attrib + '-opacity="' + alpha.toFixed(2).slice(1) + '"' : str;
+    }
+    function svgCmd(cmd, x, y) {
+      let str = cmd + x;
+      if (typeof y !== "undefined") str += " " + y;
+      return str;
+    }
+    function qrToPath(data, size, margin) {
+      let path = "";
+      let moveBy = 0;
+      let newRow = false;
+      let lineLength = 0;
+      for (let i = 0; i < data.length; i++) {
+        const col = Math.floor(i % size);
+        const row = Math.floor(i / size);
+        if (!col && !newRow) newRow = true;
+        if (data[i]) {
+          lineLength++;
+          if (!(i > 0 && col > 0 && data[i - 1])) {
+            path += newRow ? svgCmd("M", col + margin, 0.5 + row + margin) : svgCmd("m", moveBy, 0);
+            moveBy = 0;
+            newRow = false;
+          }
+          if (!(col + 1 < size && data[i + 1])) {
+            path += svgCmd("h", lineLength);
+            lineLength = 0;
+          }
+        } else {
+          moveBy++;
+        }
+      }
+      return path;
+    }
+    exports.render = function render(qrData, options, cb) {
+      const opts = Utils.getOptions(options);
+      const size = qrData.modules.size;
+      const data = qrData.modules.data;
+      const qrcodesize = size + opts.margin * 2;
+      const bg = !opts.color.light.a ? "" : "<path " + getColorAttrib(opts.color.light, "fill") + ' d="M0 0h' + qrcodesize + "v" + qrcodesize + 'H0z"/>';
+      const path = "<path " + getColorAttrib(opts.color.dark, "stroke") + ' d="' + qrToPath(data, size, opts.margin) + '"/>';
+      const viewBox = 'viewBox="0 0 ' + qrcodesize + " " + qrcodesize + '"';
+      const width = !opts.width ? "" : 'width="' + opts.width + '" height="' + opts.width + '" ';
+      const svgTag = '<svg xmlns="http://www.w3.org/2000/svg" ' + width + viewBox + ' shape-rendering="crispEdges">' + bg + path + "</svg>\n";
+      if (typeof cb === "function") {
+        cb(null, svgTag);
+      }
+      return svgTag;
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/svg.js
+var require_svg = __commonJS({
+  "node_modules/qrcode/lib/renderer/svg.js"(exports) {
+    var svgTagRenderer = require_svg_tag();
+    exports.render = svgTagRenderer.render;
+    exports.renderToFile = function renderToFile(path, qrData, options, cb) {
+      if (typeof cb === "undefined") {
+        cb = options;
+        options = void 0;
+      }
+      const fs = __require("fs");
+      const svgTag = exports.render(qrData, options);
+      const xmlStr = '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' + svgTag;
+      fs.writeFile(path, xmlStr, cb);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/renderer/canvas.js
+var require_canvas = __commonJS({
+  "node_modules/qrcode/lib/renderer/canvas.js"(exports) {
+    var Utils = require_utils2();
+    function clearCanvas(ctx, canvas, size) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!canvas.style) canvas.style = {};
+      canvas.height = size;
+      canvas.width = size;
+      canvas.style.height = size + "px";
+      canvas.style.width = size + "px";
+    }
+    function getCanvasElement() {
+      try {
+        return document.createElement("canvas");
+      } catch (e) {
+        throw new Error("You need to specify a canvas element");
+      }
+    }
+    exports.render = function render(qrData, canvas, options) {
+      let opts = options;
+      let canvasEl = canvas;
+      if (typeof opts === "undefined" && (!canvas || !canvas.getContext)) {
+        opts = canvas;
+        canvas = void 0;
+      }
+      if (!canvas) {
+        canvasEl = getCanvasElement();
+      }
+      opts = Utils.getOptions(opts);
+      const size = Utils.getImageWidth(qrData.modules.size, opts);
+      const ctx = canvasEl.getContext("2d");
+      const image = ctx.createImageData(size, size);
+      Utils.qrToImageData(image.data, qrData, opts);
+      clearCanvas(ctx, canvasEl, size);
+      ctx.putImageData(image, 0, 0);
+      return canvasEl;
+    };
+    exports.renderToDataURL = function renderToDataURL(qrData, canvas, options) {
+      let opts = options;
+      if (typeof opts === "undefined" && (!canvas || !canvas.getContext)) {
+        opts = canvas;
+        canvas = void 0;
+      }
+      if (!opts) opts = {};
+      const canvasEl = exports.render(qrData, canvas, opts);
+      const type = opts.type || "image/png";
+      const rendererOpts = opts.rendererOpts || {};
+      return canvasEl.toDataURL(type, rendererOpts.quality);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/browser.js
+var require_browser = __commonJS({
+  "node_modules/qrcode/lib/browser.js"(exports) {
+    var canPromise = require_can_promise();
+    var QRCode = require_qrcode();
+    var CanvasRenderer = require_canvas();
+    var SvgRenderer = require_svg_tag();
+    function renderCanvas(renderFunc, canvas, text2, opts, cb) {
+      const args = [].slice.call(arguments, 1);
+      const argsNum = args.length;
+      const isLastArgCb = typeof args[argsNum - 1] === "function";
+      if (!isLastArgCb && !canPromise()) {
+        throw new Error("Callback required as last argument");
+      }
+      if (isLastArgCb) {
+        if (argsNum < 2) {
+          throw new Error("Too few arguments provided");
+        }
+        if (argsNum === 2) {
+          cb = text2;
+          text2 = canvas;
+          canvas = opts = void 0;
+        } else if (argsNum === 3) {
+          if (canvas.getContext && typeof cb === "undefined") {
+            cb = opts;
+            opts = void 0;
+          } else {
+            cb = opts;
+            opts = text2;
+            text2 = canvas;
+            canvas = void 0;
+          }
+        }
+      } else {
+        if (argsNum < 1) {
+          throw new Error("Too few arguments provided");
+        }
+        if (argsNum === 1) {
+          text2 = canvas;
+          canvas = opts = void 0;
+        } else if (argsNum === 2 && !canvas.getContext) {
+          opts = text2;
+          text2 = canvas;
+          canvas = void 0;
+        }
+        return new Promise(function(resolve, reject) {
+          try {
+            const data = QRCode.create(text2, opts);
+            resolve(renderFunc(data, canvas, opts));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+      try {
+        const data = QRCode.create(text2, opts);
+        cb(null, renderFunc(data, canvas, opts));
+      } catch (e) {
+        cb(e);
+      }
+    }
+    exports.create = QRCode.create;
+    exports.toCanvas = renderCanvas.bind(null, CanvasRenderer.render);
+    exports.toDataURL = renderCanvas.bind(null, CanvasRenderer.renderToDataURL);
+    exports.toString = renderCanvas.bind(null, function(data, _, opts) {
+      return SvgRenderer.render(data, opts);
+    });
+  }
+});
+
+// node_modules/qrcode/lib/server.js
+var require_server = __commonJS({
+  "node_modules/qrcode/lib/server.js"(exports) {
+    var canPromise = require_can_promise();
+    var QRCode = require_qrcode();
+    var PngRenderer = require_png2();
+    var Utf8Renderer = require_utf8();
+    var TerminalRenderer = require_terminal2();
+    var SvgRenderer = require_svg();
+    function checkParams(text2, opts, cb) {
+      if (typeof text2 === "undefined") {
+        throw new Error("String required as first argument");
+      }
+      if (typeof cb === "undefined") {
+        cb = opts;
+        opts = {};
+      }
+      if (typeof cb !== "function") {
+        if (!canPromise()) {
+          throw new Error("Callback required as last argument");
+        } else {
+          opts = cb || {};
+          cb = null;
+        }
+      }
+      return {
+        opts,
+        cb
+      };
+    }
+    function getTypeFromFilename(path) {
+      return path.slice((path.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+    }
+    function getRendererFromType(type) {
+      switch (type) {
+        case "svg":
+          return SvgRenderer;
+        case "txt":
+        case "utf8":
+          return Utf8Renderer;
+        case "png":
+        case "image/png":
+        default:
+          return PngRenderer;
+      }
+    }
+    function getStringRendererFromType(type) {
+      switch (type) {
+        case "svg":
+          return SvgRenderer;
+        case "terminal":
+          return TerminalRenderer;
+        case "utf8":
+        default:
+          return Utf8Renderer;
+      }
+    }
+    function render(renderFunc, text2, params) {
+      if (!params.cb) {
+        return new Promise(function(resolve, reject) {
+          try {
+            const data = QRCode.create(text2, params.opts);
+            return renderFunc(data, params.opts, function(err, data2) {
+              return err ? reject(err) : resolve(data2);
+            });
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+      try {
+        const data = QRCode.create(text2, params.opts);
+        return renderFunc(data, params.opts, params.cb);
+      } catch (e) {
+        params.cb(e);
+      }
+    }
+    exports.create = QRCode.create;
+    exports.toCanvas = require_browser().toCanvas;
+    exports.toString = function toString(text2, opts, cb) {
+      const params = checkParams(text2, opts, cb);
+      const type = params.opts ? params.opts.type : void 0;
+      const renderer = getStringRendererFromType(type);
+      return render(renderer.render, text2, params);
+    };
+    exports.toDataURL = function toDataURL(text2, opts, cb) {
+      const params = checkParams(text2, opts, cb);
+      const renderer = getRendererFromType(params.opts.type);
+      return render(renderer.renderToDataURL, text2, params);
+    };
+    exports.toBuffer = function toBuffer(text2, opts, cb) {
+      const params = checkParams(text2, opts, cb);
+      const renderer = getRendererFromType(params.opts.type);
+      return render(renderer.renderToBuffer, text2, params);
+    };
+    exports.toFile = function toFile(path, text2, opts, cb) {
+      if (typeof path !== "string" || !(typeof text2 === "string" || typeof text2 === "object")) {
+        throw new Error("Invalid argument");
+      }
+      if (arguments.length < 3 && !canPromise()) {
+        throw new Error("Too few arguments provided");
+      }
+      const params = checkParams(text2, opts, cb);
+      const type = params.opts.type || getTypeFromFilename(path);
+      const renderer = getRendererFromType(type);
+      const renderToFile = renderer.renderToFile.bind(null, path);
+      return render(renderToFile, text2, params);
+    };
+    exports.toFileStream = function toFileStream(stream, text2, opts) {
+      if (arguments.length < 2) {
+        throw new Error("Too few arguments provided");
+      }
+      const params = checkParams(text2, opts, stream.emit.bind(stream, "error"));
+      const renderer = getRendererFromType("png");
+      const renderToFileStream = renderer.renderToFileStream.bind(null, stream);
+      render(renderToFileStream, text2, params);
+    };
+  }
+});
+
+// node_modules/qrcode/lib/index.js
+var require_lib = __commonJS({
+  "node_modules/qrcode/lib/index.js"(exports, module) {
+    module.exports = require_server();
+  }
+});
 
 // shared/schema.ts
 var schema_exports = {};
@@ -4232,11 +13039,11 @@ function isValidIP(ip, version2) {
   }
   return false;
 }
-function isValidJWT(jwt, alg) {
-  if (!jwtRegex.test(jwt))
+function isValidJWT(jwt2, alg) {
+  if (!jwtRegex.test(jwt2))
     return false;
   try {
-    const [header] = jwt.split(".");
+    const [header] = jwt2.split(".");
     if (!header)
       return false;
     const base64 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
@@ -10470,7 +19277,155 @@ var DatabaseStorage = class {
   }
 };
 
+// server/authWorker.ts
+var import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
+var import_speakeasy = __toESM(require_speakeasy(), 1);
+var import_qrcode = __toESM(require_lib(), 1);
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+var scryptAsync = promisify(scrypt);
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = await scryptAsync(password, salt, 64);
+  return `${buf.toString("hex")}.${salt}`;
+}
+async function comparePasswords(supplied, stored) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = await scryptAsync(supplied, salt, 64);
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+function generateJwtToken(user, secret) {
+  return import_jsonwebtoken.default.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: "1h" });
+}
+function verifyJwtToken(token, secret) {
+  try {
+    const decoded = import_jsonwebtoken.default.verify(token, secret);
+    return decoded;
+  } catch (error) {
+    console.error("JWT \uD1A0\uD070 \uAC80\uC99D \uC2E4\uD328:", error);
+    return null;
+  }
+}
+async function generateMfaSecret(email) {
+  const secret = import_speakeasy.default.generateSecret({
+    name: `Antigravity (${email})`,
+    // TOTP 앱에 표시될 이름
+    length: 20
+    // 비밀 키 길이
+  });
+  try {
+    const qrCode = await import_qrcode.default.toDataURL(secret.otpauth_url);
+    return { secret: secret.base32, qrCode };
+  } catch (error) {
+    console.error("QR \uCF54\uB4DC \uC0DD\uC131 \uC2E4\uD328:", error);
+    throw new Error("Failed to generate QR code");
+  }
+}
+function verifyMfaToken(secret, token) {
+  return import_speakeasy.default.totp.verify({
+    secret,
+    // 사용자의 MFA 비밀
+    encoding: "base32",
+    // 비밀 인코딩 방식
+    token
+    // 사용자가 입력한 TOTP 토큰
+  });
+}
+async function handleRegister(request, env) {
+  const { username, email, password } = await request.json();
+  const storage = new DatabaseStorage(env);
+  const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
+  if (existingUser) {
+    throw new Error("Username or Email already exists");
+  }
+  const hashedPassword = await hashPassword(password);
+  const newUser = await storage.createUser({
+    username,
+    email,
+    password: hashedPassword,
+    role: "user",
+    // 기본 역할
+    isMfaEnabled: false,
+    mfaSecret: null
+  });
+  if (!newUser) {
+    throw new Error("Failed to create user");
+  }
+  const token = generateJwtToken(newUser, env.JWT_SECRET);
+  return { user: newUser, token };
+}
+async function handleLogin(request, env) {
+  const { email, password, token: mfaToken } = await request.json();
+  const storage = new DatabaseStorage(env);
+  const user = await storage.getUserByEmail(email);
+  if (!user) {
+    throw new Error("Invalid credentials");
+  }
+  const isValidPassword = await comparePasswords(password, user.password);
+  if (!isValidPassword) {
+    throw new Error("Invalid credentials");
+  }
+  if (user.isMfaEnabled) {
+    if (mfaToken) {
+      const isMfaValid = verifyMfaToken(user.mfaSecret, mfaToken);
+      if (!isMfaValid) {
+        throw new Error("Invalid MFA Token");
+      }
+      const token = generateJwtToken(user, env.JWT_SECRET);
+      return { user, token, mfaRequired: false };
+    } else {
+      return { mfaRequired: true };
+    }
+  } else {
+    const token = generateJwtToken(user, env.JWT_SECRET);
+    return { user, token, mfaRequired: false };
+  }
+}
+async function handleMfaSetup(request, env, user) {
+  const mfaResponse = await generateMfaSecret(user.email);
+  return mfaResponse;
+}
+async function handleMfaVerify(request, env, user) {
+  const { token, secret } = await request.json();
+  const storage = new DatabaseStorage(env);
+  const secretToVerify = secret || user.mfaSecret;
+  if (!secretToVerify) {
+    throw new Error("MFA not set up for this user");
+  }
+  const isValid2 = verifyMfaToken(secretToVerify, token);
+  if (isValid2) {
+    if (secret) {
+      await storage.updateUserMfa(user.id, secret, true);
+    }
+    return { success: true };
+  } else {
+    throw new Error("Invalid MFA Token");
+  }
+}
+
 // server/routes.ts
+function json2(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+var ResponseError = class extends Error {
+  constructor(message, status = 500) {
+    super(message);
+    this.message = message;
+    this.status = status;
+    this.name = "ResponseError";
+  }
+};
+async function safeJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
 async function callOpenAI(prompt, env) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -10485,40 +19440,98 @@ async function callOpenAI(prompt, env) {
     })
   });
   if (!response.ok) {
-    throw new Error("OpenAI request failed");
+    throw new ResponseError("OpenAI request failed", response.status);
   }
   const data = await response.json();
   return JSON.parse(data.choices?.[0]?.message?.content || "{}");
+}
+async function authenticateJwt(request, env) {
+  const authHeader = request.headers.get("Authorization");
+  const token = authHeader?.split(" ")[1];
+  if (!token) {
+    throw new ResponseError("\uC778\uC99D \uD1A0\uD070\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.", 401);
+  }
+  const user = verifyJwtToken(token, env.JWT_SECRET);
+  if (!user) {
+    throw new ResponseError("\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 \uC778\uC99D \uD1A0\uD070\uC785\uB2C8\uB2E4.", 401);
+  }
+  request.user = user;
+}
+function requireAuth(request) {
+  if (!request.user) {
+    throw new ResponseError("\uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.", 401);
+  }
+}
+function requireRole(request, allowedRoles) {
+  if (!request.user) {
+    throw new ResponseError("\uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.", 401);
+  }
+  if (!allowedRoles.includes(request.user.role)) {
+    throw new ResponseError("\uC774 \uC791\uC5C5\uC744 \uC218\uD589\uD560 \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.", 403);
+  }
 }
 async function registerRoutes(request, env, ctx) {
   const storage = new DatabaseStorage(env);
   const url = new URL(request.url);
   const method = request.method;
-  if (method === "GET" && /^\/api\/news\/?$/.test(url.pathname)) {
-    const news2 = await storage.getNews();
-    return json2(news2);
-  }
-  if (method === "GET" && /^\/api\/news\/\d+$/.test(url.pathname)) {
-    const id = Number(url.pathname.split("/").pop());
-    const news2 = await storage.getNewsItem(id);
-    if (!news2) return json2({ message: "News not found" }, 404);
-    return json2(news2);
-  }
-  if (method === "POST" && /^\/api\/news\/?$/.test(url.pathname)) {
-    const body = await safeJson(request);
-    try {
-      const news2 = await storage.createNews(body);
-      return json2(news2, 201);
-    } catch {
-      return json2({ message: "Failed to create news" }, 500);
+  try {
+    if (method === "POST" && url.pathname === "/api/auth/register") {
+      const { user, token } = await handleRegister(request, env);
+      return json2({ user, token }, 201);
     }
-  }
-  if (method === "POST" && /^\/api\/news\/\d+\/analyze$/.test(url.pathname)) {
-    const id = Number(url.pathname.split("/")[3]);
-    const newsItem = await storage.getNewsItem(id);
-    if (!newsItem) return json2({ message: "News not found" }, 404);
-    try {
-      const prompt = `
+    if (method === "POST" && url.pathname === "/api/auth/login") {
+      const { user, token, mfaRequired } = await handleLogin(request, env);
+      if (mfaRequired) {
+        return json2({ mfaRequired: true }, 200);
+      }
+      return json2({ user, token }, 200);
+    }
+    if (method === "GET" && url.pathname === "/api/auth/me") {
+      await authenticateJwt(request, env);
+      requireAuth(request);
+      return json2(request.user);
+    }
+    if (method === "POST" && url.pathname === "/api/auth/mfa/setup") {
+      await authenticateJwt(request, env);
+      requireAuth(request);
+      const mfaResponse = await handleMfaSetup(request, env, request.user);
+      return json2(mfaResponse);
+    }
+    if (method === "POST" && url.pathname === "/api/auth/mfa/verify") {
+      await authenticateJwt(request, env);
+      requireAuth(request);
+      const result = await handleMfaVerify(request, env, request.user);
+      return json2(result);
+    }
+    if (method === "GET" && /^\/api\/news\/?$/.test(url.pathname)) {
+      const news2 = await storage.getNews();
+      return json2(news2);
+    }
+    if (method === "GET" && /^\/api\/news\/\d+$/.test(url.pathname)) {
+      const id = Number(url.pathname.split("/").pop());
+      const news2 = await storage.getNewsItem(id);
+      if (!news2) throw new ResponseError("News not found", 404);
+      return json2(news2);
+    }
+    if (method === "POST" && /^\/api\/news\/?$/.test(url.pathname)) {
+      await authenticateJwt(request, env);
+      requireRole(request, ["admin", "editor"]);
+      const body = await safeJson(request);
+      try {
+        const news2 = await storage.createNews(body);
+        return json2(news2, 201);
+      } catch (error) {
+        throw new ResponseError(error.message || "Failed to create news", 500);
+      }
+    }
+    if (method === "POST" && /^\/api\/news\/\d+\/analyze$/.test(url.pathname)) {
+      await authenticateJwt(request, env);
+      requireRole(request, ["admin", "editor"]);
+      const id = Number(url.pathname.split("/")[3]);
+      const newsItem = await storage.getNewsItem(id);
+      if (!newsItem) throw new ResponseError("News not found", 404);
+      try {
+        const prompt = `
 Analyze this news article:
 
 Title: ${newsItem.title}
@@ -10529,62 +19542,60 @@ Return JSON with:
 - reaction
 - question
 `;
-      const aiResult = await callOpenAI(prompt, env);
-      const updatedNews = await storage.updateNewsAnalysis(id, {
-        summary: aiResult.summary || "Summary not available.",
-        reaction: aiResult.reaction || "Reaction pending.",
-        question: aiResult.question || "What do you think?"
-      });
-      return json2(updatedNews);
-    } catch {
-      return json2({ message: "AI Analysis failed" }, 500);
+        const aiResult = await callOpenAI(prompt, env);
+        const updatedNews = await storage.updateNewsAnalysis(id, {
+          summary: aiResult.summary || "Summary not available.",
+          reaction: aiResult.reaction,
+          discussionQuestion: aiResult.question,
+          analysis: "Completed"
+          // analysis 필드 업데이트
+        });
+        return json2(updatedNews);
+      } catch (error) {
+        throw new ResponseError(error.message || "AI Analysis failed", 500);
+      }
     }
-  }
-  if (method === "GET" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
-    const id = Number(url.pathname.split("/")[3]);
-    const comments2 = await storage.getComments(id);
-    return json2(comments2);
-  }
-  if (method === "POST" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
-    const id = Number(url.pathname.split("/")[3]);
-    const body = await safeJson(request);
-    try {
-      const comment = await storage.createComment({
-        content: body.content,
-        newsId: id,
-        userId: 1
-        // 임시
-      });
-      return json2(comment, 201);
-    } catch {
-      return json2({ message: "Failed to create comment" }, 500);
+    if (method === "GET" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
+      const id = Number(url.pathname.split("/")[3]);
+      const comments2 = await storage.getComments(id);
+      return json2(comments2);
     }
+    if (method === "POST" && /^\/api\/news\/\d+\/comments$/.test(url.pathname)) {
+      await authenticateJwt(request, env);
+      requireAuth(request);
+      const id = Number(url.pathname.split("/")[3]);
+      const body = await safeJson(request);
+      try {
+        const comment = await storage.createComment({
+          content: body.content,
+          newsId: id,
+          // @ts-ignore
+          userId: request.user.id
+          // 인증된 사용자 ID 사용
+        });
+        return json2(comment, 201);
+      } catch (error) {
+        throw new ResponseError(error.message || "Failed to create comment", 500);
+      }
+    }
+    if (method === "GET" && /^\/api\/media\/?$/.test(url.pathname)) {
+      const media2 = await storage.getMedia();
+      return json2(media2);
+    }
+    if (method === "GET" && /^\/api\/stats\/?$/.test(url.pathname)) {
+      const stats = await storage.getStats();
+      return json2({
+        ...stats,
+        activeUsers: Math.floor(Math.random() * 50) + 10
+      });
+    }
+    return new Response("Not Found", { status: 404 });
+  } catch (error) {
+    if (error instanceof ResponseError) {
+      return json2({ message: error.message }, error.status);
+    }
+    return json2({ message: "\uC11C\uBC84 \uB0B4\uBD80 \uC624\uB958 \uBC1C\uC0DD", error: error.message }, 500);
   }
-  if (method === "GET" && /^\/api\/media\/?$/.test(url.pathname)) {
-    const media2 = await storage.getMedia();
-    return json2(media2);
-  }
-  if (method === "GET" && /^\/api\/stats\/?$/.test(url.pathname)) {
-    const stats = await storage.getStats();
-    return json2({
-      ...stats,
-      activeUsers: Math.floor(Math.random() * 50) + 10
-    });
-  }
-  return new Response("Not Found", { status: 404 });
-}
-async function safeJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
-  }
-}
-function json2(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" }
-  });
 }
 
 // server/index.ts
@@ -10633,3 +19644,8 @@ export {
   index_default as default,
   log
 };
+/*! Bundled license information:
+
+safe-buffer/index.js:
+  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
+*/
