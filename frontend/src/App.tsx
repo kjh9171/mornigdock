@@ -18,6 +18,13 @@ function App() {
   // Use Global Navigation Store
   const { view, userTab, setView, setUserTab } = useNavigationStore();
 
+  // Auto-redirect Admin to Admin Panel
+  useEffect(() => {
+    if (user?.isAdmin) {
+      setView('admin');
+    }
+  }, [user, setView]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <header className="fixed top-0 left-0 w-full p-6 flex justify-between items-center bg-white/50 backdrop-blur-md border-b-[0.5px] border-stone-200 z-10 transition-all">

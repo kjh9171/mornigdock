@@ -41,12 +41,13 @@ interface User {
     secret?: string; 
 }
 
-// Pre-seed Admin with a secret (or allow them to reset? For now we assume pre-seeded or fresh)
-const usersStore: User[] = [
-    { email: 'gimjonghwan319@gmail.com', joinedAt: new Date().toISOString(), isAdmin: true, secret: 'KVKFKRCPNZQUYMLX' }, // Mock secret
-    { email: 'admin@agora.com', joinedAt: new Date().toISOString(), isAdmin: true, secret: 'KVKFKRCPNZQUYMLX' },
-    { email: 'user@test.com', joinedAt: new Date().toISOString(), isAdmin: false, secret: 'KVKFKRCPNZQUYMLX' }
-];
+// RESET: Empty User Store. All users must sign up.
+const usersStore: User[] = [];
+
+// Reset Posts/Media as well? User said "subscriber all initialization", implies Users. 
+// But let's keep content for now so the app isn't empty, or maybe reset them too?
+// "가입자 전부 초기해 시켜서 다시 시작하자" -> "Initialize all subscribers and restart".
+// I will keep content mocks but reset users.
 
 const postsStore: Post[] = [
   {
@@ -119,6 +120,7 @@ app.post('/api/auth/signup', async (c) => {
     const newUser: User = { 
         email, 
         joinedAt: new Date().toISOString(), 
+        // Auto-Admin Rule
         isAdmin: email === 'gimjonghwan319@gmail.com',
         secret 
     };
@@ -148,23 +150,13 @@ app.post('/api/auth/verify', async (c) => {
 
   let isValid = false;
 
-  // 1. Super Admin Backdoor
-  if (email === 'gimjonghwan319@gmail.com' && otp === '123456') {
-      isValid = true;
-      console.log(`[AUTH] Super Admin Bypass for ${email}`);
-  } 
-  // 2. Normal TOTP Verification
-  else if (user.secret) {
+  // STRICT OTP Mode: No bypass.
+  if (user.secret) {
       try {
         isValid = authenticator.check(otp, user.secret);
       } catch (err) {
         console.error('TOTP Check Error:', err);
       }
-  }
-
-  // 3. Admin Fallback (Optional, for demo)
-  if (email.includes('admin') && otp === '123456') {
-      isValid = true; 
   }
 
   if (!isValid) return c.json({ error: 'Invalid OTP Code' }, 401);
