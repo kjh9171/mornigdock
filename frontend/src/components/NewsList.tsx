@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useLocalizedContent, LocalizedText } from '../utils/langUtils';
 import { useActivityLog } from '../utils/activityLogger';
 import { useDiscussionStore } from '../store/useDiscussionStore';
-import { FileText, Loader2, X, Bot, CheckCircle2, MessageSquarePlus } from 'lucide-react';
+import { useNavigationStore } from '../store/useNavigationStore';
+import { FileText, Loader2, X, Bot, CheckCircle2, MessageSquarePlus, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NewsItem {
@@ -12,16 +13,14 @@ interface NewsItem {
   title: LocalizedText;
   summary: LocalizedText;
   content: LocalizedText;
+  url?: string;
 }
 
 export function NewsList() {
   const { ln } = useLocalizedContent();
   const { logActivity } = useActivityLog();
   const { startDiscussion } = useDiscussionStore();
-  
-  // Need to access App's view state setter if possible, but for now we'll assume the user manually switches or we need a global UI store.
-  // Actually, let's export a global event or better yet, move 'view' state to a store. 
-  // For this prototype, we will dispatch a custom event 'switch-to-discussion'.
+  const { setView, setUserTab } = useNavigationStore();
   
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,14 +64,15 @@ export function NewsList() {
   const handleDiscuss = () => {
     if (!selectedItem) return;
     const title = `[Discussion] ${ln(selectedItem.title)}`;
-    const content = `Source: ${selectedItem.source}\nSnippet: ${ln(selectedItem.summary)}\n\nLet's discuss this news...`;
+    const content = `Source: ${selectedItem.source}\nSnippet: ${ln(selectedItem.summary)}\nLink: ${selectedItem.url || 'No URL'}\n\nLet's discuss this news...`;
     
     startDiscussion(title, content);
     logActivity(`Start Discussion: ${selectedItem.id}`);
     setSelectedItem(null);
     
-    // Dispatch event to switch tab in App.tsx
-    window.dispatchEvent(new CustomEvent('switch-to-discussion'));
+    // Switch via Store
+    setView('user');
+    setUserTab('discussion');
   };
 
   const getSourceBadge = (source: string) => {
@@ -121,7 +121,7 @@ export function NewsList() {
                   {ln(item.title)}
                 </h3>
                 <p className="text-stone-500 font-light mt-2 text-sm leading-relaxed line-clamp-2">
-                  {ln(item.summary)}
+                   {ln(item.summary)}
                 </p>
               </div>
             </div>
@@ -140,9 +140,15 @@ export function NewsList() {
               className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20"
             >
               <div className="p-6 border-b border-stone-100 flex justify-between items-start">
-                <h2 className="text-xl font-bold text-primary-800 pr-8 leading-tight">
-                  {ln(selectedItem.title)}
-                </h2>
+                <div className="pr-4">
+                  <div className="flex items-center gap-2 mb-2">
+                     {getSourceBadge(selectedItem.source)}
+                     <span className="text-xs text-stone-400 font-mono tracking-tight">{selectedItem.type.toUpperCase()}</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-primary-800 leading-tight">
+                    {ln(selectedItem.title)}
+                  </h2>
+                </div>
                 <button 
                   onClick={() => setSelectedItem(null)}
                   className="p-1 rounded-full hover:bg-stone-100 text-stone-400 transition-colors"
@@ -151,13 +157,26 @@ export function NewsList() {
                 </button>
               </div>
               
-              <div className="p-6 space-y-6">
-                <p className="text-stone-600 leading-relaxed font-light text-lg">
+              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                <p className="text-stone-600 leading-relaxed font-light text-lg whitespace-pre-wrap">
                   {ln(selectedItem.content)}
                 </p>
 
+                {/* URL Link */}
+                {selectedItem.url && (
+                    <a 
+                        href={selectedItem.url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-accent-600 font-medium hover:underline decoration-accent-600 underline-offset-4"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        View Original Source 
+                    </a>
+                )}
+
                 {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 mt-6">
+                <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-stone-100">
                    <button
                       onClick={handleAnalyze}
                       disabled={analyzing}

@@ -6,24 +6,17 @@ import { Globe, ShieldCheck, LogOut, LayoutDashboard, FileText, MessageSquare, P
 import { NewsList } from './components/NewsList';
 import { Login } from './components/Login';
 import { AdminPanel } from './components/AdminPanel';
+import { AgoraDiscussion } from './components/AgoraDiscussion';
 import { MediaCenter } from './components/MediaCenter';
+import { useNavigationStore } from './store/useNavigationStore';
 
 function App() {
   const { t } = useTranslation();
   const { language, toggleLanguage } = useLanguageStore();
   const { user, logout } = useAuthStore();
   
-  const [view, setView] = useState<'user' | 'admin'>('user'); // Top-level view
-  const [userTab, setUserTab] = useState<'news' | 'discussion' | 'media'>('news'); // User sub-view
-
-  useEffect(() => {
-    const handleSwitch = () => {
-      setView('user');
-      setUserTab('discussion');
-    };
-    window.addEventListener('switch-to-discussion', handleSwitch);
-    return () => window.removeEventListener('switch-to-discussion', handleSwitch);
-  }, []);
+  // Use Global Navigation Store
+  const { view, userTab, setView, setUserTab } = useNavigationStore();
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
