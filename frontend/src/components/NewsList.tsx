@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useLocalizedContent, LocalizedText } from '../utils/langUtils';
 import { useActivityLog } from '../utils/activityLogger';
-import { FileText, Loader2, X, Bot, CheckCircle2 } from 'lucide-react';
+import { useDiscussionStore } from '../store/useDiscussionStore';
+import { FileText, Loader2, X, Bot, CheckCircle2, MessageSquarePlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NewsItem {
   id: number;
+  source: string;
+  type: 'breaking' | 'analysis';
   title: LocalizedText;
   summary: LocalizedText;
   content: LocalizedText;
@@ -14,6 +17,12 @@ interface NewsItem {
 export function NewsList() {
   const { ln } = useLocalizedContent();
   const { logActivity } = useActivityLog();
+  const { startDiscussion } = useDiscussionStore();
+  
+  // Need to access App's view state setter if possible, but for now we'll assume the user manually switches or we need a global UI store.
+  // Actually, let's export a global event or better yet, move 'view' state to a store. 
+  // For this prototype, we will dispatch a custom event 'switch-to-discussion'.
+  
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<NewsItem | null>(null);
@@ -38,7 +47,7 @@ export function NewsList() {
   const handleItemClick = (item: NewsItem) => {
     setSelectedItem(item);
     setAiResult(null); // Reset previous analysis
-    logActivity(`View News: ${item.id}`);
+    logActivity(`View News: ${item.id} (${item.source})`);
   };
 
   const handleAnalyze = () => {
@@ -51,6 +60,30 @@ export function NewsList() {
       setAnalyzing(false);
       setAiResult("Analysis Complete: No critical threats detected. Sentiment is positive. (Mock AI Result)");
     }, 1500);
+  };
+
+  const handleDiscuss = () => {
+    if (!selectedItem) return;
+    const title = `[Discussion] ${ln(selectedItem.title)}`;
+    const content = `Source: ${selectedItem.source}\nSnippet: ${ln(selectedItem.summary)}\n\nLet's discuss this news...`;
+    
+    startDiscussion(title, content);
+    logActivity(`Start Discussion: ${selectedItem.id}`);
+    setSelectedItem(null);
+    
+    // Dispatch event to switch tab in App.tsx
+    window.dispatchEvent(new CustomEvent('switch-to-discussion'));
+  };
+
+  const getSourceBadge = (source: string) => {
+    switch (source) {
+      case 'Yonhap':
+        return <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold tracking-wider rounded-sm uppercase">YONHAP</span>;
+      case 'Naver':
+        return <span className="px-2 py-0.5 bg-green-100 text-green-600 text-[10px] font-bold tracking-wider rounded-sm uppercase">NAVER</span>;
+      default:
+        return <span className="px-2 py-0.5 bg-stone-100 text-stone-500 text-[10px] font-bold tracking-wider rounded-sm uppercase">AGORA</span>;
+    }
   };
 
   if (loading) {
@@ -70,15 +103,24 @@ export function NewsList() {
             onClick={() => handleItemClick(item)}
             className="bg-white p-5 rounded-xl border-[0.5px] border-stone-200 shadow-soft hover:shadow-md transition-shadow cursor-pointer group"
           >
-            <div className="flex items-start gap-3">
-              <div className="mt-1 p-2 bg-stone-50 rounded-lg group-hover:bg-accent-600/10 transition-colors">
-                <FileText className="w-5 h-5 text-stone-400 group-hover:text-accent-600 transition-colors" />
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex flex-col items-center gap-2">
+                <div className="p-2 bg-stone-50 rounded-lg group-hover:bg-accent-600/10 transition-colors">
+                  <FileText className="w-5 h-5 text-stone-400 group-hover:text-accent-600 transition-colors" />
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-primary-800 text-lg group-hover:text-accent-600 transition-colors">
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {getSourceBadge(item.source)}
+                  {item.type === 'breaking' && (
+                    <span className="text-[10px] font-medium text-red-500 animate-pulse">● LIVE</span>
+                  )}
+                </div>
+                <h3 className="font-semibold text-primary-800 text-lg group-hover:text-accent-600 transition-colors leading-tight">
                   {ln(item.title)}
                 </h3>
-                <p className="text-stone-500 font-light mt-1">
+                <p className="text-stone-500 font-light mt-2 text-sm leading-relaxed line-clamp-2">
                   {ln(item.summary)}
                 </p>
               </div>
@@ -114,38 +156,46 @@ export function NewsList() {
                   {ln(selectedItem.content)}
                 </p>
 
-                {/* AI Analysis Section */}
-                <div className="bg-stone-50 p-4 rounded-xl border border-stone-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Bot className="w-5 h-5 text-accent-600" />
-                    <span className="font-semibold text-sm text-primary-800">AI Intelligence Insight</span>
-                  </div>
-
-                  {!aiResult ? (
-                    <button
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 mt-6">
+                   <button
                       onClick={handleAnalyze}
                       disabled={analyzing}
-                      className="w-full py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:border-accent-600 hover:text-accent-600 transition-all shadow-sm flex items-center justify-center gap-2"
+                      className="py-3 bg-white border border-stone-200 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:border-accent-600 hover:text-accent-600 transition-all shadow-sm flex items-center justify-center gap-2"
                     >
                       {analyzing ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
                         </>
                       ) : (
-                        "Run Analysis"
+                        <>
+                          <Bot className="w-4 h-4" /> AI Analysis
+                        </>
                       )}
                     </button>
-                  ) : (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-white rounded-lg border border-green-200 text-sm text-green-800 flex gap-2 items-start"
+
+                    <button
+                      onClick={handleDiscuss}
+                      className="py-3 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-stone-900 transition-all shadow-lg shadow-stone-200 flex items-center justify-center gap-2"
                     >
-                      <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                      {aiResult}
-                    </motion.div>
-                  )}
+                      <MessageSquarePlus className="w-4 h-4" /> Discuss on Agora
+                    </button>
                 </div>
+
+                {/* AI Result Area (Moved below buttons) */}
+                {aiResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200 text-sm text-green-800 flex gap-3 items-start"
+                  >
+                    <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0 text-green-600" />
+                    <div>
+                      <p className="font-bold mb-1">AI Intelligence Insight</p>
+                      {aiResult}
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               <div className="p-4 bg-stone-50 border-t border-stone-100 text-center">

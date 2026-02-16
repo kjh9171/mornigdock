@@ -1,17 +1,29 @@
 import { useLanguageStore } from './store/useLanguageStore';
 import { useAuthStore } from './store/useAuthStore';
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, ShieldCheck, LogOut, LayoutDashboard, FileText } from 'lucide-react'
+import { Globe, ShieldCheck, LogOut, LayoutDashboard, FileText, MessageSquare, Play } from 'lucide-react'
 import { NewsList } from './components/NewsList';
 import { Login } from './components/Login';
 import { AdminPanel } from './components/AdminPanel';
+import { MediaCenter } from './components/MediaCenter';
 
 function App() {
   const { t } = useTranslation();
   const { language, toggleLanguage } = useLanguageStore();
   const { user, logout } = useAuthStore();
-  const [view, setView] = useState<'news' | 'admin'>('news');
+  
+  const [view, setView] = useState<'user' | 'admin'>('user'); // Top-level view
+  const [userTab, setUserTab] = useState<'news' | 'discussion' | 'media'>('news'); // User sub-view
+
+  useEffect(() => {
+    const handleSwitch = () => {
+      setView('user');
+      setUserTab('discussion');
+    };
+    window.addEventListener('switch-to-discussion', handleSwitch);
+    return () => window.removeEventListener('switch-to-discussion', handleSwitch);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -24,9 +36,9 @@ function App() {
           {user?.isAdmin && (
             <div className="flex bg-stone-100 rounded-full p-1 mr-2 border border-stone-200">
               <button
-                onClick={() => setView('news')}
-                className={`p-2 rounded-full transition-all ${view === 'news' ? 'bg-white shadow-sm text-primary-800' : 'text-stone-400 hover:text-stone-600'}`}
-                title="News Feed"
+                onClick={() => setView('user')}
+                className={`p-2 rounded-full transition-all ${view === 'user' ? 'bg-white shadow-sm text-primary-800' : 'text-stone-400 hover:text-stone-600'}`}
+                title="User View"
               >
                 <FileText className="w-4 h-4" />
               </button>
@@ -45,12 +57,12 @@ function App() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-stone-600 bg-white border-[0.5px] border-stone-300 rounded-full hover:bg-stone-50 transition-colors shadow-soft"
           >
             <Globe className="w-4 h-4" />
-            {language === 'ko' ? 'English' : '한국어'}
+            {language === 'ko' ? 'EN' : 'KO'}
           </button>
           
           {user && (
             <button
-              onClick={() => { logout(); setView('news'); }}
+              onClick={() => { logout(); setView('user'); }}
               className="p-2 text-stone-400 hover:text-stone-600 transition-colors"
               title="Logout"
             >
@@ -60,38 +72,62 @@ function App() {
         </div>
       </header>
 
-      <main className={`max-w-4xl w-full flex flex-col items-center space-y-8 mt-24 ${view === 'admin' ? 'px-4' : 'max-w-md'}`}>
+      <main className={`max-w-4xl w-full flex flex-col items-center space-y-8 mt-24 ${view === 'admin' ? 'px-4' : 'max-w-xl'}`}>
         {!user ? (
           <Login />
         ) : (
           <>
-            {view === 'news' ? (
-              <div className="space-y-8 w-full max-w-md flex flex-col items-center">
-                <div className="space-y-2 text-center">
-                  <h2 className="text-4xl font-bold text-primary-800 tracking-tighter">
+            {view === 'user' ? (
+              <div className="space-y-8 w-full flex flex-col items-center">
+                {/* User Status Header */}
+                <div className="text-center space-y-2">
+                  <h2 className="text-3xl font-bold text-primary-800 tracking-tighter">
                     {t('welcome')}
                   </h2>
-                  <p className="text-stone-500 font-light text-lg">
-                    {user.email}
+                  <p className="text-stone-500 font-light">
+                    Logged in as <span className="font-medium text-stone-800">{user.email}</span>
                   </p>
                 </div>
 
-                <div className="w-full p-6 bg-white border-[0.5px] border-stone-200 rounded-2xl shadow-soft">
-                  <p className="text-sm text-stone-400 mb-4 uppercase tracking-widest font-semibold text-xs">
-                    System Status
-                  </p>
-                  <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
-                    <span className="text-sm font-medium text-stone-600">Backend API</span>
-                    <span className="flex h-2 w-2 rounded-full bg-green-500"></span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between p-3 bg-stone-50 rounded-lg">
-                    <span className="text-sm font-medium text-stone-600">Secure Hash</span>
-                    <span className="text-xs font-mono text-stone-400 truncate max-w-[150px]">{user.hashedEmail}</span>
-                  </div>
+                {/* Tab Navigation */}
+                <div className="flex p-1 bg-stone-100 rounded-xl w-full max-w-sm">
+                  <button
+                    onClick={() => setUserTab('news')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                      userTab === 'news' 
+                        ? 'bg-white shadow-sm text-primary-800' 
+                        : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" /> Global News
+                  </button>
+                  <button
+                    onClick={() => setUserTab('discussion')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                      userTab === 'discussion' 
+                        ? 'bg-white shadow-sm text-primary-800' 
+                        : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" /> Agora Board
+                  </button>
+                  <button
+                    onClick={() => setUserTab('media')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+                      userTab === 'media' 
+                        ? 'bg-white shadow-sm text-primary-800' 
+                        : 'text-stone-500 hover:text-stone-700'
+                    }`}
+                  >
+                    <Play className="w-4 h-4" /> Media Hub
+                  </button>
                 </div>
 
+                {/* Content Area */}
                 <div className="w-full flex justify-center">
-                  <NewsList />
+                  {userTab === 'news' && <NewsList />}
+                  {userTab === 'discussion' && <AgoraDiscussion />}
+                  {userTab === 'media' && <MediaCenter />}
                 </div>
               </div>
             ) : (
