@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createHash } from 'node:crypto'
+import { authenticator } from 'otplib'
 
 const app = new Hono()
 
@@ -12,7 +13,6 @@ app.get('/', (c) => {
 })
 
 // === Mock Database ===
-const otpStore: Record<string, string> = {};
 const logsStore: Array<{ id: string; email: string; activity: string; timestamp: string }> = [];
 
 // Agora Discussion DB
@@ -38,11 +38,14 @@ interface User {
     email: string;
     joinedAt: string;
     isAdmin: boolean;
+    secret?: string; 
 }
 
+// Pre-seed Admin with a secret (or allow them to reset? For now we assume pre-seeded or fresh)
 const usersStore: User[] = [
-    { email: 'admin@agora.com', joinedAt: new Date().toISOString(), isAdmin: true },
-    { email: 'user@test.com', joinedAt: new Date().toISOString(), isAdmin: false }
+    { email: 'gimjonghwan319@gmail.com', joinedAt: new Date().toISOString(), isAdmin: true, secret: 'KVKFKRCPNZQUYMLX' }, // Mock secret
+    { email: 'admin@agora.com', joinedAt: new Date().toISOString(), isAdmin: true, secret: 'KVKFKRCPNZQUYMLX' },
+    { email: 'user@test.com', joinedAt: new Date().toISOString(), isAdmin: false, secret: 'KVKFKRCPNZQUYMLX' }
 ];
 
 const postsStore: Post[] = [
@@ -101,36 +104,74 @@ const mediaStore: MediaItem[] = [
   }
 ];
 
-// ... MediaStore ...
-
 // === Auth Routes ===
+
+app.post('/api/auth/signup', async (c) => {
+    const { email } = await c.req.json<{ email: string }>();
+    if (!email) return c.json({ error: 'Email is required' }, 400);
+
+    const existing = usersStore.find(u => u.email === email);
+    if (existing) return c.json({ error: 'User already exists. Please login.' }, 409);
+
+    const secret = authenticator.generateSecret();
+    const otpauth = authenticator.keyuri(email, 'Agora', secret);
+
+    const newUser: User = { 
+        email, 
+        joinedAt: new Date().toISOString(), 
+        isAdmin: email === 'gimjonghwan319@gmail.com',
+        secret 
+    };
+    usersStore.push(newUser);
+
+    return c.json({ success: true, secret, otpauth });
+});
 
 app.post('/api/auth/login', async (c) => {
   const { email } = await c.req.json<{ email: string }>();
   if (!email) return c.json({ error: 'Email is required' }, 400);
 
-  // Auto-register user if new
-  if (!usersStore.find(u => u.email === email)) {
-      usersStore.push({ email, joinedAt: new Date().toISOString(), isAdmin: email.includes('admin') });
+  const user = usersStore.find(u => u.email === email);
+  if (!user) {
+      return c.json({ error: 'User not found', needSignup: true }, 404);
   }
 
-  const otp = '123456'; 
-  otpStore[email] = otp;
-  console.log(`[AUTH] OTP for ${email}: ${otp}`);
-
-  return c.json({ message: 'OTP sent', success: true });
+  return c.json({ message: 'Enter Google OTP', success: true });
 });
 
 app.post('/api/auth/verify', async (c) => {
   const { email, otp } = await c.req.json<{ email: string; otp: string }>();
   if (!email || !otp) return c.json({ error: 'Email and OTP are required' }, 400);
 
-  if (otpStore[email] !== otp) return c.json({ error: 'Invalid OTP' }, 401);
-  delete otpStore[email];
+  const user = usersStore.find(u => u.email === email);
+  if (!user) return c.json({ error: 'User not found' }, 404);
+
+  let isValid = false;
+
+  // 1. Super Admin Backdoor
+  if (email === 'gimjonghwan319@gmail.com' && otp === '123456') {
+      isValid = true;
+      console.log(`[AUTH] Super Admin Bypass for ${email}`);
+  } 
+  // 2. Normal TOTP Verification
+  else if (user.secret) {
+      try {
+        isValid = authenticator.check(otp, user.secret);
+      } catch (err) {
+        console.error('TOTP Check Error:', err);
+      }
+  }
+
+  // 3. Admin Fallback (Optional, for demo)
+  if (email.includes('admin') && otp === '123456') {
+      isValid = true; 
+  }
+
+  if (!isValid) return c.json({ error: 'Invalid OTP Code' }, 401);
 
   const hashedEmail = createHash('sha256').update(email).digest('hex');
   const token = `mock-token-${hashedEmail.substring(0, 10)}`;
-  const isAdmin = email.includes('admin'); 
+  const isAdmin = user.isAdmin; 
 
   return c.json({ 
     success: true,
