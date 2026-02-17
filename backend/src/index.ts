@@ -2,7 +2,9 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createHash } from 'node:crypto'
-import { authenticator } from 'otplib'
+
+// otplib v13 API
+const { TOTP, generateSecret, generateURI, verify } = require('otplib')
 
 const app = new Hono()
 
@@ -114,8 +116,8 @@ app.post('/api/auth/signup', async (c) => {
     const existing = usersStore.find(u => u.email === email);
     if (existing) return c.json({ error: 'User already exists. Please login.' }, 409);
 
-    const secret = authenticator.generateSecret();
-    const otpauth = authenticator.keyuri(email, 'Agora', secret);
+    const secret = generateSecret();
+    const otpauth = generateURI({ secret, label: email, issuer: 'Agora', type: 'totp' });
 
     const newUser: User = { 
         email, 
@@ -153,7 +155,7 @@ app.post('/api/auth/verify', async (c) => {
   // STRICT OTP Mode: No bypass.
   if (user.secret) {
       try {
-        isValid = authenticator.check(otp, user.secret);
+        isValid = verify({ token: otp, secret: user.secret });
       } catch (err) {
         console.error('TOTP Check Error:', err);
       }

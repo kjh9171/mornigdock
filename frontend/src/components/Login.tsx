@@ -5,7 +5,7 @@ import { ShieldCheck, Mail, Lock, Loader2, ArrowRight, UserPlus } from 'lucide-r
 import { QRCodeCanvas } from 'qrcode.react';
 
 export function Login() {
-  const { login } = useAuthStore();
+  const { setAuth } = useAuthStore();
   const { logActivity } = useActivityLog();
   
   const [email, setEmail] = useState('');
@@ -87,7 +87,7 @@ export function Login() {
       if (!res.ok) throw new Error(data.error || 'Verification failed');
 
       // Success
-      login(data.user, data.token);
+      setAuth(data.token, data.user);
       logActivity(isSignup ? 'User Signup' : 'User Login');
     } catch (err: any) {
       setError(err.message);
