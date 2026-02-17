@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocalizedContent, LocalizedText } from '../utils/langUtils';
 import { useActivityLog } from '../utils/activityLogger';
-import { useDiscussionStore } from '../store/useDiscussionStore';
 import { useNavigationStore } from '../store/useNavigationStore';
-import { FileText, Loader2, X, Bot, CheckCircle2, MessageSquarePlus, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, Loader2, Bot } from 'lucide-react';
 
 interface NewsItem {
   id: number;
@@ -19,16 +17,10 @@ interface NewsItem {
 export function NewsList() {
   const { ln } = useLocalizedContent();
   const { logActivity } = useActivityLog();
-  const { startDiscussion } = useDiscussionStore();
-  const { setView, setUserTab } = useNavigationStore();
+  const { setView, setSelectedNewsId } = useNavigationStore();
   
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<NewsItem | null>(null);
-  
-  // AI Simulation States
-  const [analyzing, setAnalyzing] = useState(false);
-  const [aiResult, setAiResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:8787/api/news')
@@ -44,35 +36,15 @@ export function NewsList() {
   }, []);
 
   const handleItemClick = (item: NewsItem) => {
-    setSelectedItem(item);
-    setAiResult(null); // Reset previous analysis
+    setSelectedNewsId(item.id);
+    setView('news-detail');
     logActivity(`View News: ${item.id} (${item.source})`);
   };
 
-  const handleAnalyze = () => {
-    if (!selectedItem) return;
-    setAnalyzing(true);
-    logActivity(`Analyze News: ${selectedItem.id}`);
-
-    // Simulate AI Analysis (1.5s)
-    setTimeout(() => {
-      setAnalyzing(false);
-      setAiResult("Analysis Complete: No critical threats detected. Sentiment is positive. (Mock AI Result)");
-    }, 1500);
-  };
-
-  const handleDiscuss = () => {
-    if (!selectedItem) return;
-    const title = `[Discussion] ${ln(selectedItem.title)}`;
-    const content = `Source: ${selectedItem.source}\nSnippet: ${ln(selectedItem.summary)}\nLink: ${selectedItem.url || 'No URL'}\n\nLet's discuss this news...`;
-    
-    startDiscussion(title, content);
-    logActivity(`Start Discussion: ${selectedItem.id}`);
-    setSelectedItem(null);
-    
-    // Switch via Store
-    setView('user');
-    setUserTab('discussion');
+  const handleBatchAIAnalysis = () => {
+    setSelectedNewsId(null);
+    setView('ai-analysis');
+    logActivity('Batch AI Analysis Request');
   };
 
   const getSourceBadge = (source: string) => {
@@ -95,8 +67,18 @@ export function NewsList() {
   }
 
   return (
-    <>
-      <div className="grid gap-4 w-full max-w-2xl">
+    <div className="w-full max-w-2xl space-y-4">
+      {/* Batch AI Analysis Button */}
+      <button
+        onClick={handleBatchAIAnalysis}
+        className="w-full py-3 bg-gradient-to-r from-accent-600 to-accent-700 text-white rounded-xl font-bold text-sm hover:from-accent-700 hover:to-accent-800 transition-all shadow-lg shadow-accent-200 flex items-center justify-center gap-2"
+      >
+        <Bot className="w-5 h-5" />
+        실시간 뉴스 AI 분석
+      </button>
+
+      {/* News List */}
+      <div className="grid gap-4">
         {news.map((item) => (
           <div 
             key={item.id} 
@@ -128,102 +110,6 @@ export function NewsList() {
           </div>
         ))}
       </div>
-
-      {/* Detail Modal */}
-      <AnimatePresence>
-        {selectedItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20"
-            >
-              <div className="p-6 border-b border-stone-100 flex justify-between items-start">
-                <div className="pr-4">
-                  <div className="flex items-center gap-2 mb-2">
-                     {getSourceBadge(selectedItem.source)}
-                     <span className="text-xs text-stone-400 font-mono tracking-tight">{selectedItem.type.toUpperCase()}</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-primary-800 leading-tight">
-                    {ln(selectedItem.title)}
-                  </h2>
-                </div>
-                <button 
-                  onClick={() => setSelectedItem(null)}
-                  className="p-1 rounded-full hover:bg-stone-100 text-stone-400 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-                <p className="text-stone-600 leading-relaxed font-light text-lg whitespace-pre-wrap">
-                  {ln(selectedItem.content)}
-                </p>
-
-                {/* URL Link */}
-                {selectedItem.url && (
-                    <a 
-                        href={selectedItem.url} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-accent-600 font-medium hover:underline decoration-accent-600 underline-offset-4"
-                    >
-                        <ExternalLink className="w-4 h-4" />
-                        View Original Source 
-                    </a>
-                )}
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-stone-100">
-                   <button
-                      onClick={handleAnalyze}
-                      disabled={analyzing}
-                      className="py-3 bg-white border border-stone-200 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 hover:border-accent-600 hover:text-accent-600 transition-all shadow-sm flex items-center justify-center gap-2"
-                    >
-                      {analyzing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Bot className="w-4 h-4" /> AI Analysis
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={handleDiscuss}
-                      className="py-3 bg-primary-800 text-white rounded-xl text-sm font-medium hover:bg-stone-900 transition-all shadow-lg shadow-stone-200 flex items-center justify-center gap-2"
-                    >
-                      <MessageSquarePlus className="w-4 h-4" /> Discuss on Agora
-                    </button>
-                </div>
-
-                {/* AI Result Area (Moved below buttons) */}
-                {aiResult && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200 text-sm text-green-800 flex gap-3 items-start"
-                  >
-                    <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0 text-green-600" />
-                    <div>
-                      <p className="font-bold mb-1">AI Intelligence Insight</p>
-                      {aiResult}
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
-              <div className="p-4 bg-stone-50 border-t border-stone-100 text-center">
-                <span className="text-xs text-stone-400 font-mono">ID: {selectedItem.id} • SECURE LOGGED</span>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </>
+    </div>
   );
 }

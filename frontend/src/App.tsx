@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe, ShieldCheck, LogOut, LayoutDashboard, FileText, MessageSquare, Play } from 'lucide-react'
 import { NewsList } from './components/NewsList';
+import { NewsDetail } from './components/NewsDetail';
+import { AIAnalysis } from './components/AIAnalysis';
 import { Login } from './components/Login';
 import { AdminPanel } from './components/AdminPanel';
 import { AgoraDiscussion } from './components/AgoraDiscussion';
@@ -72,7 +74,7 @@ function App() {
         </div>
       </header>
 
-      <main className={`max-w-4xl w-full flex flex-col items-center space-y-8 mt-24 ${view === 'admin' ? 'px-4' : 'max-w-xl'}`}>
+      <main className={`max-w-4xl w-full flex flex-col items-center space-y-8 mt-24 ${view === 'admin' || view === 'news-detail' || view === 'ai-analysis' ? 'px-4' : 'max-w-xl'}`}>
         {!user ? (
           <Login />
         ) : (
@@ -130,6 +132,10 @@ function App() {
                   {userTab === 'media' && <MediaCenter />}
                 </div>
               </div>
+            ) : view === 'news-detail' ? (
+              <NewsDetail />
+            ) : view === 'ai-analysis' ? (
+              <AIAnalysis />
             ) : (
               <AdminPanel />
             )}
