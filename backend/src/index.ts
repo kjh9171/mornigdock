@@ -320,56 +320,92 @@ app.patch('/api/posts/:id', async (c) => {
 
 // === Content Routes (Enhanced) ===
 
+const newsStore = [
+  { 
+    id: 1, 
+    source: 'Yonhap',
+    type: 'breaking', 
+    title: { ko: '[속보] 아고라 프로젝트, 글로벌 런칭 임박', en: '[Breaking] Agora Project Global Launch Imminent' }, 
+    summary: { ko: '전 세계 보안 전문가들이 주목하는 차세대 플랫폼', en: 'Next-gen platform watched by security experts worldwide' }, 
+    content: { ko: '(서울=연합뉴스) 아고라 팀은 오늘...', en: '(Seoul=Yonhap) The Agora team today...' },
+    url: 'https://www.yna.co.kr',
+    author: 'admin@agora.com'
+  },
+  { 
+    id: 2, 
+    source: 'Naver',
+    type: 'breaking',
+    title: { ko: 'IT 업계, "이메일 해시 추적" 기술 표준 되나', en: 'IT Industry: "Email Hash Tracking" becoming standard?' }, 
+    summary: { ko: '개인정보 보호와 보안 두 마리 토끼 잡았다', en: 'Caught both privacy and security' }, 
+    content: { ko: '네이버 뉴스 IT 섹션 주요 기사...', en: 'Naver News IT Section highlight...' },
+    url: 'https://news.naver.com',
+    author: 'admin@agora.com'
+  },
+  { 
+    id: 3, 
+    source: 'Agora',
+    type: 'analysis',
+    title: { ko: '아고라 심층 리포트: 미니멀리즘 디자인의 미래', en: 'Agora Deep Dive: Future of Minimalist Design' }, 
+    summary: { ko: '정보의 홍수 속에서 침묵(White Space)이 갖는 힘', en: 'The power of silence (White Space) in information flood' }, 
+    content: { ko: '아고라 리서치 센터 분석 결과...', en: 'Agora Research Center analysis...' },
+    url: 'https://agora.io/report/1',
+    author: 'admin@agora.com'
+  },
+  { 
+    id: 4, 
+    source: 'Yonhap',
+    type: 'breaking',
+    title: { ko: '[1보] i18next 도입으로 언어 장벽 무너져', en: '[Flash] Language barrier crumbling with i18next' }, 
+    summary: { ko: '실시간 언어 전환 기술 시연 성공', en: 'Successful demo of real-time language switch' }, 
+    content: { ko: '기자회견장에서...', en: 'At the press conference...' },
+    url: 'https://www.yna.co.kr',
+    author: 'user@test.com'
+  },
+  { 
+    id: 5, 
+    source: 'Agora',
+    type: 'analysis',
+    title: { ko: '관리자 통제권과 투명성의 균형', en: 'Balance between Admin Control and Transparency' }, 
+    summary: { ko: '실시간 로그 추적 시스템의 윤리적 고찰', en: 'Ethical considerations of real-time log tracking' }, 
+    content: { ko: '시스템 관리자의 권한은 어디까지인가...', en: 'How far should admin privileges go...' },
+    url: 'https://agora.io/report/2',
+    author: 'user@test.com'
+  }
+];
+
 app.get('/api/news', (c) => {
-  // Enhanced Mock Data with Source and Type
-  return c.json([
-    { 
-      id: 1, 
-      source: 'Yonhap', // 연합뉴스
-      type: 'breaking', 
-      title: { ko: '[속보] 아고라 프로젝트, 글로벌 런칭 임박', en: '[Breaking] Agora Project Global Launch Imminent' }, 
-      summary: { ko: '전 세계 보안 전문가들이 주목하는 차세대 플랫폼', en: 'Next-gen platform watched by security experts worldwide' }, 
-      content: { ko: '(서울=연합뉴스) 아고라 팀은 오늘...', en: '(Seoul=Yonhap) The Agora team today...' },
-      url: 'https://www.yna.co.kr'
-    },
-    { 
-      id: 2, 
-      source: 'Naver', // 네이버뉴스
-      type: 'breaking',
-      title: { ko: 'IT 업계, "이메일 해시 추적" 기술 표준 되나', en: 'IT Industry: "Email Hash Tracking" becoming standard?' }, 
-      summary: { ko: '개인정보 보호와 보안 두 마리 토끼 잡았다', en: 'Caught both privacy and security' }, 
-      content: { ko: '네이버 뉴스 IT 섹션 주요 기사...', en: 'Naver News IT Section highlight...' },
-      url: 'https://news.naver.com'
-    },
-    { 
-      id: 3, 
-      source: 'Agora', // 자체 분석
-      type: 'analysis',
-      title: { ko: '아고라 심층 리포트: 미니멀리즘 디자인의 미래', en: 'Agora Deep Dive: Future of Minimalist Design' }, 
-      summary: { ko: '정보의 홍수 속에서 침묵(White Space)이 갖는 힘', en: 'The power of silence (White Space) in information flood' }, 
-      content: { ko: '아고라 리서치 센터 분석 결과...', en: 'Agora Research Center analysis...' },
-      url: 'https://agora.io/report/1'
-    },
-    { 
-      id: 4, 
-      source: 'Yonhap',
-      type: 'breaking',
-      title: { ko: '[1보] i18next 도입으로 언어 장벽 무너져', en: '[Flash] Language barrier crumbling with i18next' }, 
-      summary: { ko: '실시간 언어 전환 기술 시연 성공', en: 'Successful demo of real-time language switch' }, 
-      content: { ko: '기자회견장에서...', en: 'At the press conference...' },
-      url: 'https://www.yna.co.kr'
-    },
-    { 
-      id: 5, 
-      source: 'Agora',
-      type: 'analysis',
-      title: { ko: '관리자 통제권과 투명성의 균형', en: 'Balance between Admin Control and Transparency' }, 
-      summary: { ko: '실시간 로그 추적 시스템의 윤리적 고찰', en: 'Ethical considerations of real-time log tracking' }, 
-      content: { ko: '시스템 관리자의 권한은 어디까지인가...', en: 'How far should admin privileges go...' },
-      url: 'https://agora.io/report/2'
-    }
-  ])
-})
+  return c.json(newsStore);
+});
+
+app.patch('/api/news/:id', async (c) => {
+  const id = parseInt(c.req.param('id'));
+  const { title, summary, content, url } = await c.req.json<{ 
+    title?: { ko: string; en: string }; 
+    summary?: { ko: string; en: string }; 
+    content?: { ko: string; en: string };
+    url?: string;
+  }>();
+  
+  const news = newsStore.find(n => n.id === id);
+  if (!news) return c.json({ error: 'News not found' }, 404);
+  
+  if (title) news.title = title;
+  if (summary) news.summary = summary;
+  if (content) news.content = content;
+  if (url !== undefined) news.url = url;
+  
+  return c.json(news);
+});
+
+app.delete('/api/news/:id', (c) => {
+  const id = parseInt(c.req.param('id'));
+  const index = newsStore.findIndex(n => n.id === id);
+  
+  if (index === -1) return c.json({ error: 'News not found' }, 404);
+  
+  newsStore.splice(index, 1);
+  return c.json({ success: true });
+});
 
 const port = 8787
 console.log(`Server is running on port ${port}`)
