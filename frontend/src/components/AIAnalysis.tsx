@@ -33,12 +33,21 @@ export function AIAnalysis() {
           if (item) setNewsItem(item);
         });
     } else {
-      // Batch analysis mode - show scraped news
+      // Batch analysis mode - fetch scraped news from Naver
       setMode('batch');
-      fetch('http://localhost:8787/api/news')
+      fetch('http://localhost:8787/api/news/scrape')
         .then(res => res.json())
         .then((data: NewsItem[]) => {
-          setScrapedNews(data.filter(n => n.type === 'breaking'));
+          setScrapedNews(data);
+        })
+        .catch(err => {
+          console.error('Failed to scrape news:', err);
+          // Fallback to existing news
+          fetch('http://localhost:8787/api/news')
+            .then(res => res.json())
+            .then((data: NewsItem[]) => {
+              setScrapedNews(data.filter(n => n.type === 'breaking'));
+            });
         });
     }
   }, [selectedNewsId]);

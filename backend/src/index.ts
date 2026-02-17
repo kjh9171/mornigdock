@@ -2,6 +2,8 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createHash } from 'node:crypto'
+import axios from 'axios'
+import * as cheerio from 'cheerio'
 
 // otplib v13 API
 const { TOTP, generateSecret, generateURI, verify } = require('otplib')
@@ -405,6 +407,50 @@ app.delete('/api/news/:id', (c) => {
   
   newsStore.splice(index, 1);
   return c.json({ success: true });
+});
+
+// === Naver News Scraper ===
+app.get('/api/news/scrape', async (c) => {
+  try {
+    const url = 'https://news.naver.com/main/list.naver?mode=LPOD&mid=sec&sid1=001&sid2=140&oid=001&isYeonhapFlash=Y';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    const articles: any[] = [];
+
+    // 네이버 뉴스 리스트 파싱
+    $('.type06_headline li, .type06 li').each((index, element) => {
+      if (articles.length >= 10) return false; // 최대 10개
+
+      const $elem = $(element);
+      const $link = $elem.find('dt:not(.photo) a, dd a').first();
+      const title = $link.text().trim();
+      const href = $link.attr('href');
+      const summary = $elem.find('.lede').text().trim() || $elem.find('dd span.lede').text().trim() || '속보 내용';
+
+      if (title && href) {
+        articles.push({
+          id: Date.now() + index,
+          source: 'Naver',
+          type: 'breaking',
+          title: { ko: title, en: title },
+          summary: { ko: summary, en: summary },
+          content: { ko: `${summary}\n\n자세한 내용은 원문을 확인해주세요.`, en: `${summary}\n\nPlease check the original article for details.` },
+          url: href.startsWith('http') ? href : `https://news.naver.com${href}`,
+          author: 'naver-scraper'
+        });
+      }
+    });
+
+    return c.json(articles);
+  } catch (error) {
+    console.error('Scraping error:', error);
+    return c.json({ error: 'Failed to scrape news' }, 500);
+  }
 });
 
 const port = 8787
