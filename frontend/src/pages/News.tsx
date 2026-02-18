@@ -1,111 +1,123 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useTranslation } from 'react-i18next';
-import { getPostsAPI, getPostAPI } from '../lib/api';
-import { Pin, MessageSquare, Music, Plus, Trash2, Globe, Shield } from 'lucide-react';
+import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { getPostsAPI, getPostAPI, Post } from '../lib/api'
+import { Pin, ShieldCheck, MessageSquare, PlusCircle } from 'lucide-react'
+
+// 기존 카테고리 및 스타일 유지
+const NEWS_CATEGORIES = ['전체', '경제', '기술', '정치', '글로벌', '산업']
+const CAT_BADGE: Record<string, string> = {
+  경제: 'bg-amber-100 text-amber-700', 기술: 'bg-blue-100 text-blue-700',
+  정치: 'bg-red-100 text-red-700', 글로벌: 'bg-green-100 text-green-700',
+  산업: 'bg-purple-100 text-purple-700',
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`
+  return `${Math.floor(diff / 86400000)}일 전`
+}
 
 export default function News() {
-  const { t } = useTranslation();
-  const { user, logout } = useAuth();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [category, setCategory] = useState('전체');
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
-  const [comments, setComments] = useState<any[]>([]);
-  const [mediaList, setMediaList] = useState<{id: string, title: string}[]>([]); // ✅ 유튜브/팟캐스트 목록
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [posts, setPosts] = useState<Post[]>([])
+  const [category, setCategory] = useState('전체')
+  const [selected, setSelected] = useState<Post | null>(null)
+  const [selectedComments, setSelectedComments] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // ── [기능] 데이터 로딩 (AI 뉴스 & 게시판 통합) ──
-  const fetchData = useCallback(async () => {
-    const res = await getPostsAPI({ type: 'news', category: category !== '전체' ? category : undefined });
-    if (res.success) setPosts(res.posts);
-  }, [category]);
+  // ✅ 데이터 페칭 (기존 로직 유지)
+  useEffect(() => {
+    setIsLoading(true)
+    const params: any = { type: 'news', limit: 20 }
+    if (category !== '전체') params.category = category
+    getPostsAPI(params).then(res => {
+      if (res.success) setPosts(res.posts)
+    }).finally(() => setIsLoading(false))
+  }, [category])
 
-  useEffect(() => { fetchData() }, [fetchData]);
-
-  // ── [기능] 대댓글 포함 상세 보기 ──
-  const handleViewDetail = async (id: number) => {
-    const res = await getPostAPI(id);
+  // ✅ 대댓글(토론)을 포함한 상세 보기 (기존 handleSelect 고도화)
+  const handleSelect = async (post: Post) => {
+    setSelected(post)
+    const res = await getPostAPI(post.id)
     if (res.success) {
-      setSelectedPost(res.post);
-      setComments(res.comments); // 백엔드에서 트리 구조 혹은 parent_id 포함 데이터 전송 가정
+      setSelected(res.post)
+      setSelectedComments(res.comments) // 여기서 parent_id를 가진 대댓글 포함
     }
-  };
+    window.scrollTo(0, 0)
+  }
+
+  const pinnedPost = posts.find(p => p.pinned)
+  const normalPosts = posts.filter(p => !p.pinned)
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ── [미디어 센터] 유튜브 및 팟캐스트 관리 ── */}
-      <section className="bg-stone-900 text-white p-5 rounded-2xl shadow-xl border border-white/5">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="flex items-center gap-2 font-bold"><Music className="w-4 h-4 text-amber-400" /> Agora Media</h2>
-          {user?.role === 'admin' && <button className="p-1 hover:bg-white/10 rounded"><Plus className="w-4 h-4" /></button>}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {mediaList.map(m => (
-            <div key={m.id} className="bg-white/5 p-3 rounded-xl flex justify-between items-center group">
-              <span className="text-xs truncate">{m.title}</span>
-              {user?.role === 'admin' && <Trash2 className="w-3 h-3 text-red-400 opacity-0 group-hover:opacity-100 cursor-pointer" />}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── [메인 피드] AI 뉴스 & 게시판 통합 리스트 ── */}
-      <main className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-black text-stone-900 uppercase tracking-tighter">Live Insight</h1>
-          <div className="flex gap-2">
-             {['전체', '경제', '기술', '정치'].map(cat => (
-               <button key={cat} onClick={() => setCategory(cat)} 
-                 className={`text-xs px-3 py-1.5 rounded-full font-bold transition-all ${category === cat ? 'bg-amber-600 text-white' : 'bg-white text-stone-400 border border-stone-200'}`}>
-                 {cat}
-               </button>
-             ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {posts.map(post => (
-            <div key={post.id} onClick={() => handleViewDetail(post.id)} 
-              className="relative bg-white border border-stone-200 p-5 rounded-2xl hover:border-amber-400 transition-all cursor-pointer group">
-              
-              {/* 관리자 전용 속성 분기 */}
-              {post.pinned && <Pin className="absolute top-4 right-4 w-4 h-4 text-amber-600" />}
-              {user?.role === 'admin' && <Shield className="absolute top-4 right-10 w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100" />}
-
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-stone-100 text-[9px] font-black px-1.5 py-0.5 rounded text-stone-500 uppercase">{post.category}</span>
-                {post.is_ai && <span className="bg-blue-50 text-blue-600 text-[9px] font-black px-1.5 py-0.5 rounded">AI NEWS</span>}
-              </div>
-              <h3 className="font-bold text-stone-900 mb-2 line-clamp-1">{post.title}</h3>
-              <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">{post.content}</p>
-            </div>
-          ))}
-        </div>
-      </main>
-
-      {/* ── [상세 모달] 대댓글 토론 시스템 ── */}
-      {selectedPost && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-3xl overflow-y-auto p-8 shadow-2xl">
-            <button onClick={() => setSelectedPost(null)} className="mb-4 text-sm font-bold text-stone-400 hover:text-stone-900">CLOSE</button>
-            <h2 className="text-2xl font-black text-stone-900 mb-6 leading-tight">{selectedPost.title}</h2>
-            <div className="text-stone-700 text-sm leading-loose whitespace-pre-wrap border-b border-stone-100 pb-8 mb-8">{selectedPost.content}</div>
-            
-            {/* 대댓글 영역 */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-black text-amber-600 uppercase tracking-widest">Discussion</h4>
-              {comments.map(comment => (
-                <div key={comment.id} className={`p-4 rounded-xl ${comment.parent_id ? 'ml-8 bg-stone-50 border-l-2 border-amber-200' : 'bg-stone-100'}`}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-[10px] font-bold">{comment.author_name}</span>
-                    <span className="text-[9px] text-stone-400">Reply</span>
-                  </div>
-                  <p className="text-xs text-stone-600">{comment.content}</p>
+    <div className="min-h-screen bg-[#F9F9F9]">
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        
+        {/* ── 기사 상세 뷰 (대댓글 기능 추가) ── */}
+        {selected && (
+          <div className="bg-white border border-stone-200 rounded-xl shadow-sm mb-6">
+            <div className="px-6 py-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${CAT_BADGE[selected.category] || 'bg-stone-100 text-stone-500'}`}>
+                    {selected.category}
+                  </span>
+                  {selected.is_ai && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">AI INSIGHT</span>}
                 </div>
-              ))}
+                {user?.role === 'admin' && <ShieldCheck className="w-4 h-4 text-blue-500" title="Admin Verified" />}
+              </div>
+              <h2 className="text-xl font-bold text-stone-800 mb-2 leading-snug">{selected.title}</h2>
+              <div className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap border-t border-stone-100 pt-5">
+                {selected.content}
+              </div>
+            </div>
+
+            {/* ✅ 대댓글 토론 시스템 복구 */}
+            <div className="px-6 py-4 border-t border-stone-100 bg-stone-50/50 rounded-b-xl">
+              <h3 className="text-sm font-semibold text-stone-600 mb-4 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" /> 토론 ({selectedComments.length})
+              </h3>
+              <div className="space-y-3">
+                {selectedComments.map(c => (
+                  <div key={c.id} className={`${c.parent_id ? 'ml-6 border-l-2 border-stone-200 pl-3' : ''} text-sm`}>
+                    <span className="font-bold text-stone-800">{c.author_name}</span>
+                    <p className="text-stone-600 mt-0.5">{c.content}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* ── 리스트 영역 (기존 유지 + 관리자 핀 표시) ── */}
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+          {NEWS_CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => { setCategory(cat); setSelected(null) }}
+              className={`text-sm px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all
+                ${category === cat ? 'bg-amber-600 text-white' : 'bg-white border border-stone-200 text-stone-600'}`}>
+              {cat}
+            </button>
+          ))}
         </div>
-      )}
+
+        {isLoading ? (
+          <div className="py-20 text-center text-stone-400">로딩 중...</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {posts.map(post => (
+              <div key={post.id} onClick={() => handleSelect(post)}
+                className="bg-white border border-stone-200 rounded-xl p-4 shadow-sm cursor-pointer hover:border-amber-400 transition-all relative">
+                {post.pinned && <Pin className="absolute top-4 right-4 w-3 h-3 text-amber-600" />}
+                <h3 className="text-sm font-semibold text-stone-800 line-clamp-2">{post.title}</h3>
+                <p className="text-xs text-stone-400 mt-2">{post.source} · {timeAgo(post.created_at)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
-  );
+  )
 }
