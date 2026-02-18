@@ -54,7 +54,7 @@ export function AgoraDiscussion() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8787/api/posts');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`);
       const data = await res.json();
       setPosts(data);
     } catch (err) {
@@ -73,7 +73,7 @@ export function AgoraDiscussion() {
     if (!user) return;
 
     try {
-      await fetch('http://localhost:8787/api/posts', {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content, author: user.email }),
@@ -98,7 +98,7 @@ export function AgoraDiscussion() {
     
     // Fetch fresh to get comments
     try {
-      const res = await fetch(`http://localhost:8787/api/posts/${post.id}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${post.id}`);
       const data = await res.json();
       setSelectedPost(data);
     } catch (err) {
@@ -111,7 +111,7 @@ export function AgoraDiscussion() {
     if (!selectedPost || !user || !commentText.trim()) return;
 
     try {
-      const res = await fetch(`http://localhost:8787/api/posts/${selectedPost.id}/comments`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${selectedPost.id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ author: user.email, content: commentText }),

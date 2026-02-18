@@ -2,11 +2,24 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createHash } from 'node:crypto'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
+import cron from 'node-cron'
 
 // otplib v13 API
 const { TOTP, generateSecret, generateURI, verify } = require('otplib')
+
+// 데이터 저장 경로
+const DATA_DIR = join(process.cwd(), 'data');
+const POSTS_FILE = join(DATA_DIR, 'posts.json');
+const USERS_FILE = join(DATA_DIR, 'users.json');
+
+// 데이터 디렉토리 생성
+if (!existsSync(DATA_DIR)) {
+  mkdirSync(DATA_DIR, { recursive: true });
+}
 
 const app = new Hono()
 
@@ -45,31 +58,61 @@ interface User {
     secret?: string; 
 }
 
-// RESET: Empty User Store. All users must sign up.
-const usersStore: User[] = [];
+// 데이터 로드 함수
+function loadUsers(): User[] {
+  try {
+    if (existsSync(USERS_FILE)) {
+      const data = readFileSync(USERS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('[Storage] Failed to load users:', error);
+  }
+  return [];
+}
+
+function loadPosts(): Post[] {
+  try {
+    if (existsSync(POSTS_FILE)) {
+      const data = readFileSync(POSTS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('[Storage] Failed to load posts:', error);
+  }
+  return [];
+}
+
+// 데이터 저장 함수
+function saveUsers() {
+  try {
+    writeFileSync(USERS_FILE, JSON.stringify(usersStore, null, 2), 'utf-8');
+    console.log('[Storage] Users saved successfully');
+  } catch (error) {
+    console.error('[Storage] Failed to save users:', error);
+  }
+}
+
+function savePosts() {
+  try {
+    writeFileSync(POSTS_FILE, JSON.stringify(postsStore, null, 2), 'utf-8');
+    console.log('[Storage] Posts saved successfully');
+  } catch (error) {
+    console.error('[Storage] Failed to save posts:', error);
+  }
+}
+
+// 초기 데이터 로드
+const usersStore: User[] = loadUsers();
+const postsStore: Post[] = loadPosts();
+
+console.log(`[Storage] Loaded ${usersStore.length} users and ${postsStore.length} posts`);
 
 // Reset Posts/Media as well? User said "subscriber all initialization", implies Users. 
 // But let's keep content for now so the app isn't empty, or maybe reset them too?
 // "가입자 전부 초기해 시켜서 다시 시작하자" -> "Initialize all subscribers and restart".
 // I will keep content mocks but reset users.
 
-const postsStore: Post[] = [
-  {
-    id: '1',
-    title: '보안 시스템 관련 건의합니다.',
-    content: '이메일 인증 방식이 매우 편리하네요. 다만 세션 유지 시간을 좀 늘려주실 수 있나요?',
-    author: 'user@test.com',
-    timestamp: new Date(Date.now() - 10000000).toISOString(),
-    views: 120,
-    comments: [
-      { id: 'c1', author: 'admin@agora.com', content: '반영하여 검토하겠습니다.', timestamp: new Date(Date.now() - 8000000).toISOString() }
-    ],
-    isNotice: false
-  },
-  {
-    id: '2',
-    title: 'Suggestion for UI improvement',
-    content: 'The dark mode contrast could be a bit better on the cards.',
     author: 'global@user.com',
     timestamp: new Date(Date.now() - 5000000).toISOString(),
     views: 45,
@@ -129,6 +172,7 @@ app.post('/api/auth/signup', async (c) => {
         secret 
     };
     usersStore.push(newUser);
+    saveUsers(); // 새로운 사용자 저장
 
     return c.json({ success: true, secret, otpauth });
 });
@@ -218,6 +262,7 @@ app.post('/api/posts', async (c) => {
   };
   
   postsStore.unshift(newPost);
+  savePosts(); // 새로운 게시물 저장
   return c.json(newPost);
 });
 
@@ -245,6 +290,7 @@ app.post('/api/posts/:id/comments', async (c) => {
   };
 
   post.comments.push(newComment);
+  savePosts(); // 새로운 댓글 저장
   return c.json(newComment);
 });
 
@@ -291,6 +337,7 @@ app.delete('/api/admin/users', async (c) => {
     const index = usersStore.findIndex(u => u.email === email);
     if (index !== -1) {
         usersStore.splice(index, 1);
+        saveUsers(); // 사용자 삭제 후 저장
         // Also remove logs? Nah, keep logs for audit.
         return c.json({ success: true });
     }
@@ -303,6 +350,7 @@ app.delete('/api/posts/:id', (c) => {
     const index = postsStore.findIndex(p => p.id === id);
     if (index !== -1) {
         postsStore.splice(index, 1);
+        savePosts(); // 게시물 삭제 후 저장
         return c.json({ success: true });
     }
     return c.json({ error: 'Post not found' }, 404);
@@ -314,6 +362,7 @@ app.patch('/api/posts/:id', async (c) => {
     const post = postsStore.find(p => p.id === id);
     if (post) {
         post.isNotice = isNotice;
+        savePosts(); // 게시물 업데이트 후 저장
         return c.json(post);
     }
     return c.json({ error: 'Post not found' }, 404);
@@ -322,58 +371,86 @@ app.patch('/api/posts/:id', async (c) => {
 
 // === Content Routes (Enhanced) ===
 
-const newsStore = [
-  { 
-    id: 1, 
-    source: 'Yonhap',
-    type: 'breaking', 
-    title: { ko: '[속보] 아고라 프로젝트, 글로벌 런칭 임박', en: '[Breaking] Agora Project Global Launch Imminent' }, 
-    summary: { ko: '전 세계 보안 전문가들이 주목하는 차세대 플랫폼', en: 'Next-gen platform watched by security experts worldwide' }, 
-    content: { ko: '(서울=연합뉴스) 아고라 팀은 오늘...', en: '(Seoul=Yonhap) The Agora team today...' },
-    url: 'https://www.yna.co.kr',
-    author: 'admin@agora.com'
-  },
-  { 
-    id: 2, 
-    source: 'Naver',
-    type: 'breaking',
-    title: { ko: 'IT 업계, "이메일 해시 추적" 기술 표준 되나', en: 'IT Industry: "Email Hash Tracking" becoming standard?' }, 
-    summary: { ko: '개인정보 보호와 보안 두 마리 토끼 잡았다', en: 'Caught both privacy and security' }, 
-    content: { ko: '네이버 뉴스 IT 섹션 주요 기사...', en: 'Naver News IT Section highlight...' },
-    url: 'https://news.naver.com',
-    author: 'admin@agora.com'
-  },
-  { 
-    id: 3, 
-    source: 'Agora',
-    type: 'analysis',
-    title: { ko: '아고라 심층 리포트: 미니멀리즘 디자인의 미래', en: 'Agora Deep Dive: Future of Minimalist Design' }, 
-    summary: { ko: '정보의 홍수 속에서 침묵(White Space)이 갖는 힘', en: 'The power of silence (White Space) in information flood' }, 
-    content: { ko: '아고라 리서치 센터 분석 결과...', en: 'Agora Research Center analysis...' },
-    url: 'https://agora.io/report/1',
-    author: 'admin@agora.com'
-  },
-  { 
-    id: 4, 
-    source: 'Yonhap',
-    type: 'breaking',
-    title: { ko: '[1보] i18next 도입으로 언어 장벽 무너져', en: '[Flash] Language barrier crumbling with i18next' }, 
-    summary: { ko: '실시간 언어 전환 기술 시연 성공', en: 'Successful demo of real-time language switch' }, 
-    content: { ko: '기자회견장에서...', en: 'At the press conference...' },
-    url: 'https://www.yna.co.kr',
-    author: 'user@test.com'
-  },
-  { 
-    id: 5, 
-    source: 'Agora',
-    type: 'analysis',
-    title: { ko: '관리자 통제권과 투명성의 균형', en: 'Balance between Admin Control and Transparency' }, 
-    summary: { ko: '실시간 로그 추적 시스템의 윤리적 고찰', en: 'Ethical considerations of real-time log tracking' }, 
-    content: { ko: '시스템 관리자의 권한은 어디까지인가...', en: 'How far should admin privileges go...' },
-    url: 'https://agora.io/report/2',
-    author: 'user@test.com'
+// 초기에는 빈 배열로 시작
+const newsStore: any[] = [];
+
+// 뉴스 스크랩 함수
+async function scrapeAndStoreNews() {
+  try {
+    console.log('[Scraper] Starting news scrape...');
+    const url = 'https://news.naver.com/main/list.naver?mode=LPOD&mid=sec&sid1=001&sid2=140&oid=001&isYeonhapFlash=Y';
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    const $ = cheerio.load(response.data);
+    const articles: any[] = [];
+
+    // 네이버 뉴스 리스트 파싱
+    $('.type06_headline li, .type06 li').each((index, element) => {
+      if (articles.length >= 10) return false; // 최대 10개
+
+      const $elem = $(element);
+      const $link = $elem.find('dt:not(.photo) a, dd a').first();
+      const title = $link.text().trim();
+      const href = $link.attr('href');
+      const summary = $elem.find('.lede').text().trim() || $elem.find('dd span.lede').text().trim() || '속보 내용';
+
+      if (title && href) {
+        const fullUrl = href.startsWith('http') ? href : `https://news.naver.com${href}`;
+        
+        // 중복 체크 (URL 기준)
+        const exists = newsStore.find(n => n.url === fullUrl);
+        if (!exists) {
+          articles.push({
+            id: Date.now() + index,
+            source: 'Naver',
+            type: 'breaking',
+            title: { ko: title, en: title },
+            summary: { ko: summary, en: summary },
+            content: { ko: `${summary}\n\n자세한 내용은 원문을 확인해주세요.`, en: `${summary}\n\nPlease check the original article for details.` },
+            url: fullUrl,
+            author: 'naver-scraper',
+            scrapedAt: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    // 새로운 기사만 추가
+    if (articles.length > 0) {
+      newsStore.unshift(...articles); // 최신 기사를 앞에 추가
+      
+      // 최대 50개까지만 유지
+      if (newsStore.length > 50) {
+        newsStore.splice(50);
+      }
+      
+      console.log(`[Scraper] Added ${articles.length} new articles. Total: ${newsStore.length}`);
+    } else {
+      console.log('[Scraper] No new articles found.');
+    }
+  } catch (error) {
+    console.error('[Scraper] Error:', error);
   }
-];
+}
+
+// 서버 시작 시 즉시 한 번 실행
+scrapeAndStoreNews();
+
+// 매 시간마다 자동 스크랩 (0분에 실행)
+cron.schedule('0 * * * *', () => {
+  console.log('[Cron] Hourly news scrape triggered');
+  scrapeAndStoreNews();
+});
+
+// 매 10분마다 스크랩 (더 자주 업데이트하려면)
+cron.schedule('*/10 * * * *', () => {
+  console.log('[Cron] 10-minute news scrape triggered');
+  scrapeAndStoreNews();
+});
 
 app.get('/api/news', (c) => {
   return c.json(newsStore);
@@ -453,7 +530,7 @@ app.get('/api/news/scrape', async (c) => {
   }
 });
 
-const port = 8787
+const port = process.env.PORT ? parseInt(process.env.PORT) : 8787
 console.log(`Server is running on port ${port}`)
 
 serve({
