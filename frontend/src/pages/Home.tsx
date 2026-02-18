@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 // ✅ 샘플 뉴스 데이터 (실제 크롤링 전 목업)
@@ -209,10 +210,16 @@ export default function Home() {
       {/* ─── 헤더 ─── */}
       <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          {/* 로고 */}
-          <div>
+          {/* 로고 + 네비게이션 */}
+          <div className="flex items-center gap-4">
             <span className="text-xl font-bold text-stone-800 tracking-tight">{L.title}</span>
-            <span className="ml-2 text-xs text-stone-400 hidden sm:inline">{L.subtitle}</span>
+            <nav className="hidden sm:flex gap-1">
+              <span className="text-sm px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 font-medium">뉴스</span>
+              <Link to="/media" className="text-sm px-3 py-1.5 rounded-lg text-stone-500 hover:bg-stone-100">미디어</Link>
+              {user?.role === 'admin' && (
+                <Link to="/admin" className="text-sm px-3 py-1.5 rounded-lg text-stone-500 hover:bg-stone-100">관리자</Link>
+              )}
+            </nav>
           </div>
 
           {/* 우측 컨트롤 */}

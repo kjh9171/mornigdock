@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
+import Media from './pages/Media'
+import Admin from './pages/Admin'
 import './index.css'
 
 // ✅ 인증 필요 라우트 보호 컴포넌트
@@ -33,14 +35,9 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           {/* 인증 필요 라우트 */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+          <Route path="/media" element={<PrivateRoute><Media /></PrivateRoute>} />
+          <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
 
           {/* 기타 경로 → 홈으로 */}
           <Route path="*" element={<Navigate to="/" replace />} />
