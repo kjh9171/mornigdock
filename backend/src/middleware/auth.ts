@@ -1,95 +1,143 @@
 import { Hono } from 'hono'
-import { json } from 'hono/utils'
 import { sign, verify } from 'hono/jwt'
 import { z } from 'zod'
-import { prisma } from '@/server/db'
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
-// 환경변수
-const JWT_SECRET = process.env.JWT_SECRET!
-const JWT_ALG = 'HS256' // 여기에 알고리즘을 명시
-
+const prisma = new PrismaClient()
 const auth = new Hono()
 
-// 사용자 등록
+// 환경변수
+const JWT_SECRET = process.env.JWT_SECRET as string
+const JWT_ALG = 'HS256'
+const JWT_EXPIRES_IN = 60 * 60 * 24 // 24시간
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined')
+}
+
+/**
+ * 회원가입
+ */
 auth.post('/register', async (c) => {
-  const body = await c.req.json()
-  const parsed = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  }).safeParse(body)
-
-  if (!parsed.success) {
-    return json({ error: parsed.error.formErrors.join(',') }, 400)
-  }
-
-  const exists = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
-  })
-
-  if (exists) {
-    return json({ error: 'User exists' }, 409)
-  }
-
-  const user = await prisma.user.create({
-    data: {
-      email: parsed.data.email,
-      password: parsed.data.password, // hashing 적용 필요
-    },
-  })
-
-  return json({ id: user.id, email: user.email }, 201)
-})
-
-// 로그인
-auth.post('/login', async (c) => {
-  const body = await c.req.json()
-  const parsed = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-  }).safeParse(body)
-
-  if (!parsed.success) {
-    return json({ error: parsed.error.formErrors.join(',') }, 400)
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
-  })
-
-  if (!user || user.password !== parsed.data.password) {
-    return json({ error: 'Invalid credentials' }, 401)
-  }
-
-  const token = await sign(
-    {
-      sub: user.id,
-      email: user.email,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24시간
-    },
-    JWT_SECRET,
-    JWT_ALG,
-  )
-
-  return json({ token })
-})
-
-// 현재 로그인된 사용자 정보
-auth.get('/me', async (c) => {
-  const authHeader = c.req.header('Authorization')
-  if (!authHeader) {
-    return json({ error: 'Authorization missing' }, 401)
-  }
-
-  const token = authHeader.replace('Bearer ', '')
-
   try {
+    const body = await c.req.json()
+
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(6),
+    })
+
+    const parsed = schema.safeParse(body)
+
+    if (!parsed.success) {
+      return c.json({ error: 'Invalid input' }, 400)
+    }
+
+    const { email, password } = parsed.data
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (existingUser) {
+      return c.json({ error: 'User already exists' }, 409)
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+      },
+    })
+
+    return c.json(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      201
+    )
+  } catch (error) {
+    console.error('[REGISTER ERROR]', error)
+    return c.json({ error: 'Internal Server Error' }, 500)
+  }
+})
+
+/**
+ * 로그인
+ */
+auth.post('/login', async (c) => {
+  try {
+    const body = await c.req.json()
+
+    const schema = z.object({
+      email: z.string().email(),
+      password: z.string().min(6),
+    })
+
+    const parsed = schema.safeParse(body)
+
+    if (!parsed.success) {
+      return c.json({ error: 'Invalid input' }, 400)
+    }
+
+    const { email, password } = parsed.data
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (!user) {
+      return c.json({ error: 'Invalid credentials' }, 401)
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password)
+
+    if (!passwordMatch) {
+      return c.json({ error: 'Invalid credentials' }, 401)
+    }
+
+    const token = await sign(
+      {
+        sub: user.id,
+        email: user.email,
+        exp: Math.floor(Date.now() / 1000) + JWT_EXPIRES_IN,
+      },
+      JWT_SECRET,
+      JWT_ALG
+    )
+
+    return c.json({ token })
+  } catch (error) {
+    console.error('[LOGIN ERROR]', error)
+    return c.json({ error: 'Internal Server Error' }, 500)
+  }
+})
+
+/**
+ * 현재 로그인 사용자 조회
+ */
+auth.get('/me', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization')
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+
+    const token = authHeader.split(' ')[1]
+
     const payload = await verify(token, JWT_SECRET, JWT_ALG)
 
-    // 정상 검증시 payload를 반환
-    return json({ user: payload })
-  } catch (err) {
-    console.error('[토큰 검증 오류]', err)
-    return json({ error: 'Unauthorized' }, 401)
+    return c.json({
+      user: payload,
+    })
+  } catch (error) {
+    console.error('[TOKEN VERIFY ERROR]', error)
+    return c.json({ error: 'Unauthorized' }, 401)
   }
 })
 
