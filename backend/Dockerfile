@@ -1,16 +1,19 @@
-# ✅ 개발 모드 Dockerfile (tsx watch로 실행)
 FROM node:20-alpine
 
 WORKDIR /app
 
-# ✅ 패키지 먼저 복사 후 설치 (캐시 최적화)
+# 의존성 파일 복사 및 설치
 COPY package*.json ./
-RUN npm install
+RUN npm ci --only=production || npm install
 
-# ✅ 소스 복사
+# 소스 코드 복사
 COPY . .
 
+# TypeScript 빌드 (선택사항)
+# RUN npm run build
+
+# 포트 노출
 EXPOSE 8787
 
-# ✅ tsx watch로 개발 서버 실행
+# 개발 모드로 실행
 CMD ["npm", "run", "dev"]
