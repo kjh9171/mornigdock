@@ -1,5 +1,7 @@
-// ✅ 백엔드 API 베이스 URL (환경변수로 관리)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787'
+// ✅ 백엔드 API 베이스 URL
+// - Vite 프록시 사용 시: 빈 문자열 (상대경로 /api/... 로 요청)
+// - 직접 연결 시: http://localhost:8787
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ─────────────────────────────────────────────
 // 공통 fetch 래퍼 함수
