@@ -113,14 +113,6 @@ console.log(`[Storage] Loaded ${usersStore.length} users and ${postsStore.length
 // "가입자 전부 초기해 시켜서 다시 시작하자" -> "Initialize all subscribers and restart".
 // I will keep content mocks but reset users.
 
-    author: 'global@user.com',
-    timestamp: new Date(Date.now() - 5000000).toISOString(),
-    views: 45,
-    comments: [],
-    isNotice: false
-  }
-];
-
 interface MediaItem {
   id: string;
   type: 'youtube' | 'podcast' | 'music';

@@ -20,6 +20,6 @@ services:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
     environment:
-      - VITE_API_URL=http://localhost:8787
+      - VITE_API_URL=http://backend:8787
     depends_on:
       - backend
