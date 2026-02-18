@@ -23,33 +23,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // ✅ 앱 시작 시 localStorage에서 토큰 복원
+  // ✅ 앱 시작 시 localStorage에서 토큰 복원 로직 최적화
   useEffect(() => {
-    const savedToken = localStorage.getItem('token')
+    const initAuth = async () => {
+      const savedToken = localStorage.getItem('token')
 
-    if (savedToken) {
-      setToken(savedToken)
-      // 토큰 유효성 서버에서 확인
-      getMeAPI()
-        .then((res) => {
-          if (res.success && res.user) {
-            setUser(res.user)
+      if (savedToken) {
+        setToken(savedToken)
+        try {
+          // 서버에서 내 정보 가져오기 시도
+          const res = await getMeAPI()
+          
+          // 백엔드 로그상 200이 찍히므로 데이터가 있으면 유저 정보를 즉시 업데이트
+          // 만약 res.success 구조가 아니라면 res 데이터 자체를 확인하도록 유연하게 대응
+          if (res && (res.user || res.email)) {
+            setUser(res.user || res) // 서버 응답 구조가 {user: {...}} 또는 {...user}인 경우 모두 대응
           } else {
-            // 토큰 만료 시 초기화
-            localStorage.removeItem('token')
-            localStorage.removeItem('user')
-            setToken(null)
+            // 응답이 부실할 경우 토큰 제거
+            handleAuthFailure()
           }
-        })
-        .catch(() => {
-          localStorage.removeItem('token')
-          setToken(null)
-        })
-        .finally(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
+        } catch (error) {
+          // 네트워크 에러나 401 에러 발생 시 처리
+          console.error('인증 복원 실패:', error)
+          handleAuthFailure()
+        } finally {
+          setIsLoading(false)
+        }
+      } else {
+        setIsLoading(false)
+      }
     }
+
+    initAuth()
   }, [])
+
+  // ✅ 중복 코드 방지를 위한 실패 처리 함수
+  const handleAuthFailure = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
+  }
 
   // ✅ 로그인 성공 시 호출
   const setAuth = (newToken: string, newUser: UserInfo) => {
@@ -57,13 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('user', JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
+    setIsLoading(false) // 로그인 성공 시 로딩 확실히 종료
   }
 
   // ✅ 로그아웃
   const logout = () => {
     logoutAPI()
-    setToken(null)
-    setUser(null)
+    handleAuthFailure()
   }
 
   return (
@@ -77,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
       }}
     >
+      {/* ⚠️ 로딩 중일 때는 잠시 처리를 멈추거나 UI에서 스피너를 돌려야 화면 깜빡임이 없습니다. */}
       {children}
     </AuthContext.Provider>
   )
