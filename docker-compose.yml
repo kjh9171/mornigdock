@@ -1,6 +1,4 @@
-version: '3.9'
-
-# ✅ 전체 서비스 구성: db(PostgreSQL) + backend(Hono) + frontend(React/nginx)
+# ✅ version 필드 제거 (Docker Compose V2에서 obsolete 경고 제거)
 
 services:
   # ─────────────────────────────────────────────
@@ -37,46 +35,44 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8787
-      NODE_ENV: production
-      DB_HOST: db                           # Docker 내부 서비스명
+      NODE_ENV: development
+      DB_HOST: db
       DB_PORT: 5432
       DB_NAME: mornigdock
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD:-password}
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:80}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
       - "8787:8787"
     depends_on:
       db:
-        condition: service_healthy          # DB 준비 후 시작
+        condition: service_healthy
     networks:
       - mornigdock-net
 
   # ─────────────────────────────────────────────
-  # 3. 프론트엔드 (React + nginx)
+  # 3. 프론트엔드 (React + Vite dev server)
   # ─────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
     container_name: mornigdock-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
     ports:
-      - "80:80"
+      - "5173:5173"
     depends_on:
       - backend
     networks:
       - mornigdock-net
 
-# ✅ 영구 저장소
 volumes:
   postgres_data:
     driver: local
 
-# ✅ 내부 네트워크
 networks:
   mornigdock-net:
     driver: bridge

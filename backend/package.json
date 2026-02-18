@@ -1,21 +1,23 @@
 {
   "name": "agora-backend",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "tsx src/index.ts"
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "dependencies": {
-    "@hono/node-server": "^1.2.0",
-    "hono": "^4.0.0",
-    "otplib": "^13.3.0",
-    "axios": "^1.6.8",
-    "cheerio": "^1.0.0-rc.12",
-    "node-cron": "^3.0.3",
-    "bcryptjs": "^2.4.3"
+    "@hono/node-server": "^1.13.7",
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.7.5",
+    "pg": "^8.13.3"
   },
   "devDependencies": {
-    "@types/node": "^20.19.33",
-    "tsx": "^4.7.1"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

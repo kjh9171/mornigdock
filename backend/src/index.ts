@@ -4,6 +4,7 @@ import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import { authRouter } from './routes/auth'
 import { serve } from '@hono/node-server'
+import { initDB } from './db'
 
 // ✅ Hono 앱 인스턴스 생성
 const app = new Hono()
@@ -50,14 +51,25 @@ app.onError((err, c) => {
   )
 })
 
-// ✅ 서버 시작 (Docker에서 0.0.0.0으로 바인딩 필수)
+// ✅ DB 초기화 후 서버 시작 (테이블 자동 생성)
 const port = parseInt(process.env.PORT || '8787')
-console.log(`🚀 서버 실행 중: http://0.0.0.0:${port}`)
 
-serve({
-  fetch: app.fetch,
-  port,
-  hostname: '0.0.0.0',
-})
+async function main() {
+  try {
+    await initDB()
+    console.log('✅ DB 초기화 완료')
+  } catch (err) {
+    console.error('❌ DB 초기화 실패 - 계속 시작합니다:', err)
+  }
+
+  console.log(`🚀 서버 실행 중: http://0.0.0.0:${port}`)
+  serve({
+    fetch: app.fetch,
+    port,
+    hostname: '0.0.0.0', // Docker에서 0.0.0.0 필수
+  })
+}
+
+main()
 
 export default app
