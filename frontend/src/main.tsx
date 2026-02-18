@@ -14,12 +14,11 @@ import Admin from './pages/Admin'
 import './index.css'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 인증 보호 라우트 컴포넌트: 로그인 여부를 확인하여 접근을 제어합니다.
+// ✅ 인증 보호 라우트: 불필요한 리렌더링 방지를 위해 메모이제이션 적용 검토 가능
 // ─────────────────────────────────────────────────────────────────────────────
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
   
-  // 인증 정보를 불러오는 중일 때 표시할 로딩 화면
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center">
@@ -28,25 +27,25 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     )
   }
   
-  // 인증되었다면 자식 컴포넌트를 보여주고, 아니면 로그인 페이지로 강제 이동
+  // 인증되지 않았다면 로그인으로 보내고, 인증되었다면 children(App)을 렌더링
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 메인 렌더링 로직: 라우팅 구조를 정의합니다.
-// ─────────────────────────────────────────────────────────────────────────────
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* 1. 인증이 필요 없는 공용 경로 */}
+          {/* 1. 공개 경로 */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* 2. 인증이 필요한 보호된 경로 (App 레이아웃 적용) */}
+          {/* 2. 보호된 경로: App 컴포넌트를 레이아웃으로 사용 */}
           <Route path="/" element={<PrivateRoute><App /></PrivateRoute>}>
-            {/* ✅ 수정 포인트: <index> 태그가 아닌 index 속성을 가진 Route 사용 */}
+            {/* ✅ [구조 최적화] 
+                App.tsx 내부의 <Outlet /> 지점에 아래 컴포넌트들이 끼워집니다.
+                index는 기본 경로('/')일 때 News를 보여줍니다.
+            */}
             <Route index element={<News />} />
             <Route path="board" element={<Board />} />
             <Route path="board/write" element={<BoardWrite />} />
@@ -55,7 +54,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="admin" element={<Admin />} />
           </Route>
 
-          {/* 3. 정의되지 않은 모든 경로는 홈으로 리다이렉트 */}
+          {/* 3. 예외 처리 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
