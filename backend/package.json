@@ -11,7 +11,8 @@
     "otplib": "^13.3.0",
     "axios": "^1.6.8",
     "cheerio": "^1.0.0-rc.12",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

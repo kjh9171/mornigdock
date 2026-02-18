@@ -1,25 +1,82 @@
-version: "3.8"
+version: '3.9'
+
+# ✅ 전체 서비스 구성: db(PostgreSQL) + backend(Hono) + frontend(React/nginx)
 
 services:
+  # ─────────────────────────────────────────────
+  # 1. PostgreSQL 데이터베이스
+  # ─────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: mornigdock-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mornigdock
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mornigdock"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mornigdock-net
+
+  # ─────────────────────────────────────────────
+  # 2. 백엔드 API 서버 (Hono + Node.js)
+  # ─────────────────────────────────────────────
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mornigdock-backend
+    restart: unless-stopped
+    environment:
+      PORT: 8787
+      NODE_ENV: production
+      DB_HOST: db                           # Docker 내부 서비스명
+      DB_PORT: 5432
+      DB_NAME: mornigdock
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:80}
     ports:
       - "8787:8787"
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/data:/app/data
-    environment:
-      - PORT=8787
-    restart: always
+    depends_on:
+      db:
+        condition: service_healthy          # DB 준비 후 시작
+    networks:
+      - mornigdock-net
 
+  # ─────────────────────────────────────────────
+  # 3. 프론트엔드 (React + nginx)
+  # ─────────────────────────────────────────────
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
+    container_name: mornigdock-frontend
+    restart: unless-stopped
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-    environment:
-      - VITE_API_URL=http://backend:8787
+      - "80:80"
     depends_on:
       - backend
+    networks:
+      - mornigdock-net
+
+# ✅ 영구 저장소
+volumes:
+  postgres_data:
+    driver: local
+
+# ✅ 내부 네트워크
+networks:
+  mornigdock-net:
+    driver: bridge
