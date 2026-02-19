@@ -6,14 +6,6 @@ import pool from '../db'
 import { authMiddleware } from '../middleware/auth'
 import crypto from 'crypto'
 
-// ✅ [보안/호환성] otplib의 ESM/CJS 호환성 이슈를 해결하기 위한 정밀 추출 로직
-// @ts-ignore
-const authenticator = otplib.authenticator || (otplib.default && otplib.default.authenticator)
-
-if (!authenticator) {
-  console.error('CERT ERROR: otplib authenticator를 로드할 수 없습니다.')
-}
-
 export const authRouter = new Hono()
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production'
@@ -50,17 +42,21 @@ authRouter.post('/signup', async (c) => {
     }
 
     // TOTP 시크릿 생성
-    const secret = authenticator.generateSecret()
+    // @ts-ignore
+    const secret = otplib.generateSecret()
     
     // OTPAuth URL 생성 (Google Authenticator 호환)
-    const otpauth = authenticator.keyuri(email, 'Agora Platform', secret)
+    // @ts-ignore
+    const otpauth = otplib.generateURI({
+      label: email,
+      issuer: 'Agora Platform',
+      secret
+    })
 
     // 임시 비밀번호 생성 (비밀번호 필드 제약조건 만족용)
     const dummyPassword = crypto.randomBytes(32).toString('hex')
 
     // 사용자 생성 (아직 검증되지 않음, 하지만 DB에는 저장)
-    // 실제로는 'pending_users' 테이블을 쓰거나 is_verified 플래그를 써야 하지만,
-    // 간단한 구현을 위해 바로 users에 넣되, 로그인은 verify를 통과해야만 가능
     const result = await pool.query(
       `INSERT INTO users (email, password, username, role, two_factor_secret) 
        VALUES ($1, $2, $3, $4, $5) 
@@ -103,12 +99,12 @@ authRouter.post('/login', async (c) => {
 
     // 사용자 조회
     const result = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
+      'SELECT id, email, password, username, role FROM users WHERE email = $1',
       [email]
     )
 
     if (result.rows.length === 0) {
-      return c.json({ success: false, needSignup: true }, 404) // Frontend expects 404 or specific flag? Frontend code: checks data.needSignup
+      return c.json({ success: false, needSignup: true }, 404)
     }
 
     return c.json({
@@ -154,13 +150,14 @@ authRouter.post('/verify', async (c) => {
     const user = result.rows[0]
 
     // TOTP 검증
-    // 개발 환경 편의를 위해 '000000' 입력 시 패스 (선택 사항, 보안상 제거 가능하지만 테스트용으로 유지)
-    // const isValid = otp === '000000' || authenticator.check(otp, user.two_factor_secret)
-    
-    // 실제 검증
     let isValid = false
     try {
-        isValid = authenticator.check(otp, user.two_factor_secret)
+        // @ts-ignore
+        const verifyRes = otplib.verifySync({
+          token: otp,
+          secret: user.two_factor_secret
+        })
+        isValid = verifyRes === true || (verifyRes && verifyRes.valid === true)
     } catch (e) {
         console.error("OTP Check Error:", e)
     }
