@@ -251,6 +251,15 @@ async function createSampleData() {
           category: '비즈니스',
           author: 'Startup Cast',
           duration: 2400
+        },
+        {
+          type: 'music',
+          title: 'Deep Work - Lofi Hip Hop',
+          description: '집중력을 높여주는 차분한 로파이 비트',
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+          category: '로파이',
+          author: 'MorningDock Curator',
+          duration: '03:45'
         }
       ]
       
