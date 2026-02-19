@@ -22,32 +22,35 @@ async function logAdminAction(c: any, action: string) {
 // ─── 지능 즉시 수집 (신설/복구) ───
 adminRouter.post('/fetch-news', async (c) => {
   try {
+    console.log('📡 ADMIN: Triggering manual intelligence gathering...')
     await fetchNewsService()
     await logAdminAction(c, '지능 즉시 수집 실행')
     return c.json({ success: true, message: '지능 수집 완료' })
   } catch (err) {
+    console.error('❌ ADMIN FETCH ERROR:', err)
     return c.json({ success: false, message: '수집 실패' }, 500)
   }
 })
 
-// ─── 시스템 설정 (복구) ───
-adminRouter.get('/config', async (c) => {
-  const result = await pool.query('SELECT * FROM system_config')
-  const config = result.rows.reduce((acc: any, r: any) => ({...acc, [r.key]: r.value}), {})
-  return c.json({ success: true, config })
-})
-
-adminRouter.put('/config', async (c) => {
-  const { key, value } = await c.req.json()
-  await pool.query('INSERT INTO system_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, String(value)])
-  await logAdminAction(c, `시스템 설정 변경: ${key}=${value}`)
-  return c.json({ success: true })
+// ─── 요원 (Users) 관리 ───
+adminRouter.get('/users', async (c) => {
+  try {
+    const res = await pool.query('SELECT id, username, email, role, is_active, created_at FROM users ORDER BY id DESC')
+    console.log(`📡 ADMIN: Retrieved ${res.rows.length} agents.`)
+    return c.json({ success: true, users: res.rows })
+  } catch (err) {
+    return c.json({ success: false, message: '요원 명단 확보 실패' }, 500)
+  }
 })
 
 // ─── 지능 분석물 (Posts) 관리 ───
 adminRouter.get('/posts', async (c) => {
-  const res = await pool.query('SELECT * FROM posts ORDER BY id DESC')
-  return c.json({ success: true, posts: res.rows })
+  try {
+    const res = await pool.query('SELECT * FROM posts ORDER BY id DESC')
+    return c.json({ success: true, posts: res.rows })
+  } catch (err) {
+    return c.json({ success: false }, 500)
+  }
 })
 
 adminRouter.post('/posts', async (c) => {
@@ -76,28 +79,17 @@ adminRouter.delete('/posts/:id', async (c) => {
   } catch (err) { return c.json({ success: false }, 500) }
 })
 
-// ─── 요원 (Users) 관리 ───
-adminRouter.get('/users', async (c) => {
-  const res = await pool.query('SELECT id, username, email, role, is_active, created_at FROM users ORDER BY id DESC')
-  return c.json({ success: true, users: res.rows })
+// ─── 시스템 설정 ───
+adminRouter.get('/config', async (c) => {
+  const result = await pool.query('SELECT * FROM system_config')
+  const config = result.rows.reduce((acc: any, r: any) => ({...acc, [r.key]: r.value}), {})
+  return c.json({ success: true, config })
 })
 
-adminRouter.post('/users', async (c) => {
-  const { email, username, password, role } = await c.req.json()
-  const hashed = await bcrypt.hash(password || '123456', 10)
-  const result = await pool.query(
-    `INSERT INTO users (email, username, password, role) VALUES ($1, $2, $3, $4) RETURNING id, email, username, role`,
-    [email, username, hashed, role || 'user']
-  )
-  await logAdminAction(c, `요원 생성: ${email}`)
-  return c.json({ success: true, user: result.rows[0] })
-})
-
-adminRouter.delete('/users/:id', async (c) => {
-  const id = parseInt(c.req.param('id'))
-  const res = await pool.query('SELECT email FROM users WHERE id = $1', [id])
-  await pool.query('DELETE FROM users WHERE id = $1', [id])
-  await logAdminAction(c, `요원 영구 제명: ${res.rows[0]?.email}`)
+adminRouter.put('/config', async (c) => {
+  const { key, value } = await c.req.json()
+  await pool.query('INSERT INTO system_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, String(value)])
+  await logAdminAction(c, `시스템 설정 변경: ${key}=${value}`)
   return c.json({ success: true })
 })
 
