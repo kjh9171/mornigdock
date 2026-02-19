@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
-import { getAdminStatsAPI, getAdminUsersAPI, getAdminPostsAPI, adminDeletePostAPI, createPostAPI, Post } from '../lib/api';
-import { Loader2, ShieldAlert, Users, FileText, Activity, Trash2, Megaphone, PlusCircle, Filter, Bot, MessageSquare } from 'lucide-react';
+import { getAdminStatsAPI, getAdminUsersAPI, getAdminPostsAPI, adminDeletePostAPI, createPostAPI, fetchNewsAPI, Post } from '../lib/api';
+import { Loader2, ShieldAlert, Users, FileText, Activity, Trash2, Megaphone, PlusCircle, Filter, Bot, MessageSquare, Zap, CheckCircle2 } from 'lucide-react';
 
 export function AdminPanel() {
   const { user } = useAuthStore();
@@ -14,6 +14,7 @@ export function AdminPanel() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
   // Form States for creating new content
   const [isCreating, setIsCreating] = useState(false);
@@ -44,6 +45,19 @@ export function AdminPanel() {
     const interval = setInterval(loadData, 5000); // 5초마다 갱신
     return () => clearInterval(interval);
   }, [user, tab]);
+
+  const handleFetchNews = async () => {
+    setIsFetching(true);
+    const res = await fetchNewsAPI();
+    if (res.success) {
+      logActivity('ADMIN: Manual Intelligence Collection Success');
+      alert('📡 사령부 통보: 네이버 지능 수집이 완료되었습니다!');
+      loadData();
+    } else {
+      alert('❌ 수집 실패: 통신 상태를 확인하십시오.');
+    }
+    setIsFetching(false);
+  };
 
   const handleDeletePost = async (id: number) => {
     if (!confirm('정말 이 지능물을 영구 삭제하시겠습니까?')) return;
@@ -86,11 +100,22 @@ export function AdminPanel() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="bg-stone-50 border-b border-stone-200 px-8 py-3 flex gap-8 text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-        <div className="flex items-center gap-2"><Users className="w-3 h-3" /> 활성 요원: <span className="text-primary-800">{stats?.users || 0}</span></div>
-        <div className="flex items-center gap-2"><FileText className="w-3 h-3" /> 총 지능물: <span className="text-primary-800">{stats?.posts || 0}</span></div>
-        <div className="flex items-center gap-2"><Activity className="w-3 h-3" /> 시스템 상태: <span className="text-green-500">OPERATIONAL</span></div>
+      {/* Stats & Control Bar */}
+      <div className="bg-stone-50 border-b border-stone-200 px-8 py-3 flex justify-between items-center text-[10px] font-bold text-stone-500 uppercase tracking-widest">
+        <div className="flex gap-8">
+          <div className="flex items-center gap-2"><Users className="w-3 h-3" /> 활성 요원: <span className="text-primary-800">{stats?.users || 0}</span></div>
+          <div className="flex items-center gap-2"><FileText className="w-3 h-3" /> 총 지능물: <span className="text-primary-800">{stats?.posts || 0}</span></div>
+          <div className="flex items-center gap-2"><Activity className="w-3 h-3" /> 시스템 상태: <span className="text-green-500">OPERATIONAL</span></div>
+        </div>
+        
+        <button 
+          onClick={handleFetchNews}
+          disabled={isFetching}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-accent-200 text-accent-700 hover:bg-accent-50 transition-all ${isFetching ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isFetching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3 fill-accent-600" />}
+          지능 즉시 수집
+        </button>
       </div>
 
       <div className="p-0 flex-1 overflow-auto bg-white relative">

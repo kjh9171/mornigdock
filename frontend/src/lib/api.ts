@@ -128,3 +128,4 @@ export const adminDeletePostAPI = (id: number) =>
 export const getAdminCommentsAPI = () => fetchAPI<any>('/admin/comments')
 export const adminDeleteCommentAPI = (id: number) =>
   fetchAPI<any>(`/admin/comments/${id}`, { method: 'DELETE' })
+export const fetchNewsAPI = () => fetchAPI<{ success: boolean; message: string }>('/admin/fetch-news', { method: 'POST' })
