@@ -9,17 +9,16 @@ import { mediaRouter } from './routes/media'
 import { adminRouter } from './routes/admin'
 import pool from './db'
 import { fetchNewsService } from './newsService'
+import { logActivity } from './utils/logger'
 
 const app = new Hono()
 
 app.use('*', logger())
 
-// 🔥 [긴급 수정] CORS 설정을 더 유연하게 변경하여 'Failed to fetch' 원천 봉쇄
 app.use('*', cors({
   origin: (origin) => {
-    // 모든 localhost 및 127.0.0.1 기반 접속 허용 (포트 무관)
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
-    return 'http://localhost:5173'; // 기본값
+    return 'http://localhost:5173';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
@@ -28,16 +27,13 @@ app.use('*', cors({
 
 app.get('/', (c) => c.json({ message: '아고라 API v1.0' }))
 
-// 🔥 [기능] 활동 로그 기록 엔드포인트
+// 🔥 [긴급 추가] 프론트엔드 전용 활동 로그 엔드포인트
 app.post('/api/log', async (c) => {
   try {
-    const { email, activity } = await c.req.json()
+    const { email, action } = await c.req.json()
     const userRes = await pool.query('SELECT id FROM users WHERE email = $1', [email])
     const userId = userRes.rows[0]?.id
-    await pool.query(
-      `INSERT INTO activity_logs (user_id, email, action, ip_address) VALUES ($1, $2, $3, $4)`,
-      [userId || null, email, activity, c.req.header('x-forwarded-for') || '127.0.0.1']
-    )
+    await logActivity(userId || null, email, action, c.req.header('x-forwarded-for') || '127.0.0.1')
     return c.json({ success: true })
   } catch (e) {
     return c.json({ success: false }, 500)
@@ -51,19 +47,17 @@ app.route('/api/admin', adminRouter)
 
 const port = 8787
 initDB().then(() => {
-  console.log(`🚀 Server started on port ${port}`)
+  console.log(`🚀 아고라 서버 기동 완료 (Port: ${port})`)
   
-  // 🔥 [기능] 매 시간마다 뉴스 자동 추출 (Auto Fetch News Every Hour)
   setInterval(async () => {
     try {
-      await fetchNewsService()
+      await fetchNewsService();
     } catch (e) {
-      console.error('Auto Fetch News Error:', e)
+      console.error('CRITICAL: 자동 수집 중 오류 발생', e);
     }
-  }, 1000 * 60 * 60) // 1시간 간격
+  }, 1000 * 60 * 60);
 
-  // 서버 시작 시 수동 수집 한 번 실행
-  fetchNewsService().catch(console.error)
+  fetchNewsService().catch(console.error);
 
   serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
 })

@@ -10,7 +10,7 @@ import {
 import { 
   Users, FileText, MessageSquare, Play, LayoutDashboard, 
   Shield, Activity, Settings, Plus, Edit2, Trash2, 
-  Lock, Unlock, Pin, Sparkles, Loader2, Mail, Globe, Clock, Server, RefreshCw, Key, UserPlus, ChevronRight, AlertCircle, BarChart3, ExternalLink
+  Lock, Unlock, Pin, Sparkles, Loader2, Mail, Globe, Clock, Server, RefreshCw, Key, UserPlus, ChevronRight, AlertCircle, BarChart3, ExternalLink, Zap
 } from 'lucide-react'
 
 type AdminTab = 'dashboard' | 'users' | 'posts' | 'media' | 'logs'
@@ -84,11 +84,11 @@ function UserModal({ item, onSave, onClose }: { item?: any; onSave: (d: any) => 
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md" onClick={onClose}>
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-          <h3 className="font-black text-stone-900 flex items-center gap-2"><UserPlus className="w-5 h-5 text-amber-600" /> {item ? '요원 정보 수정' : '신규 요원 등록'}</h3>
+          <h3 className="font-black text-stone-900 flex items-center gap-2"><UserPlus className="w-5 h-5 text-amber-600" /> 요원 정보 관리</h3>
           <button onClick={onClose} className="text-stone-400">✕</button>
         </div>
         <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="p-8 space-y-5">
-          <input name="email" value={form.email} onChange={h} required placeholder="example@agora.com" disabled={!!item} className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" />
+          <input name="email" value={form.email} onChange={h} required placeholder="Email Address" disabled={!!item} className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" />
           <input name="username" value={form.username} onChange={h} required placeholder="요원 호출명" className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-bold focus:ring-2 focus:ring-amber-500/20 outline-none" />
           {!item && <input name="password" type="password" value={form.password} onChange={h} required placeholder="보안 키" className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-mono focus:ring-2 focus:ring-amber-500/20 outline-none" />}
           <select name="role" value={form.role} onChange={h} className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-black uppercase outline-none focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none">
@@ -111,7 +111,7 @@ function MediaModal({ item, onSave, onClose }: { item?: MediaItem; onSave: (d: a
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md" onClick={onClose}>
       <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="px-8 py-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
-          <h3 className="font-black text-stone-900 flex items-center gap-2"><Play className="w-5 h-5 text-amber-600" /> {item ? '미디어 자산 동기화' : '신규 자산 배치'}</h3>
+          <h3 className="font-black text-stone-900 flex items-center gap-2"><Play className="w-5 h-5 text-amber-600" /> 미디어 자산 동기화</h3>
           <button onClick={onClose} className="text-stone-400">✕</button>
         </div>
         <form onSubmit={e => { e.preventDefault(); onSave(form) }} className="p-8 space-y-5">
@@ -146,6 +146,7 @@ export default function Admin() {
   const [userModal, setUserModal] = useState<{ open: boolean; item?: any }>({ open: false })
   const [mediaModal, setMediaModal] = useState<{ open: boolean; item?: MediaItem }>({ open: false })
   const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
 
   const API_BASE = import.meta.env.VITE_API_URL || ''
   const token = localStorage.getItem('token')
@@ -175,15 +176,30 @@ export default function Admin() {
 
   useEffect(() => { loadData() }, [tab])
 
+  // 🔥 [수동 지능 수집 실행]
+  const handleManualFetch = async () => {
+    setIsFetching(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/fetch-news`, {
+        method: 'POST',
+        headers
+      }).then(r => r.json())
+      if (res.success) {
+        alert('최신 지능 수집이 완료되었습니다.')
+        loadData()
+      }
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
   const handleSavePost = async (data: any) => {
-    // 🔥 POST /api/admin/posts 로 명확히 호출
     const url = data.id ? `${API_BASE}/api/posts/${data.id}` : `${API_BASE}/api/admin/posts`
     const r = await fetch(url, { method: data.id ? 'PUT' : 'POST', headers, body: JSON.stringify(data) }).then(r => r.json())
     if (r.success) { setPostModal({ open: false }); loadData(); }
   }
   const handleDeletePost = async (id: number) => {
     if (!confirm('분석물을 영구 파기하시겠습니까?')) return
-    // 🔥 DELETE /api/admin/posts/:id 로 명확히 호출
     const r = await fetch(`${API_BASE}/api/admin/posts/${id}`, { method: 'DELETE', headers }).then(r => r.json())
     if (r.success) loadData()
   }
@@ -251,7 +267,19 @@ export default function Admin() {
               <h1 className="text-4xl font-black text-stone-900 tracking-tighter uppercase leading-none mb-2">{MENU_ITEMS.find(m => m.key === tab)?.label}</h1>
               <div className="flex items-center gap-2 text-[10px] font-black text-stone-400 uppercase tracking-widest"><Globe className="w-3 h-3" /> AGORA WIDE-SCREEN COMMAND <span className="text-stone-200">|</span> v1.0.7-HQ</div>
             </div>
-            <button onClick={loadData} className="p-3 bg-white border border-stone-200 rounded-2xl text-stone-400 hover:text-stone-900 hover:border-stone-900 transition-all shadow-sm active:scale-95"><RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin text-amber-600' : ''}`} /></button>
+            <div className="flex gap-2">
+              {tab === 'dashboard' && (
+                <button 
+                  onClick={handleManualFetch}
+                  disabled={isFetching}
+                  className="flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-amber-700 shadow-lg shadow-amber-600/20 transition-all disabled:opacity-50"
+                >
+                  {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  지능 즉시 수집
+                </button>
+              )}
+              <button onClick={loadData} className="p-3 bg-white border border-stone-200 rounded-2xl text-stone-400 hover:text-stone-900 hover:border-stone-900 transition-all shadow-sm active:scale-95"><RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin text-amber-600' : ''}`} /></button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -270,7 +298,7 @@ export default function Admin() {
                 <Card title="요원 레지스트리 및 프로토콜" icon={Shield} action={<button onClick={() => setUserModal({ open: true })} className="flex items-center gap-2 text-[10px] font-black bg-stone-900 text-white px-5 py-2.5 rounded-xl uppercase tracking-widest hover:bg-black shadow-lg transition-all"><UserPlus className="w-4 h-4" /> 신규 요원 배치</button>}>
                   <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30"><th className="py-5 px-8 text-left whitespace-nowrap">식별 ID / 호출명</th><th className="py-5 px-8 text-left whitespace-nowrap">보안 권한</th><th className="py-5 px-8 text-center whitespace-nowrap">상태</th><th className="py-5 px-8 text-right whitespace-nowrap">전략 통제</th></tr></thead><tbody className="divide-y divide-stone-50">
                     {users.map(u => (
-                      <tr key={u.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8 whitespace-nowrap"><span className="font-black text-stone-800 block uppercase tracking-tight">{u.username}</span><span className="text-[10px] text-stone-400 font-mono italic">{u.email}</span></td><td className="py-6 px-8 whitespace-nowrap"><span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase ${u.role === 'admin' ? 'bg-stone-900 text-amber-400' : 'bg-stone-100 text-stone-600'}`}>{u.role}</span></td><td className="py-6 px-8 text-center whitespace-nowrap"><span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase ${u.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{u.is_active ? '정상 작동' : '접속 차단'}</span></td><td className="py-6 px-8 text-right whitespace-nowrap"><div className="flex justify-end gap-2"><button onClick={() => setUserModal({ open: true, item: u })} className="p-3 text-stone-400 hover:text-stone-900 hover:bg-white rounded-2xl shadow-sm transition-all"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDeleteUser(u.id)} disabled={u.id === user.id} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td></tr>
+                      <tr key={u.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8 whitespace-nowrap"><span className="font-black text-stone-800 block uppercase tracking-tight">{u.username}</span><span className="text-[10px] text-stone-400 font-mono italic">{u.email}</span></td><td className="py-6 px-8 whitespace-nowrap"><span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase ${u.role === 'admin' ? 'bg-stone-900 text-amber-400' : 'bg-stone-100 text-stone-600'}`}>{u.role}</span></td><td className="py-6 px-8 text-center whitespace-nowrap"><span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase ${u.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{u.is_active ? '정상 작동' : '접속 차단'}</span></td><td className="py-6 px-8 text-right whitespace-nowrap"><div className="flex justify-end gap-2"><button onClick={() => setUserModal({ open: true, item: u })} className="p-3 text-stone-400 hover:text-stone-900 hover:bg-white rounded-2xl shadow-sm transition-all border border-transparent hover:border-stone-200"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDeleteUser(u.id)} disabled={u.id === user.id} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td></tr>
                     ))}
                   </tbody></table></div>
                 </Card>
@@ -300,7 +328,7 @@ export default function Admin() {
                 <Card title="사령부 보안 감사 타임라인" icon={Activity}>
                   <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30"><th className="py-5 px-8 text-left whitespace-nowrap">실행 주체</th><th className="py-5 px-8 text-left whitespace-nowrap">감사 내역 (Action)</th><th className="py-5 px-8 text-right whitespace-nowrap">접속 IP / 타임스탬프</th></tr></thead><tbody className="divide-y divide-stone-50">
                     {logs.map(l => (
-                      <tr key={l.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8 font-black text-stone-800 text-xs uppercase whitespace-nowrap">{l.username || 'Unknown Operator'}</td><td className="py-6 px-8 whitespace-nowrap"><span className={`text-[9px] font-black px-2.5 py-1.5 rounded-lg uppercase tracking-widest ${l.action.includes('ADMIN') ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>{l.action}</span></td><td className="py-6 px-8 text-right flex flex-col items-end gap-1 whitespace-nowrap"><span className="text-[10px] text-stone-400 font-mono font-bold">{l.ip_address}</span><span className="text-[9px] text-stone-300 font-mono">{new Date(l.created_at).toLocaleString('ko-KR')}</span></td></tr>
+                      <tr key={l.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8 font-black text-stone-800 text-xs uppercase whitespace-nowrap">{l.username || 'Unknown Operator'}</td><td className="py-6 px-8"><span className={`text-[9px] font-black px-2.5 py-1.5 rounded-lg uppercase tracking-widest ${l.action.includes('ADMIN') ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>{l.action}</span></td><td className="py-6 px-8 text-right flex flex-col items-end gap-1 whitespace-nowrap"><span className="text-[10px] text-stone-400 font-mono font-bold">{l.ip_address}</span><span className="text-[9px] text-stone-300 font-mono">{new Date(l.created_at).toLocaleString('ko-KR')}</span></td></tr>
                     ))}
                   </tbody></table></div>
                 </Card>

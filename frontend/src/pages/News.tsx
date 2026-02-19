@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { getPostsAPI, getPostAPI, Post, addCommentAPI } from '../lib/api'
+import { useActivityLog } from '../utils/activityLogger'
 import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink } from 'lucide-react'
 
 const NEWS_CATEGORIES = ['전체', '경제', '기술', '정치', '글로벌', '산업']
@@ -22,6 +23,7 @@ export default function News() {
   const { user } = useAuth()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { logActivity } = useActivityLog()
   const [posts, setPosts] = useState<Post[]>([])
   const [category, setCategory] = useState('전체')
   const [selected, setSelected] = useState<Post | null>(null)
@@ -42,7 +44,6 @@ export default function News() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // 🔥 URL 파라미터(id)가 있을 경우 즉시 상세 로드
   useEffect(() => {
     if (id) loadDetail(parseInt(id))
     else setSelected(null)
@@ -68,10 +69,15 @@ export default function News() {
 
   const handleAI = () => {
     setIsAnalyzing(true)
+    logActivity(`AI 지능 분석 실행: ${selected?.title}`)
     setTimeout(() => {
       setAiData(AI_INSIGHTS[selected?.category || ''] || AI_INSIGHTS.default)
       setIsAnalyzing(false)
     }, 1500)
+  }
+
+  const handleSourceClick = () => {
+    logActivity(`뉴스 원문 확인 이동: ${selected?.title}`)
   }
 
   const submitComment = async (e: React.FormEvent, parentId?: number) => {
@@ -116,7 +122,7 @@ export default function News() {
               </div>
             </div>
 
-            <a href={(selected as any).source_url} target="_blank" rel="noreferrer" className="group block mb-10">
+            <a href={(selected as any).source_url} target="_blank" rel="noreferrer" onClick={handleSourceClick} className="group block mb-10">
               <h1 className="text-3xl font-black text-stone-900 leading-tight tracking-tighter group-hover:text-amber-600 transition-colors flex items-center gap-3">
                 {selected.title}
                 <ExternalLink className="w-6 h-6 text-stone-300 group-hover:text-amber-600" />
@@ -126,7 +132,7 @@ export default function News() {
             <div className="text-stone-700 leading-relaxed text-lg whitespace-pre-wrap border-t border-stone-100 pt-10 mb-10">{selected.content}</div>
 
             <div className="mb-10">
-              <a href={(selected as any).source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-8 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm font-black text-stone-800 hover:bg-stone-100 transition-all uppercase tracking-widest">
+              <a href={(selected as any).source_url} target="_blank" rel="noreferrer" onClick={handleSourceClick} className="inline-flex items-center gap-3 px-8 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm font-black text-stone-800 hover:bg-stone-100 transition-all uppercase tracking-widest">
                 네이버 뉴스에서 원문 읽기
                 <ExternalLink className="w-4 h-4" />
               </a>
