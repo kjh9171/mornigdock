@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { getPostsAPI, getPostAPI, Post, addCommentAPI } from '../lib/api'
@@ -20,6 +20,8 @@ const AI_INSIGHTS: Record<string, any> = {
 
 export default function News() {
   const { user } = useAuth()
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [posts, setPosts] = useState<Post[]>([])
   const [category, setCategory] = useState('전체')
   const [selected, setSelected] = useState<Post | null>(null)
@@ -40,14 +42,28 @@ export default function News() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // 🔥 URL 파라미터(id)가 있을 경우 즉시 상세 로드
+  useEffect(() => {
+    if (id) loadDetail(parseInt(id))
+    else setSelected(null)
+  }, [id])
+
   const loadDetail = async (id: number) => {
+    setIsLoading(true)
     const res = await getPostAPI(id)
-    if (res.success) { setSelected(res.post); setComments(res.comments || []); }
+    if (res.success) { 
+      setSelected(res.post)
+      setComments(res.comments || [])
+      setAiData(null)
+      setCommentInput('')
+      setReplyTo(null)
+    }
+    setIsLoading(false)
   }
 
   const handleSelect = (p: Post) => {
-    setSelected(p); setAiData(null); setCommentInput(''); setReplyTo(null);
-    loadDetail(p.id); window.scrollTo(0, 0);
+    navigate(`/news/${p.id}`)
+    window.scrollTo(0, 0)
   }
 
   const handleAI = () => {
@@ -79,7 +95,7 @@ export default function News() {
     <div className="w-full space-y-6">
       <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {NEWS_CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => { setCategory(cat); setSelected(null); }} className={`text-sm px-4 py-2 rounded-full font-bold border transition-all whitespace-nowrap ${category === cat ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white text-stone-500 border-stone-200'}`}>{cat}</button>
+          <button key={cat} onClick={() => { setCategory(cat); navigate('/'); }} className={`text-sm px-4 py-2 rounded-full font-bold border transition-all whitespace-nowrap ${category === cat && !id ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white text-stone-500 border-stone-200'}`}>{cat}</button>
         ))}
       </div>
 
@@ -87,7 +103,7 @@ export default function News() {
         <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm animate-in fade-in duration-500">
           <div className="p-10">
             <div className="flex justify-between items-start mb-8">
-              <button onClick={() => setSelected(null)} className="text-xs font-black text-amber-600 uppercase hover:underline">← Insights Archive</button>
+              <button onClick={() => navigate('/')} className="text-xs font-black text-amber-600 uppercase hover:underline">← Insights Archive</button>
               <button onClick={handleAI} disabled={isAnalyzing || aiData} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black shadow-sm ${aiData ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-stone-900 text-white hover:bg-black'}`}>
                 {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />} {aiData ? 'Intelligence Verified' : 'Run AI Analysis'}
               </button>
@@ -100,39 +116,23 @@ export default function News() {
               </div>
             </div>
 
-            {/* 🔥 원본 기사 바로가기 (제목 클릭) */}
-            <a 
-              href={(selected as any).source_url} 
-              target="_blank" 
-              rel="noreferrer" 
-              className="group block mb-10"
-              title="네이버 뉴스에서 원문 보기"
-            >
+            <a href={(selected as any).source_url} target="_blank" rel="noreferrer" className="group block mb-10">
               <h1 className="text-3xl font-black text-stone-900 leading-tight tracking-tighter group-hover:text-amber-600 transition-colors flex items-center gap-3">
                 {selected.title}
                 <ExternalLink className="w-6 h-6 text-stone-300 group-hover:text-amber-600" />
               </h1>
             </a>
 
-            <div className="text-stone-700 leading-relaxed text-lg whitespace-pre-wrap border-t border-stone-100 pt-10 mb-10">
-              {selected.content}
-            </div>
+            <div className="text-stone-700 leading-relaxed text-lg whitespace-pre-wrap border-t border-stone-100 pt-10 mb-10">{selected.content}</div>
 
-            {/* 🔥 원본 보기 전용 버튼 추가 */}
             <div className="mb-10">
-              <a 
-                href={(selected as any).source_url} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="inline-flex items-center gap-3 px-8 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm font-black text-stone-800 hover:bg-stone-100 transition-all uppercase tracking-widest"
-              >
+              <a href={(selected as any).source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 px-8 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm font-black text-stone-800 hover:bg-stone-100 transition-all uppercase tracking-widest">
                 네이버 뉴스에서 원문 읽기
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
 
             {isAnalyzing && <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden mb-10"><div className="h-full bg-amber-600 animate-[loading_1.5s_ease-in-out]" /></div>}
-            
             {aiData && (
               <div className="bg-amber-50/50 rounded-2xl border border-amber-100 p-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
                 <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Scraped Summary</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.summary}</p></div>

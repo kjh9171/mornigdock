@@ -30,7 +30,10 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+            {/* 🔥 뉴스 상세 경로 추가하여 토론장과 연동 */}
             <Route path="/" element={<News />} />
+            <Route path="/news/:id" element={<News />} /> 
+            
             <Route path="/board" element={<Board />} />
             <Route path="/board/write" element={<BoardWrite />} />
             <Route path="/board/:id" element={<BoardDetail />} />

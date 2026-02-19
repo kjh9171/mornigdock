@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getPostsAPI, Post } from '../lib/api'
-import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText } from 'lucide-react'
 
-const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타']
+const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타', '뉴스 분석']
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
@@ -20,8 +20,8 @@ function formatDate(dateStr: string) {
 }
 
 const CAT_COLORS: Record<string, string> = {
-  자유: 'text-stone-500', 정보: 'text-blue-600', 질문: 'text-amber-600',
-  유머: 'text-pink-500', 기타: 'text-stone-400',
+  '자유': 'text-stone-500', '정보': 'text-blue-600', '질문': 'text-amber-600',
+  '유머': 'text-pink-500', '기타': 'text-stone-400', '뉴스 분석': 'text-emerald-600'
 }
 
 export default function Board() {
@@ -37,8 +37,16 @@ export default function Board() {
 
   useEffect(() => {
     setIsLoading(true)
-    const params: Record<string, string | number> = { type: 'board', page, limit: 25 }
-    if (category !== '전체') params.category = category
+    const params: Record<string, string | number> = { page, limit: 25 }
+    
+    // 🔥 '뉴스 분석' 카테고리 선택 시 type='news'로 요청
+    if (category === '뉴스 분석') {
+      params.type = 'news'
+    } else {
+      params.type = 'board'
+      if (category !== '전체') params.category = category
+    }
+
     getPostsAPI(params).then(res => {
       if (res.success) {
         setPosts(res.posts)
@@ -53,6 +61,12 @@ export default function Board() {
 
   const changePage = (p: number) => { setPage(p); window.scrollTo(0, 0) }
   const changeCategory = (cat: string) => { setCategory(cat); setPage(1) }
+
+  const handlePostClick = (post: Post) => {
+    // 🔥 뉴스 타입이면 뉴스 상세로, 보드 타입이면 보드 상세로 이동
+    if (post.type === 'news') navigate(`/news/${post.id}`)
+    else navigate(`/board/${post.id}`)
+  }
 
   return (
     <div className="w-full space-y-6">
@@ -77,7 +91,7 @@ export default function Board() {
       <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="flex border-b border-stone-100 bg-stone-50/50 overflow-x-auto no-scrollbar">
           {BOARD_CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => changeCategory(cat)} className={`px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 ${category === cat ? 'border-amber-600 text-amber-600 bg-white' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>{cat}</button>
+            <button key={cat} onClick={() => changeCategory(cat)} className={`px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${category === cat ? 'border-amber-600 text-amber-600 bg-white' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>{cat}</button>
           ))}
         </div>
 
@@ -85,16 +99,21 @@ export default function Board() {
           {isLoading ? (
             <div className="py-20 text-center"><Loader2 className="w-10 h-10 text-stone-200 animate-spin mx-auto" /></div>
           ) : filteredPosts.length === 0 ? (
-            <div className="py-20 text-center text-stone-400 font-medium">작성된 게시글이 없습니다.</div>
+            <div className="py-20 text-center text-stone-400 font-medium">데이터가 없습니다.</div>
           ) : (
             filteredPosts.map((post, idx) => (
-              <Link key={post.id} to={`/board/${post.id}`} className={`flex items-center gap-4 px-8 py-5 hover:bg-stone-50/50 transition-colors ${post.pinned ? 'bg-amber-50/20' : ''}`}>
+              <div 
+                key={post.id} 
+                onClick={() => handlePostClick(post)}
+                className={`flex items-center gap-4 px-8 py-5 hover:bg-stone-50/50 transition-colors cursor-pointer ${post.pinned ? 'bg-amber-50/20' : ''}`}
+              >
                 <div className="hidden sm:flex w-10 text-xs font-mono text-stone-300">
                   {post.pinned ? <span className="text-amber-600 font-black uppercase text-[10px]">Pin</span> : pagination.total - ((page - 1) * 25) - idx}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[post.category]?.replace('text-', 'bg-').replace('-600', '-50') || 'bg-stone-100'} ${CAT_COLORS[post.category] || 'text-stone-500'}`}>{post.category}</span>
+                    {post.type === 'news' && <FileText className="w-3 h-3 text-emerald-600" />}
+                    <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${post.type === 'news' ? 'bg-emerald-50 text-emerald-600' : (CAT_COLORS[post.category]?.replace('text-', 'bg-').replace('-600', '-50') || 'bg-stone-100')} ${post.type === 'news' ? '' : (CAT_COLORS[post.category] || 'text-stone-500')}`}>{post.type === 'news' ? 'NEWS' : post.category}</span>
                     <h3 className="text-sm font-bold text-stone-800 truncate leading-snug">{post.title}</h3>
                     {post.comment_count > 0 && <span className="text-[10px] font-black text-amber-600">[{post.comment_count}]</span>}
                   </div>
@@ -107,7 +126,7 @@ export default function Board() {
                   <div className="flex flex-col items-center min-w-[40px]"><Eye className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.view_count}</span></div>
                   <div className="flex flex-col items-center min-w-[40px]"><MessageSquare className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.comment_count}</span></div>
                 </div>
-              </Link>
+              </div>
             ))
           )}
         </div>
@@ -137,3 +156,6 @@ const Loader2 = ({ className, ...props }: any) => (
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 )
+
+const ChevronsLeft = ({ className }: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg>
+const ChevronsRight = ({ className }: any) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/></svg>
