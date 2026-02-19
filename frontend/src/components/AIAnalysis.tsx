@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { useActivityLog } from '../utils/activityLogger';
 import { getPostAPI, updatePostAnalysisAPI, Post } from '../lib/api';
-import { ArrowLeft, Bot, Loader2, Sparkles, TrendingUp, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Bot, Loader2, Sparkles, TrendingUp, CheckCircle2, ExternalLink, FileText } from 'lucide-react';
 
 export function AIAnalysis() {
   const { selectedNewsId, setView } = useNavigationStore();
@@ -36,7 +36,7 @@ export function AIAnalysis() {
     setResult(null);
     logActivity(`AI Analysis Operation Start: ${postItem.title}`);
 
-    // 시뮬레이션된 고도화 분석 로직 (실제로는 LLM API 호출 가능 영역)
+    // 시뮬레이션된 고도화 분석 로직
     setTimeout(async () => {
       const analysisReport = `[사령부 지능 분석 리포트 - ${new Date().toLocaleDateString()}]
 
@@ -112,17 +112,33 @@ ${postItem.content.substring(0, 150)}... (생략)
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content & Source Link */}
       {postItem && (
         <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-soft">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-2 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded uppercase">
-              {postItem.category}
-            </span>
-            <span className="text-[10px] text-stone-400 font-medium">{postItem.source}</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-accent-100 text-accent-700 text-[10px] font-bold rounded uppercase">
+                {postItem.category}
+              </span>
+              <span className="text-[10px] text-stone-400 font-medium">{postItem.source}</span>
+            </div>
+            {postItem.source_url && (
+              <a 
+                href={postItem.source_url} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[10px] text-accent-600 font-bold hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                원문 기사 보기
+              </a>
+            )}
           </div>
-          <h2 className="text-xl font-bold text-primary-800 mb-2">{postItem.title}</h2>
-          <p className="text-stone-600 text-sm line-clamp-2">{postItem.content}</p>
+          <h2 className="text-xl font-bold text-primary-800 mb-2 flex items-start gap-2">
+            <FileText className="w-5 h-5 mt-1 text-stone-300 shrink-0" />
+            {postItem.title}
+          </h2>
+          <p className="text-stone-600 text-sm line-clamp-3 leading-relaxed">{postItem.content}</p>
         </div>
       )}
 
