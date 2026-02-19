@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { getPostsAPI, getPostAPI, Post, addCommentAPI } from '../lib/api'
-import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink, PlayCircle, Mic } from 'lucide-react'
+import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink } from 'lucide-react'
 
 const NEWS_CATEGORIES = ['전체', '경제', '기술', '정치', '글로벌', '산업']
 const CAT_BADGE: Record<string, string> = {
@@ -13,9 +13,9 @@ const CAT_BADGE: Record<string, string> = {
 }
 
 const AI_INSIGHTS: Record<string, any> = {
-  경제: { summary: '글로벌 거시경제 지표상 금리 인하 기대감과 인플레이션 둔화세가 변동성을 확대시키는 구간입니다.', strategy: '안정형 가치주 중심의 포트폴리오 재편 권고.' },
-  기술: { summary: '생성형 AI 발전이 하드웨어 혁신을 견인하며 반도체 산업의 패러다임을 전환하고 있습니다.', strategy: '공급망 수직 계열화 완성 기업에 주목.' },
-  default: { summary: '데이터 분석 결과 장기적인 추세 전환의 신호가 포착되었습니다.', strategy: '리스크 관리 수준 강화 및 추가 데이터 확보 요망.' }
+  경제: { summary: '네이버 뉴스 분석 결과, 거시경제 지표의 급격한 변화로 인한 시장 변동성 확대 국면입니다.', strategy: '자산 배분 전략의 재점검 및 리스크 관리 강화가 필수적인 시점입니다.' },
+  기술: { summary: 'HBM4 양산 시점 단축은 글로벌 AI 경쟁에서 주도권을 확보하려는 전략적 포석으로 분석됩니다.', strategy: '반도체 밸류체인 내 핵심 장비 및 소재 기업에 대한 집중 모니터링이 필요합니다.' },
+  default: { summary: '네이버 속보 데이터를 바탕으로 한 정밀 분석 결과, 산업 패러다임의 중대한 전환점이 포착되었습니다.', strategy: '기존 관성을 탈피한 새로운 전략적 의사결정이 요구되는 구간입니다.' }
 }
 
 export default function News() {
@@ -100,16 +100,17 @@ export default function News() {
               </div>
             </div>
 
-            {/* 🔥 제목 클릭 시 원본 이동 */}
+            {/* 🔥 원본 기사 바로가기 (제목 클릭) */}
             <a 
               href={(selected as any).source_url} 
               target="_blank" 
               rel="noreferrer" 
-              className="group block mb-8"
+              className="group block mb-10"
+              title="네이버 뉴스에서 원문 보기"
             >
               <h1 className="text-3xl font-black text-stone-900 leading-tight tracking-tighter group-hover:text-amber-600 transition-colors flex items-center gap-3">
                 {selected.title}
-                <ExternalLink className="w-5 h-5 text-stone-300 group-hover:text-amber-600" />
+                <ExternalLink className="w-6 h-6 text-stone-300 group-hover:text-amber-600" />
               </h1>
             </a>
 
@@ -117,45 +118,25 @@ export default function News() {
               {selected.content}
             </div>
 
-            {/* 🔥 관련 영상/오디오 브리핑 섹션 */}
-            {((selected as any).related_video_url || (selected as any).related_audio_url) && (
-              <div className="mb-10 p-8 bg-stone-50 border border-stone-100 rounded-3xl">
-                <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <PlayCircle className="w-4 h-4 text-amber-600" /> Related Intelligence Briefing
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 유튜브 임베드 */}
-                  {(selected as any).related_video_url && (
-                    <div className="aspect-video rounded-2xl overflow-hidden shadow-lg border border-white">
-                      <iframe 
-                        src={`https://www.youtube.com/embed/${(selected as any).related_video_url}`}
-                        className="w-full h-full"
-                        allowFullScreen
-                      />
-                    </div>
-                  )}
-                  {/* 팟캐스트 플레이어 */}
-                  {(selected as any).related_audio_url && (
-                    <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm flex flex-col justify-center">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center"><Mic className="w-5 h-5 text-amber-600" /></div>
-                        <div><p className="text-sm font-bold text-stone-800 uppercase">Audio Intelligence</p><p className="text-[10px] text-stone-400 font-medium">Deep Dive Podcast</p></div>
-                      </div>
-                      <audio controls className="w-full h-10">
-                        <source src={(selected as any).related_audio_url} type="audio/mpeg" />
-                      </audio>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* 🔥 원본 보기 전용 버튼 추가 */}
+            <div className="mb-10">
+              <a 
+                href={(selected as any).source_url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="inline-flex items-center gap-3 px-8 py-4 bg-stone-50 border border-stone-200 rounded-2xl text-sm font-black text-stone-800 hover:bg-stone-100 transition-all uppercase tracking-widest"
+              >
+                네이버 뉴스에서 원문 읽기
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
 
             {isAnalyzing && <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden mb-10"><div className="h-full bg-amber-600 animate-[loading_1.5s_ease-in-out]" /></div>}
             
             {aiData && (
               <div className="bg-amber-50/50 rounded-2xl border border-amber-100 p-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
-                <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Core Summary</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.summary}</p></div>
-                <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Strategic Advice</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.strategy}</p></div>
+                <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Scraped Summary</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.summary}</p></div>
+                <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Strategic Insight</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.strategy}</p></div>
               </div>
             )}
           </div>
