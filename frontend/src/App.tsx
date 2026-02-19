@@ -50,7 +50,7 @@ function App() {
 
           {/* 일반 메뉴 한글화 및 게시판 추가 */}
           <nav className="hidden lg:flex items-center gap-1 mr-4">
-             <Link to="/" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname === '/' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</Link>
+             <Link to="/" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname === '/' || location.pathname.startsWith('/news') ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</Link>
              <Link to="/board" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname.startsWith('/board') ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>아고라 토론</Link>
              <Link to="/media" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname === '/media' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>미디어 센터</Link>
           </nav>
@@ -67,7 +67,8 @@ function App() {
         </div>
       </header>
 
-      <main className="w-full max-w-5xl mt-24 p-6">
+      {/* 🔥 화면 폭을 더 넓게 사용하여 모니터 전체를 활용하도록 수정 */}
+      <main className="w-full max-w-[1600px] mt-24 p-4 md:p-8">
         <Outlet />
       </main>
     </div>

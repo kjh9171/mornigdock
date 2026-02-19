@@ -82,14 +82,11 @@ export async function initDB() {
       );
     `)
 
-    // 2. [데이터 정밀 소독] 엉터리 데이터 완전 TRUNCATE 후 진짜 뉴스 주입
-    // 대표님의 지시사항: 현대차 수소차 제목에 맞는 정밀 링크 연동
-    const cleanCheck = await pool.query("SELECT COUNT(*) FROM posts WHERE author_name = '네이버 뉴스 스크래퍼'")
-    if (parseInt(cleanCheck.rows[0].count) > 0) {
-      console.log('🧹 CERT: Purging old news data for precision re-mapping...')
-      await pool.query("DELETE FROM posts WHERE author_name = '네이버 뉴스 스크래퍼'")
-    }
+    // 2. [긴급 수술] 기존 엉터리 뉴스 전량 파기
+    console.log('🧹 CERT: Purging ALL existing news posts for clean re-seeding...')
+    await pool.query("DELETE FROM posts WHERE type = 'news'")
 
+    // 3. 정밀 데이터 주입
     const sampleNews = [
       ['news', '경제', '[속보] 코스피, 외인·기관 "팔자"에 2600선 턱걸이…환율은 급등', '(서울=연합뉴스) 금융시장의 변동성이 확대되고 있습니다. 코스피는 외국인과 기관의 동반 매도세에 밀려 전 거래일 대비 1.2% 하락한 2600.45포인트로 마감했습니다...', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015023456'],
       ['news', '기술', '[단독] 삼성전자, 차세대 HBM4 공정 로드맵 앞당긴다…SK하이닉스와 "초격차"', '(서울=연합뉴스) 삼성전자가 인공지능(AI) 반도체 시장의 핵심인 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획보다 6개월 앞당기기로 결정했습니다...', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015012345'],
@@ -103,8 +100,7 @@ export async function initDB() {
       )
     }
 
-    // 3. 관리자 및 설정 보장
-    await pool.query("INSERT INTO system_config (key, value) VALUES ('ai_enabled', 'true') ON CONFLICT DO NOTHING")
+    // 4. 관리자 보장
     const hashedPw = await bcrypt.hash('admin123', 10)
     await pool.query(`
       INSERT INTO users (email, password, username, role) 

@@ -7,19 +7,33 @@ export const postsRouter = new Hono()
 // ─── GET /api/posts ───
 postsRouter.get('/', optionalAuth, async (c) => {
   try {
-    const type = c.req.query('type') || 'board'
+    const type = c.req.query('type')
     const category = c.req.query('category')
     const page = parseInt(c.req.query('page') || '1')
     const limit = parseInt(c.req.query('limit') || '20')
     const offset = (page - 1) * limit
 
-    let whereClause = 'WHERE p.type = $1'
-    const params: any[] = [type]
+    let conditions = []
+    let params: any[] = []
 
-    if (category && category !== '전체') {
-      whereClause += ` AND p.category = $${params.length + 1}`
-      params.push(category)
+    // 🔥 '전체' 카테고리가 아니거나 type이 명시된 경우 필터링
+    if (type) {
+      params.push(type)
+      conditions.push(`p.type = $${params.length}`)
     }
+
+    if (category && category !== '전체' && category !== '뉴스 분석') {
+      params.push(category)
+      conditions.push(`p.category = $${params.length}`)
+    }
+
+    // 🔥 '뉴스 분석' 카테고리 선택 시 type='news' 강제
+    if (category === '뉴스 분석') {
+      params = ['news']
+      conditions = [`p.type = $1`]
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const countResult = await pool.query(`SELECT COUNT(*) FROM posts p ${whereClause}`, params)
     const total = parseInt(countResult.rows[0].count)
@@ -27,11 +41,12 @@ postsRouter.get('/', optionalAuth, async (c) => {
     params.push(limit, offset)
     const result = await pool.query(
       `SELECT p.id, p.type, p.category, p.title, p.author_name, p.pinned,
-              p.view_count, p.source, p.source_url, p.related_video_url, p.related_audio_url, p.created_at,
+              p.view_count, p.source, p.source_url, p.related_video_url, p.related_audio_url, 
+              p.created_at, p.updated_at,
               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count
        FROM posts p
        ${whereClause}
-       ORDER BY p.pinned DESC, p.created_at DESC
+       ORDER BY p.pinned DESC, p.updated_at DESC, p.created_at DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
     )
@@ -85,7 +100,7 @@ postsRouter.put('/:id', authMiddleware, async (c) => {
     const user = c.get('user') as any
     const id = parseInt(c.req.param('id'))
     const body = await c.req.json()
-    const { title, content, category, pinned, source, source_url, related_video_url, related_audio_url } = body
+    const { title, content, category, pinned, source, source_url, related_video_url, related_audio_url, type } = body
 
     const existing = await pool.query('SELECT * FROM posts WHERE id = $1', [id])
     if (existing.rows.length === 0) return c.json({ success: false, message: '게시글 없음' }, 404)
@@ -97,28 +112,16 @@ postsRouter.put('/:id', authMiddleware, async (c) => {
     const result = await pool.query(
       `UPDATE posts SET title=COALESCE($1,title), content=COALESCE($2,content), category=COALESCE($3,category), 
        pinned=COALESCE($4,pinned), source=COALESCE($5,source), source_url=COALESCE($6,source_url),
-       related_video_url=COALESCE($7,related_video_url), related_audio_url=COALESCE($8,related_audio_url)
-       WHERE id=$9 RETURNING *`,
-      [title, content, category, pinned, source, source_url, related_video_url, related_audio_url, id]
+       related_video_url=COALESCE($7,related_video_url), related_audio_url=COALESCE($8,related_audio_url),
+       type=COALESCE($9,type), updated_at=NOW()
+       WHERE id=$10 RETURNING *`,
+      [title, content, category, pinned, source, source_url, related_video_url, related_audio_url, type, id]
     )
     return c.json({ success: true, post: result.rows[0] })
   } catch (err) { return c.json({ success: false }, 500) }
 })
 
-// ─── DELETE /api/posts/:id ───
-postsRouter.delete('/:id', authMiddleware, async (c) => {
-  try {
-    const user = c.get('user') as any
-    const id = parseInt(c.req.param('id'))
-    const existing = await pool.query('SELECT * FROM posts WHERE id = $1', [id])
-    if (existing.rows.length === 0) return c.json({ success: false }, 404)
-    if (existing.rows[0].author_id !== parseInt(user.sub) && user.role !== 'admin') return c.json({ success: false }, 403)
-    await pool.query('DELETE FROM posts WHERE id = $1', [id])
-    return c.json({ success: true })
-  } catch (err) { return c.json({ success: false }, 500) }
-})
-
-// ─── POST /api/posts/:id/comments ─── 댓글 작성 (404 해결용 복구)
+// ─── POST /api/posts/:id/comments ───
 postsRouter.post('/:id/comments', authMiddleware, async (c) => {
   try {
     const user = c.get('user') as any
@@ -132,9 +135,12 @@ postsRouter.post('/:id/comments', authMiddleware, async (c) => {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [postId, parent_id || null, user.sub, user.username, content.trim()]
     )
+    
+    // 🔥 댓글 작성 시 해당 게시글의 updated_at을 갱신하여 토론장에서 상단에 노출되게 함
+    await pool.query('UPDATE posts SET updated_at = NOW() WHERE id = $1', [postId])
+    
     return c.json({ success: true, comment: result.rows[0] }, 201)
   } catch (err) {
-    console.error('Comment Insert Error:', err)
     return c.json({ success: false, message: '댓글 작성 실패' }, 500)
   }
 })
