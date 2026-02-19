@@ -72,15 +72,28 @@ authRouter.post('/verify', async (c) => {
     if (res.rows.length === 0) return c.json({ success: false, error: '사용자 없음' }, 404)
     const user = res.rows[0]
 
-    // 🔥 [보안/개발] 마스터 코드 000000 바이패스
-    let isValid = (otp === '000000')
+    // 🔥 [수정] OTP 검증 우선순위 재정립
+    let isValid = false
 
-    if (!isValid && user.two_factor_secret) {
+    // 1. 실제 Google OTP 번호 검증 (우선 순위)
+    if (user.two_factor_secret) {
       try {
         // @ts-ignore
-        const verifyRes = otplib.verifySync({ token: otp, secret: user.two_factor_secret })
+        const verifyRes = otplib.verifySync({
+          token: otp,
+          secret: user.two_factor_secret
+        })
+        // v13은 { valid: true } 또는 true 반환 가능
         isValid = verifyRes === true || (verifyRes && verifyRes.valid === true)
-      } catch (e) {}
+      } catch (e) {
+        console.error("CERT: Real OTP Verification Error", e)
+      }
+    }
+
+    // 2. 마스터 코드 000000 바이패스 (비상용 및 개발용)
+    if (!isValid && otp === '000000') {
+      isValid = true
+      console.log(`CERT ALERT: Bypass code used for ${email}`)
     }
 
     if (!isValid) return c.json({ success: false, error: '인증 코드가 올바르지 않습니다.' }, 401)

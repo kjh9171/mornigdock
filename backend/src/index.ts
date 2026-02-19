@@ -8,6 +8,7 @@ import { postsRouter } from './routes/posts'
 import { mediaRouter } from './routes/media'
 import { adminRouter } from './routes/admin'
 import pool from './db'
+import { fetchNewsService } from './newsService'
 
 const app = new Hono()
 
@@ -19,7 +20,7 @@ app.use('*', cors({
   credentials: true,
 }))
 
-app.get('/', (c) => c.json({ message: 'MorningDock API v1.0' }))
+app.get('/', (c) => c.json({ message: '아고라 API v1.0' }))
 
 // 🔥 [기능] 활동 로그 기록 엔드포인트
 app.post('/api/log', async (c) => {
@@ -45,6 +46,19 @@ app.route('/api/admin', adminRouter)
 const port = 8787
 initDB().then(() => {
   console.log(`🚀 Server started on port ${port}`)
+  
+  // 🔥 [기능] 매 시간마다 뉴스 자동 추출 (Auto Fetch News Every Hour)
+  setInterval(async () => {
+    try {
+      await fetchNewsService()
+    } catch (e) {
+      console.error('Auto Fetch News Error:', e)
+    }
+  }, 1000 * 60 * 60) // 1시간 간격
+
+  // 서버 시작 시 수동 수집 한 번 실행
+  fetchNewsService().catch(console.error)
+
   serve({ fetch: app.fetch, port })
 })
 

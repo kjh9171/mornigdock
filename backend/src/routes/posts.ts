@@ -30,7 +30,7 @@ postsRouter.get('/', optionalAuth, async (c) => {
     params.push(limit, offset)
     const result = await pool.query(
       `SELECT p.id, p.type, p.category, p.title, p.author_name, p.pinned,
-              p.view_count, p.like_count, p.source, p.created_at,
+              p.view_count, p.like_count, p.source, p.source_url, p.created_at,
               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count
        FROM posts p
        ${whereClause}
@@ -84,16 +84,16 @@ postsRouter.post('/', authMiddleware, async (c) => {
   try {
     const user = c.get('user') as any
     const body = await c.req.json()
-    const { type = 'board', category, title, content, source } = body
+    const { type = 'board', category, title, content, source, source_url } = body
 
     if (!title?.trim() || !content?.trim()) {
       return c.json({ success: false, message: '제목과 내용을 입력해주세요.' }, 400)
     }
 
     const result = await pool.query(
-      `INSERT INTO posts (type, category, title, content, author_id, author_name, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [type, category || '자유', title.trim(), content.trim(), user.sub, user.username, source || null]
+      `INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [type, category || '자유', title.trim(), content.trim(), user.sub, user.username, source || null, source_url || null]
     )
     return c.json({ success: true, post: result.rows[0] }, 201)
   } catch (err) {
@@ -107,7 +107,7 @@ postsRouter.put('/:id', authMiddleware, async (c) => {
     const user = c.get('user') as any
     const id = parseInt(c.req.param('id'))
     const body = await c.req.json()
-    const { title, content, category, pinned } = body
+    const { title, content, category, pinned, source, source_url } = body
 
     const existing = await pool.query('SELECT * FROM posts WHERE id = $1', [id])
     if (existing.rows.length === 0) return c.json({ success: false, message: '게시글 없음' }, 404)
@@ -119,9 +119,11 @@ postsRouter.put('/:id', authMiddleware, async (c) => {
 
     const result = await pool.query(
       `UPDATE posts SET title = COALESCE($1, title), content = COALESCE($2, content),
-       category = COALESCE($3, category), pinned = COALESCE($4, pinned), updated_at = NOW()
-       WHERE id = $5 RETURNING *`,
-      [title, content, category, user.role === 'admin' ? pinned : undefined, id]
+       category = COALESCE($3, category), pinned = COALESCE($4, pinned), 
+       source = COALESCE($5, source), source_url = COALESCE($6, source_url),
+       updated_at = NOW()
+       WHERE id = $7 RETURNING *`,
+      [title, content, category, user.role === 'admin' ? pinned : undefined, source, source_url, id]
     )
     return c.json({ success: true, post: result.rows[0] })
   } catch (err) {

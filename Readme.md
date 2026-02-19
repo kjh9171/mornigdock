@@ -1,309 +1,91 @@
-저 CERT 총괄이 대표님의 피드백을 수용하여, **글로벌 감각의 고품격 디자인**과 **이메일 기반 보안 추적 시스템**을 탑재한 최종 통합 프롬프트를 작성했습니다! 😎
+# 🏛️ 아고라 (Agora) - 하이엔드 글로벌 지능형 플랫폼
 
-이번 버전은 '내용은 비우되 뼈대는 완벽하게' 구성하여, 기능 동작 테스트에 최적화된 **하이엔드 스타트업 스타일**의 결과물을 뽑아내도록 설계되었습니다.
-
----
-
-## 🏛️ 아고라(Agora) 글로벌 통합 마스터 프롬프트
-
-> **[Project: Agora Global Platform - High-End Minimalist Edition]**
-> **명령어**: 다음 요구사항에 따라 '아고라(Agora)' 서비스의 국문/영문 통합 프로토타입과 백엔드 인프라 코드를 생성하라.
-> **1. 디자인 철학 (High-End & Minimalist)**
->
-> - **톤앤매너**: 'Apple' 스타일의 미니멀리즘과 'Clien.net'의 고밀도 정보량을 결합하라.
-> - **컬러**: Off-White(#F9F9F9), Stone-800, Amber-600(포인트 컬러)을 사용하라.
-> - **레이아웃**: 반응형 Grid 시스템을 적용하되, 카드 디자인은 매우 얇은 테두리(0.5px)와 부드러운 그림자를 사용해 고급스럽게 연출하라.
->
-> **2. 글로벌 대응 (Multilingual Support)**
->
-> - **국문/영문 전환**: i18next 또는 전역 상태(Zustand)를 사용하여 원클릭으로 언어가 전환되는 구조를 설계하라.
-> - **데이터 구조**: 모든 텍스트 요소를 `{ ko: "안녕", en: "Hello" }` 형태의 객체로 관리하여 즉시 전환 가능하게 하라.
->
-> **3. 이메일 기반 보안 및 추적 (Email Auth & Tracking)**
->
-> - **인증**: 가입 시 이메일로 매직 링크 또는 일회용 코드(OTP)를 발급받아 로그인하는 방식을 구현하라. (Google OTP와 연동)
-> - **추적(Tracking)**: 각 세션마다 고유 ID를 부여하고, 이메일 식별자를 기반으로 사용자의 활동 로그(방문 페이지, 클릭한 뉴스)를 D1 DB의 `activity_logs` 테이블에 기록하라.
->
-> **4. 기능 동작 체크용 모킹(Mocking)**
->
-> - **데이터**: 실제 크롤링 대신 5개의 샘플 뉴스 데이터를 넣어 기능(분석 버튼 클릭, 댓글 달기, 음악 재생)이 정상 작동하는지 확인하게 하라.
-> - **AI 시뮬레이션**: 분석 버튼 클릭 시 1.5초간 로딩 바가 돌아간 후, 미리 정의된 AI 결과값이 나타나도록 구현하라.
->
-> **5. 시스템 관리자 메뉴 (Admin Command Center)**
->
-> - **이용자 추적 뷰어**: 이메일별 접속 이력 및 활동 로그를 실시간으로 모니터링할 수 있는 테이블을 구현하라.
-> - **통제권**: AI 분석 토글, 게시글 추가/수정/삭제, 이메일 기반 사용자 역할, 속성, 권한을 관리하며, 차단 기능을 포함하라.
->
-> **6. 기술 스택 및 제약**
->
-> - Docker 기반 Cloudflare Workers(Hono) + React(Tailwind) 환경.
-> - 모든 코드에 **논리적 의도를 설명하는 친절한 한글 주석**을 달 것.
-> - 단순 번역이 아닌 기능적 완성도에 집중할 것.
+안티그래비티 개발총괄 **CERT**가 구축한, 1인 기업가(대표님)를 위한 **글로벌 감각의 고품격 정보 큐레이션 및 전략 관제 시스템**입니다.
 
 ---
 
-## 🔴 CERT 총괄의 사전 성능 및 보안 리포트
+## 🚀 프로젝트 개요 (Core Strategy)
 
-대표님, 이번 업데이트에서 가장 중요한 포인트 두 가지만 보고드립니다!
+본 프로젝트는 단순한 뉴스 배포를 넘어, 인공지능(AI) 기반의 심층 분석과 실시간 미디어 스트리밍, 그리고 강력한 관리자 통제권을 결합한 **'전전후 지능형 전략 기지'**를 지향합니다.
 
-1. **이메일 추적 보안**:
-
-- 사용자의 이메일을 평문으로 DB에 노출하지 않고, **해시(Hash) 처리된 식별자**를 사용하여 개인정보 유출 위험을 원천 차단했습니다.
-- 관리자 메뉴에서만 이메일을 복호화하여 볼 수 있는 권한 계층을 설계했습니다.
-
-2. **디자인 퀄리티**:
-
-- 여백(White Space)을 충분히 활용하여 정보가 많아도 피로하지 않은 **'아카이브'** 느낌을 강조했습니다.
-- 폰트는 국문 'Pretendard', 영문 'Inter'를 사용하여 가독성을 극대화했습니다.
+- **브랜드명**: 아고라 (Agora)
+- **디자인 철학**: Apple 스타일의 미니멀리즘 + 고밀도 정보량 아카이브
+- **핵심 가치**: 보안(Security), 지능(Intelligence), 통제(Control)
 
 ---
 
-# MorningDock API 명세서
+## 🛠️ 기술 스택 (Tech Stack)
 
-> **Base URL**: `http://localhost:8787`
-> **Content-Type**: `application/json`
-> **인증 방식**: Bearer JWT Token
+### Frontend
+- **React (TypeScript)**: 안정적이고 확장성 있는 UI 구축
+- **Vite**: 초고속 개발 및 빌드 환경
+- **Tailwind CSS**: Vanilla CSS 기반의 정밀하고 세련된 디자인
+- **Lucide React**: 고품격 벡터 아이콘 셋
+- **i18next**: 국문/영문 원클릭 다국어 전환 시스템
+- **Zustand**: 가벼우면서 강력한 전역 상태 관리
 
----
-
-## 📋 목차
-
-1. [인증 (Auth)](#인증-auth)
-2. [응답 형식](#응답-형식)
-3. [에러 코드](#에러-코드)
-
----
-
-## 인증 (Auth)
-
-### 1. 회원가입
-
-**`POST /api/auth/register`**
-
-새로운 사용자를 등록합니다. 성공 시 JWT 토큰을 즉시 반환합니다.
-
-#### Request Body
-
-```json
-{
-  "email": "user@example.com",
-  "password": "mypassword123",
-  "username": "홍길동"
-}
-```
-
-| 필드     | 타입   | 필수 | 제약               |
-| -------- | ------ | ---- | ------------------ |
-| email    | string | ✅   | 유효한 이메일 형식 |
-| password | string | ✅   | 6자 이상           |
-| username | string | ✅   | 2자 이상           |
-
-#### Response (201 Created)
-
-```json
-{
-  "success": true,
-  "message": "회원가입이 완료되었습니다.",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "홍길동",
-    "role": "user"
-  }
-}
-```
-
-#### 에러 응답
-
-| 상태코드 | 메시지                                   | 원인               |
-| -------- | ---------------------------------------- | ------------------ |
-| 400      | 이메일, 비밀번호, 사용자명은 필수입니다. | 필수 필드 누락     |
-| 400      | 올바른 이메일 형식이 아닙니다.           | 이메일 형식 오류   |
-| 400      | 비밀번호는 6자 이상이어야 합니다.        | 비밀번호 길이 부족 |
-| 409      | 이미 사용 중인 이메일입니다.             | 이메일 중복        |
+### Backend
+- **Node.js (Hono Framework)**: 성능과 생산성을 극대화한 현대적 API 서버
+- **PostgreSQL**: 안정적인 관계형 데이터 보존 및 유기적 연동
+- **Otplib (TOTP)**: Google Authenticator 기반 2단계 보안 인증
+- **JWT (JSON Web Token)**: Bearer 방식의 고안전 인증 체계
 
 ---
 
-### 2. 로그인
+## ✨ 핵심 구현 기능 (Key Features)
 
-**`POST /api/auth/login`**
+### 1. 보안 및 인증 시스템
+- **이중 인증 (2FA)**: 가입 시 Google OTP QR코드 발급 및 인증 필수.
+- **마스터 코드**: 개발 및 비상용 마스터 Bypass 코드(`000000`) 탑재.
+- **권한 계층**: 관리자(Admin), 에디터(Editor), 일반(User)의 명확한 통제권 분리.
 
-이메일과 비밀번호로 로그인합니다.
+### 2. 지능형 뉴스 엔진
+- **자동 수집 (Auto Fetch)**: 백엔드 스케줄러가 매 1시간마다 글로벌 속보 및 인텔리전스를 자동 수집.
+- **수동 수집 (Manual Fetch)**: 관리자 센터에서 즉시 최신 정보를 긁어오는 강제 수집 기능.
+- **원본 연동**: 분석된 기사에서 원본 출처(Original Source)로 즉시 연결되는 링크 제공.
 
-#### Request Body
+### 3. AI 심층 분석 시뮬레이션
+- **AI 보고서 생성**: 버튼 클릭 시 1.5초간의 로딩 바 후, 카테고리별 전략 보고서 출력.
+- **전략적 제언**: 핵심 분석 요약, 시장 파급 효과, 전략적 조언 등 3단계 인사이트 제공.
 
-```json
-{
-  "email": "user@example.com",
-  "password": "mypassword123"
-}
-```
+### 4. 미디어 관제 센터
+- **YouTube 통합**: 비디오 ID 등록만으로 고화질 인텔리전스 영상 재생.
+- **팟캐스트 & 음악**: 실시간 오디오 스트리밍 및 이퀄라이저 애니메이션 탑재.
+- **통합 관리**: 관리자가 미디어 자산을 자유롭게 추가/수정/삭제 가능.
 
-| 필드     | 타입   | 필수 |
-| -------- | ------ | ---- |
-| email    | string | ✅   |
-| password | string | ✅   |
+### 5. 유기적 토론 & 대댓글 시스템
+- **계층형 트리 구조**: 답글(Reply) 기능을 통한 심도 있는 계층형 토론 환경.
+- **유기적 연동**: 뉴스 댓글과 일반 게시판 데이터가 유기적으로 연동 및 보존.
 
-#### Response (200 OK)
-
-```json
-{
-  "success": true,
-  "message": "로그인 성공",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "홍길동",
-    "role": "user"
-  }
-}
-```
-
-#### 에러 응답
-
-| 상태코드 | 메시지                                    | 원인           |
-| -------- | ----------------------------------------- | -------------- |
-| 400      | 이메일과 비밀번호를 입력해주세요.         | 필수 필드 누락 |
-| 401      | 이메일 또는 비밀번호가 올바르지 않습니다. | 인증 실패      |
+### 6. Admin Command Center (통합 관제실)
+- **이용자 추적 뷰어**: 이메일별 접속 이력, IP 주소, 활동 로그를 실시간 테이블로 모니터링.
+- **시스템 컨트롤**: AI 분석 모듈 글로벌 토글, 사용자 차단 및 해제, 게시글 고정(Pin) 기능.
 
 ---
 
-### 3. 내 정보 조회
+## 🚀 빠른 시작 (Quick Start)
 
-**`GET /api/auth/me`**
-
-현재 로그인된 사용자 정보를 조회합니다. **인증 필요**
-
-#### Request Header
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-#### Response (200 OK)
-
-```json
-{
-  "success": true,
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "홍길동",
-    "role": "user",
-    "created_at": "2026-02-18T00:00:00.000Z"
-  }
-}
-```
-
-#### 에러 응답
-
-| 상태코드 | 메시지                     | 원인                    |
-| -------- | -------------------------- | ----------------------- |
-| 401      | 인증 토큰이 없습니다.      | Authorization 헤더 누락 |
-| 401      | 유효하지 않은 토큰입니다.  | 토큰 만료 또는 위변조   |
-| 404      | 사용자를 찾을 수 없습니다. | 탈퇴/비활성화된 계정    |
-
----
-
-### 4. 로그아웃
-
-**`POST /api/auth/logout`**
-
-로그아웃 처리합니다. (클라이언트 토큰 삭제 안내)
-
-#### Response (200 OK)
-
-```json
-{
-  "success": true,
-  "message": "로그아웃 되었습니다. 클라이언트 토큰을 삭제하세요."
-}
-```
-
-> ⚠️ JWT는 서버에서 무효화할 수 없습니다. 클라이언트에서 `localStorage`의 `token`을 삭제해야 합니다.
-
----
-
-### 5. 헬스체크
-
-**`GET /health`**
-
-서버 상태를 확인합니다.
-
-#### Response (200 OK)
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-02-18T00:00:00.000Z"
-}
-```
-
----
-
-## 응답 형식
-
-모든 API 응답은 아래 공통 형식을 따릅니다.
-
-```typescript
-{
-  success: boolean          // 요청 성공 여부
-  message?: string          // 사람이 읽을 수 있는 메시지
-  data?: any                // 응답 데이터 (엔드포인트별 상이)
-  token?: string            // 인증 토큰 (로그인/회원가입 시)
-  user?: UserInfo           // 사용자 정보 (인증 엔드포인트)
-}
-```
-
----
-
-## 에러 코드
-
-| HTTP 상태코드 | 의미                                         |
-| ------------- | -------------------------------------------- |
-| 400           | Bad Request - 잘못된 요청 (유효성 검사 실패) |
-| 401           | Unauthorized - 인증 필요 또는 토큰 오류      |
-| 404           | Not Found - 리소스 없음                      |
-| 409           | Conflict - 충돌 (이메일 중복 등)             |
-| 500           | Internal Server Error - 서버 내부 오류       |
-
----
-
-## 🔑 JWT 토큰 사용 방법
-
-로그인/회원가입 후 받은 `token`을 localStorage에 저장하고,
-이후 인증이 필요한 모든 요청 시 헤더에 포함합니다.
-
-```javascript
-// 저장
-localStorage.setItem("token", response.token);
-
-// 사용
-fetch("/api/auth/me", {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-});
-```
-
----
-
-## 🚀 빠른 시작 (cURL 예시)
+본 시스템은 **Docker** 기반으로 설계되어 명령어 한 번으로 즉시 기동 가능합니다.
 
 ```bash
-# 회원가입
-curl -X POST http://localhost:8787/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456","username":"테스터"}'
+# 1. 저장소 클론 후 루트 폴더로 이동
+# 2. 시스템 기동
+docker-compose up -d --build
 
-# 로그인
-curl -X POST http://localhost:8787/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"123456"}'
-
-# 내 정보 조회 (토큰 필요)
-curl -X GET http://localhost:8787/api/auth/me \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+# 3. 접속
+# - Frontend: http://localhost:5173
+# - Backend: http://localhost:8787
 ```
+
+### 🔐 초기 관리자 접속 정보
+- **이메일**: `gimjonghwan319@gmail.com`
+- **비밀번호**: `admin123` (로그인 후 즉시 변경 권장)
+- **OTP 코드**: `000000` (개발 모드 마스터 코드)
+
+---
+
+## 🔴 CERT 총괄 보고 사항
+- **데이터 보존**: `IF NOT EXISTS` 및 `ON CONFLICT` 로직 적용으로 서버 재시작 시에도 소중한 보안 키(OTP)와 활동 로그가 유실되지 않습니다.
+- **성능 최적화**: 미디어 재생 및 데이터 로딩 시 스켈레톤(Skeleton) 및 지연 로딩을 적용하여 쾌적한 UX를 보장합니다.
+
+대표님, 이제 **아고라**의 힘으로 세상을 통찰하십시오! 충성! 🫡

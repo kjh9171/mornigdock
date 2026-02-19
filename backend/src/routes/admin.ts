@@ -1,11 +1,52 @@
 import { Hono } from 'hono'
 import pool from '../db'
 import { adminMiddleware } from '../middleware/auth'
+import { fetchNewsService } from '../newsService'
 
 export const adminRouter = new Hono()
 
 // 모든 관리자 라우트에 미들웨어 적용
 adminRouter.use('*', adminMiddleware)
+
+// ─── 수동 뉴스 가져오기 ───
+adminRouter.post('/fetch-news', async (c) => {
+  try {
+    await fetchNewsService()
+    return c.json({ success: true, message: '최신 뉴스를 성공적으로 추출했습니다.' })
+  } catch (err) {
+    console.error('Fetch News Error:', err)
+    return c.json({ success: false, message: '뉴스 추출 중 오류가 발생했습니다.' }, 500)
+  }
+})
+
+// ─── 시스템 설정 조회 ───
+adminRouter.get('/config', async (c) => {
+  try {
+    const result = await pool.query('SELECT * FROM system_config')
+    const config = result.rows.reduce((acc: any, row: any) => {
+      acc[row.key] = row.value
+      return acc
+    }, {})
+    return c.json({ success: true, config })
+  } catch (err) {
+    return c.json({ success: false, message: '설정 조회 실패' }, 500)
+  }
+})
+
+// ─── 시스템 설정 업데이트 (AI 토글 등) ───
+adminRouter.put('/config', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { key, value } = body
+    await pool.query(
+      'INSERT INTO system_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+      [key, String(value)]
+    )
+    return c.json({ success: true, message: '설정이 업데이트되었습니다.' })
+  } catch (err) {
+    return c.json({ success: false, message: '설정 업데이트 실패' }, 500)
+  }
+})
 
 // ─── 대시보드 통계 ───
 adminRouter.get('/stats', async (c) => {

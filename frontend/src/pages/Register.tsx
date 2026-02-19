@@ -77,7 +77,7 @@ export default function Register() {
       <div className="w-full max-w-md">
         {/* 로고 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-stone-800 tracking-tight">MorningDock</h1>
+          <h1 className="text-3xl font-bold text-stone-800 tracking-tight">아고라</h1>
           <p className="mt-2 text-stone-500 text-sm">매일 아침, 세상의 흐름을 읽다</p>
         </div>
 
