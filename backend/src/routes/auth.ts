@@ -22,6 +22,22 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production'
 const JWT_ALG = 'HS256'
 const JWT_EXPIRES_IN = 60 * 60 * 24
 
+// ─── 로그인 가능 여부 확인 (신설) ───
+authRouter.post('/login', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    const res = await pool.query('SELECT id FROM users WHERE email = $1', [email])
+    
+    if (res.rows.length === 0) {
+      return c.json({ success: false, needSignup: true, message: '사용자를 찾을 수 없습니다.' }, 404)
+    }
+    
+    return c.json({ success: true, message: 'OTP 인증 단계로 이동합니다.' })
+  } catch (err) {
+    return c.json({ success: false, error: '서버 오류' }, 500)
+  }
+})
+
 authRouter.post('/signup', async (c) => {
   try {
     const { email } = await c.req.json()
