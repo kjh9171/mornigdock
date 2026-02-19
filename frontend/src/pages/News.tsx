@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { getPostsAPI, getPostAPI, Post, addCommentAPI } from '../lib/api'
-import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink } from 'lucide-react'
+import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink, PlayCircle, Mic } from 'lucide-react'
 
 const NEWS_CATEGORIES = ['전체', '경제', '기술', '정치', '글로벌', '산업']
 const CAT_BADGE: Record<string, string> = {
@@ -92,21 +92,66 @@ export default function News() {
                 {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />} {aiData ? 'Intelligence Verified' : 'Run AI Analysis'}
               </button>
             </div>
+            
             <div className="flex items-center gap-2 mb-4">
               <span className={`text-[10px] font-black px-2.5 py-1 rounded uppercase ${CAT_BADGE[selected.category] || 'bg-stone-100 text-stone-500'}`}>{selected.category}</span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-stone-400 font-bold uppercase tracking-widest">{selected.source}</span>
-                {selected.source_url && (
-                  <a href={selected.source_url} target="_blank" rel="noreferrer" className="text-stone-300 hover:text-amber-600 transition-colors flex items-center gap-1 ml-1" title="원본 기사 보기">
-                    <ExternalLink className="w-3 h-3" />
-                    <span className="text-[9px] font-black uppercase">Original</span>
-                  </a>
-                )}
               </div>
             </div>
-            <h1 className="text-3xl font-black text-stone-900 mb-8 leading-tight tracking-tighter">{selected.title}</h1>
-            <div className="text-stone-700 leading-relaxed text-lg whitespace-pre-wrap border-t border-stone-100 pt-10 mb-10">{selected.content}</div>
+
+            {/* 🔥 제목 클릭 시 원본 이동 */}
+            <a 
+              href={(selected as any).source_url} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="group block mb-8"
+            >
+              <h1 className="text-3xl font-black text-stone-900 leading-tight tracking-tighter group-hover:text-amber-600 transition-colors flex items-center gap-3">
+                {selected.title}
+                <ExternalLink className="w-5 h-5 text-stone-300 group-hover:text-amber-600" />
+              </h1>
+            </a>
+
+            <div className="text-stone-700 leading-relaxed text-lg whitespace-pre-wrap border-t border-stone-100 pt-10 mb-10">
+              {selected.content}
+            </div>
+
+            {/* 🔥 관련 영상/오디오 브리핑 섹션 */}
+            {((selected as any).related_video_url || (selected as any).related_audio_url) && (
+              <div className="mb-10 p-8 bg-stone-50 border border-stone-100 rounded-3xl">
+                <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <PlayCircle className="w-4 h-4 text-amber-600" /> Related Intelligence Briefing
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 유튜브 임베드 */}
+                  {(selected as any).related_video_url && (
+                    <div className="aspect-video rounded-2xl overflow-hidden shadow-lg border border-white">
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${(selected as any).related_video_url}`}
+                        className="w-full h-full"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
+                  {/* 팟캐스트 플레이어 */}
+                  {(selected as any).related_audio_url && (
+                    <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm flex flex-col justify-center">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center"><Mic className="w-5 h-5 text-amber-600" /></div>
+                        <div><p className="text-sm font-bold text-stone-800 uppercase">Audio Intelligence</p><p className="text-[10px] text-stone-400 font-medium">Deep Dive Podcast</p></div>
+                      </div>
+                      <audio controls className="w-full h-10">
+                        <source src={(selected as any).related_audio_url} type="audio/mpeg" />
+                      </audio>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {isAnalyzing && <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden mb-10"><div className="h-full bg-amber-600 animate-[loading_1.5s_ease-in-out]" /></div>}
+            
             {aiData && (
               <div className="bg-amber-50/50 rounded-2xl border border-amber-100 p-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
                 <div><h4 className="text-[10px] font-black text-amber-600 uppercase mb-2 flex items-center gap-1.5"><Sparkles className="w-3 h-3" /> Core Summary</h4><p className="text-sm text-stone-800 font-bold leading-relaxed">{aiData.summary}</p></div>
@@ -114,6 +159,7 @@ export default function News() {
               </div>
             )}
           </div>
+
           <div className="bg-stone-50 p-10 border-t border-stone-100">
             <h3 className="text-xs font-black text-stone-900 uppercase tracking-widest mb-8 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-amber-600" /> Discussion ({comments.length})</h3>
             <form onSubmit={e => submitComment(e)} className="mb-10 relative">

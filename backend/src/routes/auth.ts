@@ -7,6 +7,12 @@ import crypto from 'crypto'
 
 export const authRouter = new Hono()
 
+// 🔥 [설정] OTP 검증 유연성 확보 (시간 오차 허용)
+authenticator.options = { 
+  window: 2, // 앞뒤로 약 1분의 오차 허용 (네트워크/서버 시간 지연 대비)
+  step: 30
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production'
 const JWT_ALG = 'HS256'
 const JWT_EXPIRES_IN = 60 * 60 * 24 // 24시간
@@ -65,7 +71,7 @@ authRouter.post('/login', async (c) => {
 authRouter.post('/verify', async (c) => {
   try {
     const { email, otp } = await c.req.json()
-    console.log(`📡 CERT: Verification attempt for ${email} with OTP ${otp}`)
+    console.log(`📡 CERT: Verification attempt for ${email} with OTP ${otp} at ${new Date().toISOString()}`)
     
     const res = await pool.query('SELECT * FROM users WHERE email = $1', [email])
 
@@ -77,13 +83,11 @@ authRouter.post('/verify', async (c) => {
     // 1. Google OTP 검증 (authenticator singleton 사용)
     if (user.two_factor_secret) {
       try {
-        isValid = authenticator.verify({
-          token: otp,
-          secret: user.two_factor_secret
-        })
+        // v13에서는 check(token, secret) 이 표준
+        isValid = authenticator.check(otp, user.two_factor_secret)
         console.log(`📡 CERT: Google OTP Verification Result: ${isValid}`)
       } catch (e) {
-        console.error("CERT: TOTP Internal Error", e)
+        console.error("CERT: TOTP Internal Error during check", e)
       }
     }
 
@@ -94,7 +98,7 @@ authRouter.post('/verify', async (c) => {
     }
 
     if (!isValid) {
-      console.error(`📡 CERT: Authentication failed for ${email}`)
+      console.error(`📡 CERT: Authentication failed for ${email} (Provided OTP: ${otp})`)
       return c.json({ success: false, error: '인증 코드가 올바르지 않습니다.' }, 401)
     }
 
