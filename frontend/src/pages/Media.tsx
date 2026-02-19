@@ -1,107 +1,10 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { getMediaAPI, MediaItem } from '../lib/api'
 
 // ─────────────────────────────────────────────
-// 타입 정의
-// ─────────────────────────────────────────────
-type MediaType = 'youtube' | 'podcast' | 'music'
-
-interface MediaItem {
-  id: number
-  type: MediaType
-  title: string
-  description: string
-  thumbnail: string
-  url: string          // YouTube: video ID, Podcast/Music: 스트림 URL
-  duration?: string
-  author?: string
-  category?: string
-}
-
-// ─────────────────────────────────────────────
-// 샘플 미디어 데이터 (관리자가 추가/수정/삭제)
-// ─────────────────────────────────────────────
-const INITIAL_MEDIA: MediaItem[] = [
-  // YouTube
-  {
-    id: 1, type: 'youtube',
-    title: '2024 글로벌 경제 전망 분석',
-    description: '세계 주요 경제 전문가들이 분석하는 2024년 경제 흐름',
-    thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
-    url: 'dQw4w9WgXcQ',
-    duration: '18:32', author: 'Bloomberg Korea', category: '경제',
-  },
-  {
-    id: 2, type: 'youtube',
-    title: 'AI 기술 혁신의 현재와 미래',
-    description: '생성형 AI가 바꾸는 산업 지형도',
-    thumbnail: 'https://img.youtube.com/vi/jNQXAC9IVRw/mqdefault.jpg',
-    url: 'jNQXAC9IVRw',
-    duration: '24:10', author: 'TechInsight', category: '기술',
-  },
-  {
-    id: 3, type: 'youtube',
-    title: '반도체 공급망 재편, 한국의 기회',
-    description: '미중 갈등 속 반도체 산업 전략 심층 분석',
-    thumbnail: 'https://img.youtube.com/vi/ysz5S6PUM-U/mqdefault.jpg',
-    url: 'ysz5S6PUM-U',
-    duration: '31:45', author: 'Korea Economic TV', category: '산업',
-  },
-  // Podcast
-  {
-    id: 4, type: 'podcast',
-    title: '아침 경제 브리핑 EP.142',
-    description: '오늘 주목해야 할 경제 뉴스 5가지를 15분 안에 정리합니다.',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    duration: '15:04', author: '모닝독 팟캐스트', category: '경제',
-  },
-  {
-    id: 5, type: 'podcast',
-    title: '테크 위클리 EP.89 - AI 시대의 직업',
-    description: 'ChatGPT 이후 직업 시장이 어떻게 변하고 있는지 살펴봅니다.',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    duration: '28:17', author: 'Tech Weekly', category: '기술',
-  },
-  {
-    id: 6, type: 'podcast',
-    title: '글로벌 인사이트 EP.55 - 중동 지정학',
-    description: '중동 분쟁이 에너지 시장과 글로벌 경제에 미치는 영향',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-    duration: '22:33', author: 'Global Insight', category: '글로벌',
-  },
-  // Music (집중 음악)
-  {
-    id: 7, type: 'music',
-    title: 'Focus Flow — Lo-fi Study Beats',
-    description: '집중력 향상을 위한 로파이 힙합 믹스',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-    duration: '1:02:14', author: 'ChillBeats', category: '로파이',
-  },
-  {
-    id: 8, type: 'music',
-    title: 'Morning Productivity — Ambient',
-    description: '아침 업무 집중을 위한 앰비언트 사운드스케이프',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
-    duration: '45:00', author: 'Ambient Works', category: '앰비언트',
-  },
-  {
-    id: 9, type: 'music',
-    title: 'Deep Work — Classical Focus',
-    description: '딥 워크에 최적화된 클래식 피아노 모음',
-    thumbnail: '',
-    url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
-    duration: '58:20', author: 'Classical Daily', category: '클래식',
-  },
-]
-
-// ─────────────────────────────────────────────
-// 카테고리 뱃지 색상
+// 카테고리 뱃지 색상 매핑
 // ─────────────────────────────────────────────
 const BADGE: Record<string, string> = {
   경제: 'bg-amber-100 text-amber-700',
@@ -114,7 +17,7 @@ const BADGE: Record<string, string> = {
 }
 
 // ─────────────────────────────────────────────
-// 오디오 플레이어 컴포넌트 (Podcast / Music)
+// 오디오 플레이어 카드 (팟캐스트 / 집중 음악)
 // ─────────────────────────────────────────────
 function AudioCard({ item, isPlaying, onPlay }: {
   item: MediaItem
@@ -122,36 +25,46 @@ function AudioCard({ item, isPlaying, onPlay }: {
   onPlay: (item: MediaItem) => void
 }) {
   const emoji = item.type === 'podcast' ? '🎙️' : '🎵'
-  const bgColor = item.type === 'podcast' ? 'from-violet-500 to-indigo-600' : 'from-emerald-500 to-teal-600'
+  const bgColor = item.type === 'podcast'
+    ? 'from-violet-500 to-indigo-600'
+    : 'from-emerald-500 to-teal-600'
 
   return (
     <div className={`bg-white border rounded-xl p-4 shadow-sm transition-all duration-200
-      ${isPlaying ? 'border-amber-400 shadow-amber-100 shadow-md' : 'border-stone-200 hover:shadow-md'}`}>
-      {/* 썸네일 영역 */}
-      <div className={`w-full h-24 rounded-lg bg-gradient-to-br ${bgColor} flex items-center justify-center mb-3 relative overflow-hidden`}>
+      ${isPlaying
+        ? 'border-amber-400 shadow-amber-100 shadow-md'
+        : 'border-stone-200 hover:shadow-md'}`}>
+
+      {/* 썸네일 - 그라디언트 배경 + 재생 중 이퀄라이저 */}
+      <div className={`w-full h-24 rounded-lg bg-gradient-to-br ${bgColor}
+        flex items-center justify-center mb-3 relative overflow-hidden`}>
         <span className="text-4xl">{emoji}</span>
         {isPlaying && (
           <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-0.5">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="w-0.5 bg-white rounded-full animate-bounce"
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i}
+                className="w-0.5 bg-white rounded-full animate-bounce"
                 style={{ height: `${8 + (i % 3) * 4}px`, animationDelay: `${i * 0.1}s` }} />
             ))}
           </div>
         )}
       </div>
 
-      {/* 정보 */}
+      {/* 정보 영역 */}
       <div className="mb-3">
         {item.category && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${BADGE[item.category] || 'bg-stone-100 text-stone-500'} mb-1.5 inline-block`}>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-1.5
+            ${BADGE[item.category] || 'bg-stone-100 text-stone-500'}`}>
             {item.category}
           </span>
         )}
-        <h3 className="text-sm font-semibold text-stone-800 leading-snug line-clamp-2">{item.title}</h3>
+        <h3 className="text-sm font-semibold text-stone-800 leading-snug line-clamp-2">
+          {item.title}
+        </h3>
         <p className="text-xs text-stone-400 mt-0.5">{item.author} · {item.duration}</p>
       </div>
 
-      {/* 재생 버튼 */}
+      {/* 재생/일시정지 버튼 */}
       <button
         onClick={() => onPlay(item)}
         className={`w-full py-2 rounded-lg text-sm font-medium transition-colors
@@ -173,32 +86,54 @@ function YouTubeCard({ item, isActive, onSelect }: {
   isActive: boolean
   onSelect: (item: MediaItem) => void
 }) {
+  // YouTube thumbnail URL 생성 (thumbnail_url이 없으면 video ID로 자동 생성)
+  const thumbnail = item.thumbnail_url
+    || `https://img.youtube.com/vi/${item.url}/mqdefault.jpg`
+
   return (
     <div
-      className={`bg-white border rounded-xl overflow-hidden shadow-sm cursor-pointer transition-all duration-200
-        ${isActive ? 'border-amber-400 shadow-amber-100 shadow-md' : 'border-stone-200 hover:shadow-md'}`}
       onClick={() => onSelect(item)}
+      className={`bg-white border rounded-xl overflow-hidden shadow-sm cursor-pointer
+        transition-all duration-200
+        ${isActive
+          ? 'border-amber-400 shadow-amber-100 shadow-md'
+          : 'border-stone-200 hover:shadow-md'}`}
     >
       <div className="relative">
-        <img src={item.thumbnail} alt={item.title}
+        <img
+          src={thumbnail}
+          alt={item.title}
           className="w-full h-40 object-cover"
-          onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/320x180/1c1c1c/amber?text=Video' }} />
-        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
-          {item.duration}
-        </div>
+          onError={(e) => {
+            (e.target as HTMLImageElement).src =
+              'https://placehold.co/320x180/1c1c1c/amber?text=Video'
+          }}
+        />
+        {/* 재생시간 뱃지 */}
+        {item.duration && (
+          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
+            {item.duration}
+          </div>
+        )}
+        {/* 활성 오버레이 */}
         {isActive && (
           <div className="absolute inset-0 bg-amber-600/20 flex items-center justify-center">
-            <div className="bg-amber-600 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg">▶</div>
+            <div className="bg-amber-600 text-white rounded-full w-10 h-10 flex items-center justify-center text-lg">
+              ▶
+            </div>
           </div>
         )}
       </div>
       <div className="p-3">
         {item.category && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${BADGE[item.category] || 'bg-stone-100 text-stone-500'} mb-1.5 inline-block`}>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mb-1.5
+            ${BADGE[item.category] || 'bg-stone-100 text-stone-500'}`}>
             {item.category}
           </span>
         )}
-        <h3 className="text-sm font-semibold text-stone-800 leading-snug line-clamp-2">{item.title}</h3>
+        <h3 className="text-sm font-semibold text-stone-800 leading-snug line-clamp-2">
+          {item.title}
+        </h3>
         <p className="text-xs text-stone-400 mt-0.5">{item.author}</p>
       </div>
     </div>
@@ -206,33 +141,71 @@ function YouTubeCard({ item, isActive, onSelect }: {
 }
 
 // ─────────────────────────────────────────────
-// 메인 미디어 페이지
+// 로딩 스켈레톤
 // ─────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="bg-white border border-stone-200 rounded-xl overflow-hidden animate-pulse">
+      <div className="h-40 bg-stone-100" />
+      <div className="p-3 space-y-2">
+        <div className="h-3 bg-stone-100 rounded w-1/3" />
+        <div className="h-4 bg-stone-100 rounded w-4/5" />
+        <div className="h-3 bg-stone-100 rounded w-1/2" />
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// 메인 미디어 페이지
+// [핵심 수정] 하드코딩 제거 → getMediaAPI()로 DB에서 실시간 조회
+//             관리자가 추가/수정/삭제한 미디어가 즉시 반영됨
+// ─────────────────────────────────────────────
+type MediaTabType = 'youtube' | 'podcast' | 'music'
+
 export default function Media() {
   const { user, logout } = useAuth()
-  const [activeTab, setActiveTab] = useState<MediaType>('youtube')
+  const [activeTab, setActiveTab] = useState<MediaTabType>('youtube')
+  const [mediaList, setMediaList] = useState<MediaItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedYT, setSelectedYT] = useState<MediaItem | null>(null)
   const [playingAudio, setPlayingAudio] = useState<MediaItem | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  const mediaList = INITIAL_MEDIA.filter(m => m.type === activeTab)
+  // ✅ 탭 변경 시 해당 타입 미디어만 API로 조회
+  useEffect(() => {
+    setIsLoading(true)
+    setSelectedYT(null)
+    // 탭이 바뀌면 오디오도 정지
+    audioRef.current?.pause()
+    setPlayingAudio(null)
+
+    getMediaAPI(activeTab)
+      .then(res => {
+        if (res.success) {
+          setMediaList(res.media)
+        } else {
+          setMediaList([])
+        }
+      })
+      .catch(() => setMediaList([]))
+      .finally(() => setIsLoading(false))
+  }, [activeTab])
 
   // ✅ 오디오 재생/일시정지 토글
   const handleAudioPlay = (item: MediaItem) => {
     if (playingAudio?.id === item.id) {
-      // 같은 항목: 토글
+      // 같은 항목 클릭: 재생 중이면 일시정지, 정지 중이면 재생
       if (audioRef.current?.paused) {
-        audioRef.current.play()
+        audioRef.current.play().catch(() => {})
       } else {
         audioRef.current?.pause()
         setPlayingAudio(null)
       }
       return
     }
-    // 다른 항목: 교체
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
+    // 다른 항목: 이전 정지 후 새 항목 재생
+    audioRef.current?.pause()
     setPlayingAudio(item)
     setTimeout(() => {
       if (audioRef.current) {
@@ -242,7 +215,7 @@ export default function Media() {
     }, 50)
   }
 
-  const TABS: { key: MediaType; label: string; icon: string }[] = [
+  const TABS: { key: MediaTabType; label: string; icon: string }[] = [
     { key: 'youtube', label: 'YouTube', icon: '▶' },
     { key: 'podcast', label: '팟캐스트', icon: '🎙' },
     { key: 'music', label: '집중 음악', icon: '🎵' },
@@ -250,7 +223,7 @@ export default function Media() {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9]">
-      {/* 숨겨진 오디오 엘리먼트 */}
+      {/* 숨겨진 오디오 엘리먼트 - 팟캐스트/음악 재생용 */}
       <audio ref={audioRef} onEnded={() => setPlayingAudio(null)} />
 
       {/* ─── 헤더 ─── */}
@@ -260,9 +233,10 @@ export default function Media() {
             <Link to="/" className="text-xl font-bold text-stone-800 tracking-tight">아고라</Link>
             <nav className="hidden sm:flex gap-1">
               <Link to="/" className="text-sm px-3 py-1.5 rounded-lg text-stone-500 hover:bg-stone-100">뉴스</Link>
+              <Link to="/board" className="text-sm px-3 py-1.5 rounded-lg text-stone-500 hover:bg-stone-100">게시판</Link>
               <span className="text-sm px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 font-medium">미디어</span>
               {user?.role === 'admin' && (
-                <Link to="/admin" className="text-sm px-3 py-1.5 rounded-lg text-stone-500 hover:bg-stone-100">관리자</Link>
+                <Link to="/admin" className="text-sm px-3 py-1.5 rounded-lg text-red-600 hover:bg-red-50 font-medium">관리자</Link>
               )}
             </nav>
           </div>
@@ -282,12 +256,17 @@ export default function Media() {
           <p className="text-sm text-stone-400 mt-0.5">뉴스 영상, 팟캐스트, 집중 음악을 한 곳에서</p>
         </div>
 
-        {/* 탭 */}
+        {/* 탭 선택 */}
         <div className="flex gap-2 mb-6">
           {TABS.map(tab => (
-            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSelectedYT(null) }}
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors
-                ${activeTab === tab.key ? 'bg-amber-600 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:border-amber-400 hover:text-amber-600'}`}>
+                ${activeTab === tab.key
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-white border border-stone-200 text-stone-600 hover:border-amber-400 hover:text-amber-600'}`}
+            >
               <span>{tab.icon}</span>{tab.label}
             </button>
           ))}
@@ -296,7 +275,7 @@ export default function Media() {
         {/* ── YouTube 탭 ── */}
         {activeTab === 'youtube' && (
           <div>
-            {/* 선택된 영상 플레이어 */}
+            {/* 선택된 영상 임베드 플레이어 */}
             {selectedYT && (
               <div className="mb-6 bg-black rounded-xl overflow-hidden shadow-lg">
                 <div className="relative" style={{ paddingBottom: '56.25%' }}>
@@ -313,6 +292,12 @@ export default function Media() {
                   <h3 className="font-semibold text-stone-800">{selectedYT.title}</h3>
                   <p className="text-sm text-stone-500 mt-1">{selectedYT.description}</p>
                   <p className="text-xs text-stone-400 mt-1">{selectedYT.author} · {selectedYT.duration}</p>
+                  <button
+                    onClick={() => setSelectedYT(null)}
+                    className="mt-2 text-xs text-stone-400 hover:text-stone-600"
+                  >
+                    ✕ 닫기
+                  </button>
                 </div>
               </div>
             )}
@@ -323,46 +308,93 @@ export default function Media() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mediaList.map(item => (
-                <YouTubeCard key={item.id} item={item}
-                  isActive={selectedYT?.id === item.id}
-                  onSelect={setSelectedYT} />
-              ))}
-            </div>
+            {/* YouTube 카드 그리드 */}
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+              </div>
+            ) : mediaList.length === 0 ? (
+              <div className="text-center py-20 text-stone-400">
+                <p className="text-3xl mb-2">📺</p>
+                <p className="text-sm">등록된 YouTube 영상이 없습니다.</p>
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="text-xs text-amber-600 hover:underline mt-2 inline-block">
+                    관리자 센터에서 추가하기 →
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mediaList.map(item => (
+                  <YouTubeCard
+                    key={item.id}
+                    item={item}
+                    isActive={selectedYT?.id === item.id}
+                    onSelect={setSelectedYT}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── 팟캐스트 / 음악 탭 ── */}
+        {/* ── 팟캐스트 / 집중 음악 탭 ── */}
         {(activeTab === 'podcast' || activeTab === 'music') && (
           <div>
             {/* 현재 재생 중 배너 */}
-            {playingAudio && playingAudio.type === activeTab && (
+            {playingAudio && (
               <div className="mb-4 p-4 bg-amber-50 border border-amber-400 rounded-xl flex items-center gap-3">
-                <div className="flex gap-0.5 items-end h-6">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-1 bg-amber-500 rounded-full animate-bounce"
-                      style={{ height: `${10 + (i % 3) * 6}px`, animationDelay: `${i * 0.12}s` }} />
+                {/* 이퀄라이저 애니메이션 */}
+                <div className="flex gap-0.5 items-end h-6 shrink-0">
+                  {[1, 2, 3, 4].map(i => (
+                    <div
+                      key={i}
+                      className="w-1 bg-amber-500 rounded-full animate-bounce"
+                      style={{ height: `${10 + (i % 3) * 6}px`, animationDelay: `${i * 0.12}s` }}
+                    />
                   ))}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-amber-800 truncate">{playingAudio.title}</p>
                   <p className="text-xs text-amber-600">{playingAudio.author}</p>
                 </div>
-                <button onClick={() => { audioRef.current?.pause(); setPlayingAudio(null) }}
-                  className="text-xs px-3 py-1 bg-amber-600 text-white rounded-full hover:bg-amber-700">
+                <button
+                  onClick={() => { audioRef.current?.pause(); setPlayingAudio(null) }}
+                  className="text-xs px-3 py-1 bg-amber-600 text-white rounded-full hover:bg-amber-700 shrink-0"
+                >
                   ■ 정지
                 </button>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mediaList.map(item => (
-                <AudioCard key={item.id} item={item}
-                  isPlaying={playingAudio?.id === item.id}
-                  onPlay={handleAudioPlay} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+              </div>
+            ) : mediaList.length === 0 ? (
+              <div className="text-center py-20 text-stone-400">
+                <p className="text-3xl mb-2">{activeTab === 'podcast' ? '🎙' : '🎵'}</p>
+                <p className="text-sm">
+                  등록된 {activeTab === 'podcast' ? '팟캐스트' : '집중 음악'}가 없습니다.
+                </p>
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="text-xs text-amber-600 hover:underline mt-2 inline-block">
+                    관리자 센터에서 추가하기 →
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mediaList.map(item => (
+                  <AudioCard
+                    key={item.id}
+                    item={item}
+                    isPlaying={playingAudio?.id === item.id}
+                    onPlay={handleAudioPlay}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
