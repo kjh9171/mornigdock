@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 5173
 
 # ✅ Vite dev server - host 0.0.0.0 으로 Docker 외부 접근 허용
-CMD ["npx", "vite", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

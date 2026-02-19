@@ -21,6 +21,7 @@ export async function initDB() {
         password VARCHAR(255) NOT NULL,
         username VARCHAR(100) NOT NULL,
         role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'editor', 'admin')),
+        two_factor_secret TEXT,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()

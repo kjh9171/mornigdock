@@ -2,8 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import Layout from './App'
 import Login from './pages/Login'
-import Register from './pages/Register'
 import News from './pages/News'
 import Board from './pages/Board'
 import BoardDetail from './pages/BoardDetail'
@@ -11,6 +11,7 @@ import BoardWrite from './pages/BoardWrite'
 import Media from './pages/Media'
 import Admin from './pages/Admin'
 import './index.css'
+import './i18n'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -28,13 +29,14 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={<PrivateRoute><News /></PrivateRoute>} />
-          <Route path="/board" element={<PrivateRoute><Board /></PrivateRoute>} />
-          <Route path="/board/write" element={<PrivateRoute><BoardWrite /></PrivateRoute>} />
-          <Route path="/board/:id" element={<PrivateRoute><BoardDetail /></PrivateRoute>} />
-          <Route path="/media" element={<PrivateRoute><Media /></PrivateRoute>} />
-          <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+          <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+            <Route path="/" element={<News />} />
+            <Route path="/board" element={<Board />} />
+            <Route path="/board/write" element={<BoardWrite />} />
+            <Route path="/board/:id" element={<BoardDetail />} />
+            <Route path="/media" element={<Media />} />
+            <Route path="/admin" element={<Admin />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

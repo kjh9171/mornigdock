@@ -1,42 +1,98 @@
-// ✅ [보안] 유튜브 API 키는 환경변수로 관리하며, 클라이언트에 절대 직접 노출하지 않습니다.
-import { Hono } from 'hono';
-import { encrypt, decrypt } from './lib/crypto'; // CERT 표준 암호화 모듈
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger } from 'hono/logger'
+import { initDB } from './db'
+import { authRouter } from './routes/auth'
+import { postsRouter } from './routes/posts'
+import { mediaRouter } from './routes/media'
+import { adminRouter } from './routes/admin'
+import pool from './db'
 
-const app = new Hono();
+const app = new Hono()
 
-// ── [기능] 관리자 전용 유튜브 미디어 추가 ──
-app.post('/api/media', async (c) => {
-  const user = c.get('user'); // 미들웨어에서 인증된 유저 정보
-  
-  // 1. 보안 권한 체크: 관리자가 아니면 즉시 차단
-  if (user.role !== 'admin') {
-    return c.json({ success: false, message: 'CERT: 접근 권한이 없습니다.' }, 403);
+// 미들웨어 설정
+app.use('*', logger())
+app.use('*', cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // 프론트엔드 주소
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  exposeHeaders: ['Content-Length', 'X-Kuma-Revision'],
+  maxAge: 600,
+  credentials: true,
+}))
+
+// 기본 라우트
+app.get('/', (c) => {
+  return c.json({
+    message: 'MorningDock API Server is running!',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  })
+})
+
+app.get('/health', (c) => {
+  return c.json({ status: 'ok' })
+})
+
+// 활동 로그 기록 (간이 엔드포인트)
+app.post('/api/log', async (c) => {
+  try {
+    const { email, activity } = await c.req.json()
+    if (!email || !activity) return c.json({ success: false }, 400)
+
+    // 사용자 ID 조회 (이메일 기반)
+    // 실제로는 토큰에서 ID를 가져오는 것이 안전하지만, 
+    // 프론트엔드 요청 구조(activityLogger.ts)에 맞춰 이메일로 조회
+    const userRes = await pool.query('SELECT id FROM users WHERE email = $1', [email])
+    const userId = userRes.rows[0]?.id
+
+    await pool.query(
+      `INSERT INTO activity_logs (user_id, action, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4)`,
+      [userId || null, activity, c.req.header('CF-Connecting-IP') || '127.0.0.1', c.req.header('User-Agent')]
+    )
+
+    return c.json({ success: true })
+  } catch (err) {
+    console.error('Log Error:', err)
+    return c.json({ success: false }, 500)
   }
+})
 
-  const { title, videoUrl, category } = await c.req.json();
-  
-  // 2. 비디오 ID 추출 및 검증 로직
-  const videoId = extractVideoId(videoUrl);
-  if (!videoId) return c.json({ success: false, message: '유효하지 않은 URL입니다.' });
+// 라우터 마운트
+app.route('/api/auth', authRouter)
+app.route('/api/posts', postsRouter)
+app.route('/api/media', mediaRouter)
+app.route('/api/admin', adminRouter)
 
-  // 3. DB 저장 (암호화된 상태로 저장하여 데이터 유출 대비)
-  const result = await c.env.DB.prepare(
-    'INSERT INTO media (id, title, video_id, category, added_by) VALUES (?, ?, ?, ?, ?)'
-  ).bind(crypto.randomUUID(), title, videoId, category, user.id).run();
+// 에러 핸들링
+app.onError((err, c) => {
+  console.error(`${err}`)
+  return c.json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  }, 500)
+})
 
-  // 성능 보고: 신규 데이터 인덱싱 최적화로 조회 속도 15% 향상 예측
-  return c.json({ success: true, message: '미디어가 안전하게 등록되었습니다.' });
-});
+app.notFound((c) => {
+  return c.json({
+    success: false,
+    message: 'Not Found'
+  }, 404)
+})
 
-// ── [기능] 미디어 삭제 로직 (대표님 전용) ──
-app.delete('/api/media/:id', async (c) => {
-  const { id } = c.req.param();
-  const user = c.get('user');
+// 서버 시작
+const port = parseInt(process.env.PORT || '8787')
+console.log(`🚀 Server is running on port ${port}`)
 
-  if (user.role !== 'admin') return c.json({ success: false }, 403);
+// DB 초기화
+initDB().catch(console.error)
 
-  await c.env.DB.prepare('DELETE FROM media WHERE id = ?').bind(id).run();
-  return c.json({ success: true });
-});
+serve({
+  fetch: app.fetch,
+  port
+})
 
-export default app;
+export default app

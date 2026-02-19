@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
-  role: 'admin' | 'user'; // ✅ 권한 속성 명확화
+  role: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -27,27 +28,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      try {
+        setToken(savedToken);
+        const parsedUser = JSON.parse(savedUser);
+        // isAdmin 속성 보정
+        parsedUser.isAdmin = parsedUser.role === 'admin';
+        setUser(parsedUser);
+      } catch (e) {
+        localStorage.clear();
+      }
     }
     setIsLoading(false);
   }, []);
 
   const setAuth = (newToken: string, newUser: User) => {
+    // isAdmin 속성 보정
+    const userToSave = { ...newUser, isAdmin: newUser.role === 'admin' };
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    localStorage.setItem('user', JSON.stringify(userToSave));
     setToken(newToken);
-    setUser(newUser);
+    setUser(userToSave);
   };
 
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
 
+  const isAuthenticated = useMemo(() => !!token, [token]);
+
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, isLoading, setAuth, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, setAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

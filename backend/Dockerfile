@@ -4,13 +4,11 @@ WORKDIR /app
 
 # 의존성 파일 복사 및 설치
 COPY package*.json ./
-RUN npm ci --only=production || npm install
+# 개발 환경이므로 모든 의존성(tsx 등 포함) 설치
+RUN npm install
 
 # 소스 코드 복사
 COPY . .
-
-# TypeScript 빌드 (선택사항)
-# RUN npm run build
 
 # 포트 노출
 EXPOSE 8787
