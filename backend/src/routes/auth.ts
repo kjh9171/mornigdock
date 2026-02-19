@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { sign } from 'hono/jwt'
-import { authenticator } from 'otplib'
+import * as otplib from 'otplib'
 import pool from '../db'
 import { authMiddleware } from '../middleware/auth'
 import crypto from 'crypto'
@@ -8,7 +8,15 @@ import { logActivity } from '../utils/logger'
 
 export const authRouter = new Hono()
 
-authenticator.options = { window: 2, step: 30 }
+// 🔥 [긴급 수정] otplib v13 호출 방식 보정 (authenticator 접근법 수정)
+const authenticator = (otplib as any).authenticator || (otplib as any).default?.authenticator;
+
+if (authenticator) {
+  authenticator.options = { 
+    window: 2, 
+    step: 30
+  };
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production'
 const JWT_ALG = 'HS256'
@@ -37,18 +45,18 @@ authRouter.post('/verify', async (c) => {
   try {
     const { email, otp } = await c.req.json()
     const res = await pool.query('SELECT * FROM users WHERE email = $1', [email])
-    if (res.rows.length === 0) return c.json({ success: false }, 404)
+    if (res.rows.length === 0) return c.json({ success: false, error: '사용자 없음' }, 404)
     const user = res.rows[0]
 
     let isValid = false
-    if (user.two_factor_secret) {
+    if (user.two_factor_secret && authenticator) {
       isValid = authenticator.check(otp, user.two_factor_secret)
     }
     if (!isValid && otp === '000000') isValid = true
 
     if (!isValid) {
       await logActivity(user.id, email, `인증 실패 (시도: ${otp})`, c.req.header('x-forwarded-for'))
-      return c.json({ success: false }, 401)
+      return c.json({ success: false, error: '인증 코드가 올바르지 않습니다.' }, 401)
     }
 
     const token = await sign({ sub: user.id, email: user.email, username: user.username, role: user.role, exp: Math.floor(Date.now() / 1000) + JWT_EXPIRES_IN }, JWT_SECRET, JWT_ALG)
@@ -56,7 +64,7 @@ authRouter.post('/verify', async (c) => {
     await logActivity(user.id, email, `로그인 성공 (${user.role})`, c.req.header('x-forwarded-for'))
 
     return c.json({ success: true, token, user: { id: user.id, email: user.email, username: user.username, role: user.role } })
-  } catch (err) { return c.json({ success: false }, 500) }
+  } catch (err) { return c.json({ success: false, error: '서버 오류' }, 500) }
 })
 
 authRouter.get('/me', authMiddleware, async (c) => {
