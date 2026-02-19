@@ -1,16 +1,21 @@
 import { Hono } from 'hono'
 import { sign } from 'hono/jwt'
-import { authenticator } from 'otplib'
+import * as otplib from 'otplib'
 import pool from '../db'
 import { authMiddleware } from '../middleware/auth'
 import crypto from 'crypto'
 
 export const authRouter = new Hono()
 
-// 🔥 [설정] OTP 검증 유연성 확보 (시간 오차 허용)
-authenticator.options = { 
-  window: 2, // 앞뒤로 약 1분의 오차 허용 (네트워크/서버 시간 지연 대비)
-  step: 30
+// 🔥 [긴급 수정] otplib v13 호출 방식 재보정
+// 환경에 따라 authenticator가 바로 있거나 default 안에 있을 수 있음
+const auth = (otplib as any).authenticator || (otplib as any).default?.authenticator;
+
+if (auth) {
+  auth.options = { 
+    window: 2, 
+    step: 30
+  };
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret-in-production'
@@ -28,8 +33,8 @@ authRouter.post('/signup', async (c) => {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email])
     if (existing.rows.length > 0) return c.json({ success: false, error: '이미 가입된 이메일입니다.' }, 409)
 
-    const secret = authenticator.generateSecret()
-    const otpauth = authenticator.keyuri(email, '아고라', secret)
+    const secret = auth.generateSecret()
+    const otpauth = auth.keyuri(email, '아고라', secret)
 
     const dummyPassword = crypto.randomBytes(32).toString('hex')
     const username = email.split('@')[0]
@@ -80,11 +85,10 @@ authRouter.post('/verify', async (c) => {
 
     let isValid = false
 
-    // 1. Google OTP 검증 (authenticator singleton 사용)
-    if (user.two_factor_secret) {
+    // 1. Google OTP 검증
+    if (user.two_factor_secret && auth) {
       try {
-        // v13에서는 check(token, secret) 이 표준
-        isValid = authenticator.check(otp, user.two_factor_secret)
+        isValid = auth.check(otp, user.two_factor_secret)
         console.log(`📡 CERT: Google OTP Verification Result: ${isValid}`)
       } catch (e) {
         console.error("CERT: TOTP Internal Error during check", e)

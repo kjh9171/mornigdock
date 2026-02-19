@@ -13,8 +13,14 @@ import { fetchNewsService } from './newsService'
 const app = new Hono()
 
 app.use('*', logger())
+
+// 🔥 [긴급 수정] CORS 설정을 더 유연하게 변경하여 'Failed to fetch' 원천 봉쇄
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: (origin) => {
+    // 모든 localhost 및 127.0.0.1 기반 접속 허용 (포트 무관)
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
+    return 'http://localhost:5173'; // 기본값
+  },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -59,7 +65,7 @@ initDB().then(() => {
   // 서버 시작 시 수동 수집 한 번 실행
   fetchNewsService().catch(console.error)
 
-  serve({ fetch: app.fetch, port })
+  serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
 })
 
 export default app
