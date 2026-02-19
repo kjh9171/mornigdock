@@ -35,8 +35,6 @@ export async function initDB() {
         author_name VARCHAR(100) NOT NULL,
         source VARCHAR(255),
         source_url TEXT,
-        related_video_url TEXT,
-        related_audio_url TEXT,
         pinned BOOLEAN DEFAULT false,
         view_count INTEGER DEFAULT 0,
         like_count INTEGER DEFAULT 0,
@@ -82,33 +80,32 @@ export async function initDB() {
       );
     `)
 
-    // 2. [긴급 수술] 기존 엉터리 뉴스 전량 파기
-    console.log('🧹 CERT: Purging ALL existing news posts for clean re-seeding...')
+    // 2. [데이터 전면 소독] 기존 엉터리 뉴스 삭제 및 정밀 딥링크 재주입
+    console.log('🧹 CERT: Executing Deep Cleansing of Intelligence Data...')
     await pool.query("DELETE FROM posts WHERE type = 'news'")
 
-    // 3. 정밀 데이터 주입
     const sampleNews = [
-      ['news', '경제', '[속보] 코스피, 외인·기관 "팔자"에 2600선 턱걸이…환율은 급등', '(서울=연합뉴스) 금융시장의 변동성이 확대되고 있습니다. 코스피는 외국인과 기관의 동반 매도세에 밀려 전 거래일 대비 1.2% 하락한 2600.45포인트로 마감했습니다...', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015023456'],
-      ['news', '기술', '[단독] 삼성전자, 차세대 HBM4 공정 로드맵 앞당긴다…SK하이닉스와 "초격차"', '(서울=연합뉴스) 삼성전자가 인공지능(AI) 반도체 시장의 핵심인 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획보다 6개월 앞당기기로 결정했습니다...', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015012345'],
-      ['news', '산업', '현대차·기아, 수소 상용차 시장 점유율 유럽서 "파죽지세"', '(서울=연합뉴스) 현대자동차와 기아가 유럽 수소 상용차 시장에서 압도적인 점유율을 기록하며 질주하고 있습니다. 독일과 스위스 등 주요 물류 거점을 중심으로 엑시언트 수소전기트럭 공급을 확대했습니다...', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014982345']
+      ['news', '산업', '현대차·기아, 수소 상용차 시장 점유율 유럽서 "파죽지세"', '현대자동차와 기아가 유럽 수소 상용차 시장에서 압도적인 점유율을 기록하며 질주하고 있습니다. 독일과 스위스 등 주요 물류 거점을 중심으로 엑시언트 수소전기트럭 공급을 확대하며 친환경 상용차 시장 주도권을 확보했습니다.', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014982345'],
+      ['news', '기술', '[단독] 삼성전자, 차세대 HBM4 공정 로드맵 앞당긴다…SK하이닉스와 "초격차"', '삼성전자가 인공지능(AI) 반도체 시장의 핵심인 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획보다 6개월 앞당기기로 결정했습니다.', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015012345'],
+      ['news', '경제', '[속보] 코스피, 외인·기관 "팔자"에 2600선 턱걸이…환율은 급등', '금융시장의 변동성이 확대되고 있습니다. 코스피는 외국인과 기관의 동반 매도세에 밀려 전 거래일 대비 1.2% 하락한 2600.45포인트로 마감했습니다.', '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015023456']
     ]
 
     for (const n of sampleNews) {
       await pool.query(
-        "INSERT INTO posts (type, category, title, content, author_name, source, source_url) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        "INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url) VALUES ($1, $2, $3, $4, 1, $5, $6, $7)",
         n
       )
     }
 
-    // 4. 관리자 보장
+    // 3. 관리자 보장
     const hashedPw = await bcrypt.hash('admin123', 10)
     await pool.query(`
-      INSERT INTO users (email, password, username, role) 
-      VALUES ('gimjonghwan319@gmail.com', $1, 'Chief Admin', 'admin')
+      INSERT INTO users (id, email, password, username, role) 
+      VALUES (1, 'gimjonghwan319@gmail.com', $1, 'Chief Admin', 'admin')
       ON CONFLICT (email) DO UPDATE SET role = 'admin'
     `, [hashedPw])
 
-    console.log('✅ CERT: Database Infrastructure Purified and Synchronized.')
+    console.log('✅ CERT: Database Integrity Restored.')
   } catch (err) {
     console.error('❌ CERT DB ERROR:', err)
   }

@@ -176,12 +176,14 @@ export default function Admin() {
   useEffect(() => { loadData() }, [tab])
 
   const handleSavePost = async (data: any) => {
-    const url = data.id ? `${API_BASE}/api/posts/${data.id}` : `${API_BASE}/api/posts`
+    // 🔥 POST /api/admin/posts 로 명확히 호출
+    const url = data.id ? `${API_BASE}/api/posts/${data.id}` : `${API_BASE}/api/admin/posts`
     const r = await fetch(url, { method: data.id ? 'PUT' : 'POST', headers, body: JSON.stringify(data) }).then(r => r.json())
     if (r.success) { setPostModal({ open: false }); loadData(); }
   }
   const handleDeletePost = async (id: number) => {
     if (!confirm('분석물을 영구 파기하시겠습니까?')) return
+    // 🔥 DELETE /api/admin/posts/:id 로 명확히 호출
     const r = await fetch(`${API_BASE}/api/admin/posts/${id}`, { method: 'DELETE', headers }).then(r => r.json())
     if (r.success) loadData()
   }
@@ -288,7 +290,7 @@ export default function Admin() {
                 <Card title="멀티미디어 인텔리전스 자산" icon={Play} action={<button onClick={() => setMediaModal({ open: true })} className="flex items-center gap-2 text-[10px] font-black bg-stone-900 text-white px-5 py-2.5 rounded-xl uppercase tracking-widest hover:bg-black shadow-lg transition-all"><Plus className="w-4 h-4" /> 신규 자산 배치</button>}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {media.map(m => (
-                      <div key={m.id} className="group flex items-center gap-5 p-6 border border-stone-100 rounded-[2rem] hover:bg-stone-50 transition-all hover:border-amber-200 bg-white shadow-sm"><div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-inner ${m.type==='youtube'?'bg-red-50 text-red-600':'bg-violet-50 text-violet-600'}`}>{m.type==='youtube'?'▶':'🎙'}</div><div className="flex-1 min-w-0"><p className="text-sm font-black text-stone-800 truncate uppercase leading-tight mb-1">{m.title}</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{m.author} · {m.duration}</p></div><div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setMediaModal({ open: true, item: m })} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white rounded-xl shadow-sm transition-all"><Edit2 className="w-3.5 h-3.5" /></button><button onClick={() => handleDeleteMedia(m.id)} className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-3.5 h-3.5" /></button></div></div>
+                      <div key={m.id} className="group flex items-center gap-5 p-6 border border-stone-100 rounded-[2rem] hover:bg-stone-50 transition-all hover:border-amber-200 bg-white shadow-sm"><div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-inner ${m.type==='youtube'?'bg-red-50 text-red-600':'bg-violet-50 text-violet-600'}`}>{m.type==='youtube'?'▶':'🎙'}</div><div className="flex-1 min-w-0"><p className="text-sm font-black text-stone-800 truncate uppercase leading-tight mb-1">{m.title}</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{m.author} · {m.duration}</p></div><div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setMediaModal({ open: true, item: m })} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-stone-200"><Edit2 className="w-3.5 h-3.5" /></button><button onClick={() => handleDeleteMedia(m.id)} className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-3.5 h-3.5" /></button></div></div>
                     ))}
                   </div>
                 </Card>
