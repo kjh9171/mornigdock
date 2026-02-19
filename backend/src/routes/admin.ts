@@ -1,11 +1,12 @@
 import { Hono } from 'hono'
 import pool from '../db'
-import { adminMiddleware } from '../middleware/auth'
+import { authMiddleware, adminMiddleware } from '../middleware/auth'
 import { fetchNewsService } from '../newsService'
 
 export const adminRouter = new Hono()
 
-// 모든 관리자 라우트에 미들웨어 적용
+// 모든 관리자 라우트에 인증 및 관리자 권한 미들웨어 적용
+adminRouter.use('*', authMiddleware)
 adminRouter.use('*', adminMiddleware)
 
 // ─── 수동 뉴스 가져오기 ───

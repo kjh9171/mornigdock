@@ -31,17 +31,20 @@ export async function initDB() {
         category VARCHAR(100),
         title VARCHAR(500) NOT NULL,
         content TEXT NOT NULL,
+        author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         author_name VARCHAR(100) NOT NULL,
         source VARCHAR(255),
         source_url TEXT,
         pinned BOOLEAN DEFAULT false,
         view_count INTEGER DEFAULT 0,
+        like_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
         post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
         parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+        author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         author_name VARCHAR(100) NOT NULL,
         content TEXT NOT NULL,
         is_deleted BOOLEAN DEFAULT false,
@@ -52,10 +55,15 @@ export async function initDB() {
         id SERIAL PRIMARY KEY,
         type VARCHAR(50) NOT NULL,
         title VARCHAR(500) NOT NULL,
+        description TEXT,
         url TEXT NOT NULL,
+        thumbnail_url TEXT,
         author VARCHAR(100),
+        category VARCHAR(100),
         duration VARCHAR(50),
-        created_at TIMESTAMP DEFAULT NOW()
+        is_active BOOLEAN DEFAULT true, -- 활성화 여부 컬럼 추가
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       );
       CREATE TABLE IF NOT EXISTS activity_logs (
         id SERIAL PRIMARY KEY,
@@ -71,10 +79,20 @@ export async function initDB() {
       );
     `)
 
-    // 2. 시스템 설정 기본값 (기존 값 유지)
+    // 2. [긴급 수술] 기존 media 테이블에 is_active 컬럼이 없는 경우 추가
+    await pool.query(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='media' AND column_name='is_active') THEN
+          ALTER TABLE media ADD COLUMN is_active BOOLEAN DEFAULT true;
+        END IF;
+      END $$;
+    `);
+
+    // 3. 시스템 설정 기본값 (기존 값 유지)
     await pool.query("INSERT INTO system_config (key, value) VALUES ('ai_enabled', 'true') ON CONFLICT DO NOTHING")
 
-    // 3. 관리자 권한 보장
+    // 4. 관리자 권한 보장
     const hashedPw = await bcrypt.hash('admin123', 10)
     await pool.query(`
       INSERT INTO users (email, password, username, role) 
@@ -82,7 +100,7 @@ export async function initDB() {
       ON CONFLICT (email) DO UPDATE SET role = 'admin'
     `, [hashedPw])
 
-    // 4. 샘플 데이터 주입 (데이터가 없을 때만)
+    // 5. 샘플 데이터 주입 (데이터가 없을 때만)
     const newsCheck = await pool.query("SELECT COUNT(*) FROM posts WHERE type = 'news'")
     if (parseInt(newsCheck.rows[0].count) === 0) {
       console.log('📝 CERT: Injecting initial news intelligence samples...')
@@ -101,10 +119,10 @@ export async function initDB() {
     const mediaCheck = await pool.query("SELECT COUNT(*) FROM media")
     if (parseInt(mediaCheck.rows[0].count) === 0) {
       await pool.query(`
-        INSERT INTO media (type, title, url, author, duration) VALUES 
-        ('youtube', '2026 경제 인사이트', 'dQw4w9WgXcQ', 'Finance Hub', '15:20'),
-        ('podcast', '아고라 데일리 브리핑', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', '아고라', '05:00'),
-        ('music', '집중력 향상 Lofi', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'Lofi Curator', '60:00')
+        INSERT INTO media (type, title, url, author, duration, category) VALUES 
+        ('youtube', '2026 경제 인사이트', 'dQw4w9WgXcQ', 'Finance Hub', '15:20', '경제'),
+        ('podcast', '아고라 데일리 브리핑', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', '아고라', '05:00', '기술'),
+        ('music', '집중력 향상 Lofi', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'Lofi Curator', '60:00', '로파이')
       `)
     }
 

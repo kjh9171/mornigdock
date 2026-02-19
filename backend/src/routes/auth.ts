@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { sign } from 'hono/jwt'
-import * as otplib from 'otplib'
+import { authenticator } from 'otplib'
 import pool from '../db'
 import { authMiddleware } from '../middleware/auth'
 import crypto from 'crypto'
@@ -22,10 +22,8 @@ authRouter.post('/signup', async (c) => {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email])
     if (existing.rows.length > 0) return c.json({ success: false, error: '이미 가입된 이메일입니다.' }, 409)
 
-    // @ts-ignore
-    const secret = otplib.generateSecret()
-    // @ts-ignore
-    const otpauth = otplib.generateURI({ label: email, issuer: 'Agora Platform', secret })
+    const secret = authenticator.generateSecret()
+    const otpauth = authenticator.keyuri(email, '아고라', secret)
 
     const dummyPassword = crypto.randomBytes(32).toString('hex')
     const username = email.split('@')[0]
@@ -67,36 +65,38 @@ authRouter.post('/login', async (c) => {
 authRouter.post('/verify', async (c) => {
   try {
     const { email, otp } = await c.req.json()
+    console.log(`📡 CERT: Verification attempt for ${email} with OTP ${otp}`)
+    
     const res = await pool.query('SELECT * FROM users WHERE email = $1', [email])
 
     if (res.rows.length === 0) return c.json({ success: false, error: '사용자 없음' }, 404)
     const user = res.rows[0]
 
-    // 🔥 [수정] OTP 검증 우선순위 재정립
     let isValid = false
 
-    // 1. 실제 Google OTP 번호 검증 (우선 순위)
+    // 1. Google OTP 검증 (authenticator singleton 사용)
     if (user.two_factor_secret) {
       try {
-        // @ts-ignore
-        const verifyRes = otplib.verifySync({
+        isValid = authenticator.verify({
           token: otp,
           secret: user.two_factor_secret
         })
-        // v13은 { valid: true } 또는 true 반환 가능
-        isValid = verifyRes === true || (verifyRes && verifyRes.valid === true)
+        console.log(`📡 CERT: Google OTP Verification Result: ${isValid}`)
       } catch (e) {
-        console.error("CERT: Real OTP Verification Error", e)
+        console.error("CERT: TOTP Internal Error", e)
       }
     }
 
-    // 2. 마스터 코드 000000 바이패스 (비상용 및 개발용)
+    // 2. 마스터 코드 바이패스
     if (!isValid && otp === '000000') {
       isValid = true
-      console.log(`CERT ALERT: Bypass code used for ${email}`)
+      console.warn(`📡 CERT ALERT: Emergency Bypass used for ${email}`)
     }
 
-    if (!isValid) return c.json({ success: false, error: '인증 코드가 올바르지 않습니다.' }, 401)
+    if (!isValid) {
+      console.error(`📡 CERT: Authentication failed for ${email}`)
+      return c.json({ success: false, error: '인증 코드가 올바르지 않습니다.' }, 401)
+    }
 
     // 토큰 생성
     const token = await sign(
@@ -111,6 +111,8 @@ authRouter.post('/verify', async (c) => {
       JWT_ALG
     )
 
+    console.log(`📡 CERT: Authentication success for ${email} (${user.role})`)
+
     return c.json({
       success: true,
       token,
@@ -122,6 +124,7 @@ authRouter.post('/verify', async (c) => {
       }
     })
   } catch (err) {
+    console.error('Verify Error:', err)
     return c.json({ success: false, error: '서버 오류' }, 500)
   }
 })
@@ -131,3 +134,4 @@ authRouter.get('/me', authMiddleware, async (c) => {
   const res = await pool.query('SELECT id, email, username, role FROM users WHERE id = $1', [userPayload.sub])
   return c.json({ success: true, user: res.rows[0] })
 })
+

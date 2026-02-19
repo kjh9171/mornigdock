@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { createPostAPI } from '../lib/api'
+import { PenSquare, AlertCircle, ArrowLeft, Save } from 'lucide-react'
 
 const CATEGORIES = ['자유', '정보', '질문', '유머', '기타']
 
 export default function BoardWrite() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ category: '자유', title: '', content: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,73 +32,70 @@ export default function BoardWrite() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F2F2]">
-      <header className="bg-white border-b border-stone-300 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-3 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-lg font-bold text-stone-800">아고라</Link>
-            <span className="text-stone-300">|</span>
-            <nav className="flex gap-0.5 text-sm">
-              <Link to="/" className="px-2.5 py-1 rounded text-stone-500 hover:bg-stone-100">뉴스</Link>
-              <Link to="/board" className="px-2.5 py-1 rounded bg-stone-800 text-white font-medium">게시판</Link>
-              <Link to="/media" className="px-2.5 py-1 rounded text-stone-500 hover:bg-stone-100">미디어</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-stone-500 hidden sm:inline">{user?.username}</span>
-            <button onClick={logout} className="text-xs px-2 py-1 bg-stone-100 rounded text-stone-500">로그아웃</button>
-          </div>
-        </div>
-      </header>
+    <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <button onClick={() => navigate('/board')} className="flex items-center gap-2 text-xs font-black text-amber-600 uppercase hover:underline"><ArrowLeft className="w-4 h-4" /> Cancel & Return</button>
+        <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tighter flex items-center gap-2"><PenSquare className="w-6 h-6" /> Create Insight</h2>
+      </div>
 
-      <main className="max-w-3xl mx-auto px-3 py-6">
-        <div className="bg-white border border-stone-300 rounded">
-          <div className="px-5 py-3 border-b border-stone-200">
-            <h2 className="text-sm font-bold text-stone-700">자유게시판 글쓰기</h2>
-          </div>
-          <form onSubmit={handleSubmit} className="p-5 space-y-4">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>
-            )}
-            {/* 카테고리 */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-stone-600 font-medium w-16 shrink-0">분류</label>
-              <select value={form.category} onChange={e => setForm(p => ({...p, category: e.target.value}))}
-                className="text-sm px-3 py-1.5 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-amber-400">
+      <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm">
+        <form onSubmit={handleSubmit} className="p-10 space-y-6">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-sm text-red-600 font-bold">
+              <AlertCircle className="w-5 h-5" /> {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+            <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Category</label>
+            <div className="md:col-span-3">
+              <select 
+                value={form.category} 
+                onChange={e => setForm(p => ({...p, category: e.target.value}))}
+                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-3 text-sm font-black uppercase outline-none focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none"
+              >
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            {/* 제목 */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-stone-600 font-medium w-16 shrink-0">제목</label>
-              <input value={form.title} onChange={e => setForm(p => ({...p, title: e.target.value}))}
-                required maxLength={200} placeholder="제목을 입력하세요"
-                className="flex-1 text-sm px-3 py-1.5 border border-stone-300 rounded
-                           focus:outline-none focus:ring-2 focus:ring-amber-400" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+            <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Subject Title</label>
+            <div className="md:col-span-3">
+              <input 
+                value={form.title} 
+                onChange={e => setForm(p => ({...p, title: e.target.value}))}
+                required 
+                maxLength={200} 
+                placeholder="제목을 입력하세요"
+                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+              />
             </div>
-            {/* 본문 */}
-            <div>
-              <label className="text-sm text-stone-600 font-medium block mb-1.5">내용</label>
-              <textarea value={form.content} onChange={e => setForm(p => ({...p, content: e.target.value}))}
-                required rows={16} placeholder="내용을 입력하세요..."
-                className="w-full text-sm px-3 py-2 border border-stone-300 rounded resize-none
-                           focus:outline-none focus:ring-2 focus:ring-amber-400" />
-            </div>
-            {/* 버튼 */}
-            <div className="flex gap-2 justify-end pt-2">
-              <Link to="/board"
-                className="text-sm px-5 py-2 border border-stone-300 text-stone-600 rounded hover:bg-stone-50">
-                취소
-              </Link>
-              <button type="submit" disabled={isSubmitting}
-                className="text-sm px-6 py-2 bg-amber-600 text-white rounded hover:bg-amber-700
-                           disabled:opacity-40 font-medium transition-colors">
-                {isSubmitting ? '등록 중...' : '등록'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
+          </div>
+
+          <div className="space-y-4">
+            <label className="text-xs font-black text-stone-400 uppercase tracking-widest block">Insight Content</label>
+            <textarea 
+              value={form.content} 
+              onChange={e => setForm(p => ({...p, content: e.target.value}))}
+              required 
+              rows={12} 
+              placeholder="당신의 통찰을 상세히 기록하세요..."
+              className="w-full bg-stone-50 border border-stone-200 rounded-3xl p-8 text-sm font-medium outline-none focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-8 py-3.5 bg-stone-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-stone-200 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" /> {isSubmitting ? 'Syncing...' : 'Publish Insight'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getPostsAPI, Post } from '../lib/api'
+import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
 const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타']
 
@@ -24,7 +25,7 @@ const CAT_COLORS: Record<string, string> = {
 }
 
 export default function Board() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [posts, setPosts] = useState<Post[]>([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 })
@@ -50,192 +51,89 @@ export default function Board() {
     ? posts.filter(p => p.title.includes(searchQuery) || p.author_name.includes(searchQuery))
     : posts
 
-  // 페이지 변경 시 상단 스크롤
   const changePage = (p: number) => { setPage(p); window.scrollTo(0, 0) }
   const changeCategory = (cat: string) => { setCategory(cat); setPage(1) }
 
   return (
-    <div className="min-h-screen bg-[#F2F2F2]">
-      {/* ── 헤더 ── */}
-      <header className="bg-white border-b border-stone-300 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-3 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-lg font-bold text-stone-800">아고라</Link>
-            <span className="text-stone-300">|</span>
-            <nav className="flex gap-0.5 text-sm">
-              <Link to="/" className="px-2.5 py-1 rounded text-stone-500 hover:bg-stone-100">뉴스</Link>
-              <span className="px-2.5 py-1 rounded bg-stone-800 text-white font-medium">게시판</span>
-              <Link to="/media" className="px-2.5 py-1 rounded text-stone-500 hover:bg-stone-100">미디어</Link>
-              {user?.role === 'admin' && (
-                <Link to="/admin" className="px-2.5 py-1 rounded text-red-600 hover:bg-red-50 font-medium">관리자</Link>
-              )}
-            </nav>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-stone-500 hidden sm:inline">{user?.username}</span>
-            <button onClick={logout} className="text-xs px-2 py-1 bg-stone-100 rounded text-stone-500 hover:bg-stone-200">
-              로그아웃
-            </button>
-          </div>
+    <div className="w-full space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tighter">Agora Discussion</h2>
+          <p className="text-sm text-stone-400 font-medium mt-1">다양한 통찰과 지식을 공유하는 지식의 장</p>
         </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-3 py-4">
-        {/* ── 게시판 헤더 ── */}
-        <div className="bg-white border border-stone-300 rounded mb-1">
-          {/* 게시판 타이틀 */}
-          <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between flex-wrap gap-2">
-            <h1 className="text-base font-bold text-stone-800">자유게시판</h1>
-            <div className="flex items-center gap-2">
-              {/* 검색 */}
-              <form onSubmit={e => { e.preventDefault(); setSearchQuery(searchInput) }}
-                className="flex gap-1">
-                <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                  placeholder="검색..."
-                  className="text-xs px-2 py-1 border border-stone-200 rounded w-28 focus:outline-none focus:ring-1 focus:ring-amber-400" />
-                <button type="submit"
-                  className="text-xs px-2 py-1 bg-stone-600 text-white rounded hover:bg-stone-700">
-                  검색
-                </button>
-                {searchQuery && (
-                  <button type="button" onClick={() => { setSearchQuery(''); setSearchInput('') }}
-                    className="text-xs px-2 py-1 bg-stone-100 text-stone-500 rounded hover:bg-stone-200">
-                    초기화
-                  </button>
-                )}
-              </form>
-              {/* 글쓰기 */}
-              <button onClick={() => navigate('/board/write')}
-                className="text-xs px-3 py-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 font-medium whitespace-nowrap">
-                글쓰기
-              </button>
-            </div>
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            <form onSubmit={e => { e.preventDefault(); setSearchQuery(searchInput) }}>
+              <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="검색..." className="pl-9 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 w-48 font-medium" />
+            </form>
           </div>
+          <button onClick={() => navigate('/board/write')} className="flex items-center gap-2 px-5 py-2.5 bg-stone-900 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-stone-200">
+            <PenSquare className="w-4 h-4" /> New Post
+          </button>
+        </div>
+      </div>
 
-          {/* 카테고리 탭 */}
-          <div className="flex gap-0 border-b border-stone-200 overflow-x-auto">
-            {BOARD_CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => changeCategory(cat)}
-                className={`text-xs px-4 py-2 border-b-2 whitespace-nowrap transition-colors
-                  ${category === cat
-                    ? 'border-amber-600 text-amber-700 font-semibold bg-amber-50/50'
-                    : 'border-transparent text-stone-500 hover:text-stone-800 hover:bg-stone-50'}`}>
-                {cat}
-              </button>
-            ))}
-          </div>
+      <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="flex border-b border-stone-100 bg-stone-50/50 overflow-x-auto no-scrollbar">
+          {BOARD_CATEGORIES.map(cat => (
+            <button key={cat} onClick={() => changeCategory(cat)} className={`px-6 py-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 ${category === cat ? 'border-amber-600 text-amber-600 bg-white' : 'border-transparent text-stone-400 hover:text-stone-600'}`}>{cat}</button>
+          ))}
+        </div>
 
-          {/* ── 게시글 테이블 헤더 ── */}
-          <div className="hidden sm:grid grid-cols-[40px_1fr_80px_70px_60px_60px] px-3 py-1.5 bg-stone-50 border-b border-stone-200">
-            {['번호', '제목', '글쓴이', '날짜', '조회', '댓글'].map(h => (
-              <span key={h} className="text-xs text-stone-400 font-medium text-center first:text-left">{h}</span>
-            ))}
-          </div>
-
-          {/* ── 게시글 목록 ── */}
+        <div className="divide-y divide-stone-50">
           {isLoading ? (
-            <div className="py-12 text-center text-stone-400 text-sm">로딩 중...</div>
+            <div className="py-20 text-center"><Loader2 className="w-10 h-10 text-stone-200 animate-spin mx-auto" /></div>
           ) : filteredPosts.length === 0 ? (
-            <div className="py-12 text-center text-stone-400 text-sm">게시글이 없습니다.</div>
+            <div className="py-20 text-center text-stone-400 font-medium">작성된 게시글이 없습니다.</div>
           ) : (
-            <ul className="divide-y divide-stone-100">
-              {filteredPosts.map((post, idx) => (
-                <li key={post.id}
-                  className={`grid grid-cols-[1fr] sm:grid-cols-[40px_1fr_80px_70px_60px_60px]
-                    items-center px-3 py-2 hover:bg-amber-50/40 transition-colors
-                    ${post.pinned ? 'bg-amber-50/30' : ''}`}>
-
-                  {/* 번호 */}
-                  <span className="hidden sm:block text-xs text-center text-stone-400">
-                    {post.pinned ? (
-                      <span className="text-amber-600 font-bold">공지</span>
-                    ) : (
-                      pagination.total - ((page - 1) * 25) - idx
-                    )}
-                  </span>
-
-                  {/* 제목 */}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {/* 카테고리 태그 */}
-                    <span className={`text-xs font-medium shrink-0 ${CAT_COLORS[post.category] || 'text-stone-400'}`}>
-                      [{post.category}]
-                    </span>
-                    <Link to={`/board/${post.id}`}
-                      className="text-sm text-stone-800 hover:text-amber-700 hover:underline truncate">
-                      {post.title}
-                    </Link>
-                    {/* 새 댓글 */}
-                    {post.comment_count && post.comment_count > 0 ? (
-                      <span className="text-xs text-amber-600 font-medium shrink-0">
-                        [{post.comment_count}]
-                      </span>
-                    ) : null}
-                    {post.pinned && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-1 rounded shrink-0">고정</span>
-                    )}
+            filteredPosts.map((post, idx) => (
+              <Link key={post.id} to={`/board/${post.id}`} className={`flex items-center gap-4 px-8 py-5 hover:bg-stone-50/50 transition-colors ${post.pinned ? 'bg-amber-50/20' : ''}`}>
+                <div className="hidden sm:flex w-10 text-xs font-mono text-stone-300">
+                  {post.pinned ? <span className="text-amber-600 font-black uppercase text-[10px]">Pin</span> : pagination.total - ((page - 1) * 25) - idx}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[post.category]?.replace('text-', 'bg-').replace('-600', '-50') || 'bg-stone-100'} ${CAT_COLORS[post.category] || 'text-stone-500'}`}>{post.category}</span>
+                    <h3 className="text-sm font-bold text-stone-800 truncate leading-snug">{post.title}</h3>
+                    {post.comment_count > 0 && <span className="text-[10px] font-black text-amber-600">[{post.comment_count}]</span>}
                   </div>
-
-                  {/* 글쓴이 */}
-                  <span className="hidden sm:block text-xs text-stone-500 text-center truncate px-1">
-                    {post.author_name}
-                  </span>
-                  {/* 날짜 */}
-                  <span className="hidden sm:block text-xs text-stone-400 text-center">
-                    {formatDate(post.created_at)}
-                  </span>
-                  {/* 조회 */}
-                  <span className="hidden sm:block text-xs text-stone-400 text-center">
-                    {post.view_count.toLocaleString()}
-                  </span>
-                  {/* 댓글 */}
-                  <span className={`hidden sm:block text-xs text-center font-medium
-                    ${post.comment_count && post.comment_count > 0 ? 'text-amber-600' : 'text-stone-300'}`}>
-                    {post.comment_count || 0}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  <div className="flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-tighter">
+                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {post.author_name}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(post.created_at)}</span>
+                  </div>
+                </div>
+                <div className="hidden md:flex items-center gap-4 text-stone-300">
+                  <div className="flex flex-col items-center min-w-[40px]"><Eye className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.view_count}</span></div>
+                  <div className="flex flex-col items-center min-w-[40px]"><MessageSquare className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.comment_count}</span></div>
+                </div>
+              </Link>
+            ))
           )}
         </div>
+      </div>
 
-        {/* ── 페이지네이션 ── */}
-        {pagination.totalPages > 1 && (
-          <div className="flex justify-center items-center gap-1 mt-3">
-            <button onClick={() => changePage(1)} disabled={page === 1}
-              className="text-xs px-2 py-1 border border-stone-300 rounded disabled:opacity-40 hover:bg-stone-100">
-              «
-            </button>
-            <button onClick={() => changePage(page - 1)} disabled={page === 1}
-              className="text-xs px-2 py-1 border border-stone-300 rounded disabled:opacity-40 hover:bg-stone-100">
-              ‹
-            </button>
-            {Array.from({ length: Math.min(pagination.totalPages, 10) }, (_, i) => {
-              const p = Math.max(1, page - 4) + i
-              if (p > pagination.totalPages) return null
-              return (
-                <button key={p} onClick={() => changePage(p)}
-                  className={`text-xs px-2.5 py-1 border rounded transition-colors
-                    ${p === page
-                      ? 'bg-stone-800 text-white border-stone-800'
-                      : 'border-stone-300 hover:bg-stone-100 text-stone-600'}`}>
-                  {p}
-                </button>
-              )
-            })}
-            <button onClick={() => changePage(page + 1)} disabled={page === pagination.totalPages}
-              className="text-xs px-2 py-1 border border-stone-300 rounded disabled:opacity-40 hover:bg-stone-100">
-              ›
-            </button>
-            <button onClick={() => changePage(pagination.totalPages)} disabled={page === pagination.totalPages}
-              className="text-xs px-2 py-1 border border-stone-300 rounded disabled:opacity-40 hover:bg-stone-100">
-              »
-            </button>
-          </div>
-        )}
-        <p className="text-center text-xs text-stone-400 mt-2">
-          전체 {pagination.total}개 · {page}/{pagination.totalPages} 페이지
-        </p>
-      </main>
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 pt-4">
+          <button onClick={() => changePage(1)} disabled={page === 1} className="p-2 text-stone-400 hover:text-stone-900 disabled:opacity-30"><ChevronsLeft className="w-4 h-4" /></button>
+          <button onClick={() => changePage(page - 1)} disabled={page === 1} className="p-2 text-stone-400 hover:text-stone-900 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+          {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+            const p = Math.max(1, page - 2) + i
+            if (p > pagination.totalPages) return null
+            return (
+              <button key={p} onClick={() => changePage(p)} className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${p === page ? 'bg-stone-900 text-white shadow-lg' : 'text-stone-400 hover:bg-stone-100'}`}>{p}</button>
+            )
+          })}
+          <button onClick={() => changePage(page + 1)} disabled={page === pagination.totalPages} className="p-2 text-stone-400 hover:text-stone-900 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+          <button onClick={() => changePage(pagination.totalPages)} disabled={page === pagination.totalPages} className="p-2 text-stone-400 hover:text-stone-900 disabled:opacity-30"><ChevronsRight className="w-4 h-4" /></button>
+        </div>
+      )}
     </div>
   )
 }
+
+const Loader2 = ({ className, ...props }: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`animate-spin ${className}`} {...props}>
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+)
