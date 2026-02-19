@@ -2,37 +2,18 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
 import { useDiscussionStore } from '../store/useDiscussionStore';
-import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface Comment {
-  id: string;
-  author: string;
-  content: string;
-  timestamp: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  author: string;
-  timestamp: string;
-  views: number;
-  comments: Comment[];
-}
+import { getPostsAPI, getPostAPI, createPostAPI, addCommentAPI, Post, Comment } from '../lib/api';
+import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon } from 'lucide-react';
 
 export function AgoraDiscussion() {
   const { user } = useAuthStore();
   const { logActivity } = useActivityLog();
   const { view: storeView, setView: setStoreView, draft, setDraft } = useDiscussionStore();
   
-  // Local UI state (synced with store or independent)
-  // For simplicity, we'll sync local view with store view or just use store view directly?
-  // Let's use local state for now but initialized/controlled by store actions.
   const [view, setView] = useState<'list' | 'detail' | 'write'>('list');
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Form States
@@ -46,17 +27,14 @@ export function AgoraDiscussion() {
       setView('write');
       setTitle(draft.title);
       setContent(draft.content);
-      // Clear draft after consuming? Or keep until submitted?
-      // Lets keep it, but maybe resetting it on specific actions.
     }
   }, [storeView, draft]);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts`);
-      const data = await res.json();
-      setPosts(data);
+      const res = await getPostsAPI({ type: 'discussion' });
+      if (res.success) setPosts(res.posts);
     } catch (err) {
       console.error(err);
     } finally {
@@ -73,34 +51,41 @@ export function AgoraDiscussion() {
     if (!user) return;
 
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, author: user.email }),
-      });
-      logActivity('Create Post');
-      setTitle('');
-      setContent('');
-      setView('list');
+      // @ts-ignore - related_post_id passed via draft
+      const relatedId = (draft as any)?.related_post_id;
       
-      // Clear store state
-      setDraft(null);
-      setStoreView('list');
+      const res = await createPostAPI({ 
+        title, 
+        content, 
+        type: 'discussion',
+        category: '아고라',
+        related_post_id: relatedId 
+      });
+      
+      if (res.success) {
+        logActivity(`Create Agora Post: ${title}`);
+        setTitle('');
+        setContent('');
+        setView('list');
+        setDraft(null);
+        setStoreView('list');
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
   const handlePostClick = async (post: Post) => {
-    setSelectedPost(post); // Optimistic UI
+    setSelectedPost(post);
     setView('detail');
-    logActivity(`Read Post: ${post.id}`);
+    logActivity(`Read Agora Post: ${post.id}`);
     
-    // Fetch fresh to get comments
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${post.id}`);
-      const data = await res.json();
-      setSelectedPost(data);
+      const res = await getPostAPI(post.id);
+      if (res.success) {
+        setSelectedPost(res.post);
+        setComments(res.comments);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -111,20 +96,12 @@ export function AgoraDiscussion() {
     if (!selectedPost || !user || !commentText.trim()) return;
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/posts/${selectedPost.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: user.email, content: commentText }),
-      });
-      const newComment = await res.json();
-      
-      setSelectedPost(prev => prev ? ({
-        ...prev,
-        comments: [...prev.comments, newComment]
-      }) : null);
-      
-      setCommentText('');
-      logActivity(`Comment on Post: ${selectedPost.id}`);
+      const res = await addCommentAPI(selectedPost.id, commentText);
+      if (res.success) {
+        setComments(prev => [...prev, res.comment]);
+        setCommentText('');
+        logActivity(`Comment on Agora Post: ${selectedPost.id}`);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -148,7 +125,11 @@ export function AgoraDiscussion() {
         )}
         {view !== 'list' && (
           <button 
-            onClick={() => setView('list')}
+            onClick={() => {
+              setView('list');
+              setDraft(null);
+              setStoreView('list');
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-white text-stone-600 border border-stone-200 rounded-full text-sm font-medium hover:bg-stone-50 transition-all shadow-soft"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -172,13 +153,16 @@ export function AgoraDiscussion() {
                   onClick={() => handlePostClick(post)}
                   className="p-5 hover:bg-stone-50 transition-colors cursor-pointer group"
                 >
-                  <h3 className="font-semibold text-lg text-primary-800 group-hover:text-accent-600 transition-colors">
-                    {post.title}
-                  </h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg text-primary-800 group-hover:text-accent-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    {post.related_post_id && <LinkIcon className="w-3 h-3 text-accent-400" />}
+                  </div>
                   <div className="flex items-center gap-4 mt-2 text-xs text-stone-400">
-                    <span className="flex items-center gap-1"><User className="w-3 h-3" />{post.author.split('@')[0]}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(post.timestamp).toLocaleDateString()}</span>
-                    <span>{post.comments?.length || 0} comments</span>
+                    <span className="flex items-center gap-1"><User className="w-3 h-3" />{post.author_name}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString()}</span>
+                    <span>{post.comment_count || 0} comments</span>
                   </div>
                 </div>
               ))
@@ -189,6 +173,12 @@ export function AgoraDiscussion() {
         {/* Write View */}
         {view === 'write' && (
           <form onSubmit={handleCreatePost} className="p-6 space-y-4">
+            {/* Draft Notice */}
+            {draft && (
+              <div className="p-3 bg-accent-50 text-accent-700 text-xs rounded-lg border border-accent-100 mb-2">
+                사령부 지능물에서 연결된 토론 초안이 로드되었습니다.
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-stone-600 mb-1">Topic</label>
               <input 
@@ -224,34 +214,43 @@ export function AgoraDiscussion() {
         {view === 'detail' && selectedPost && (
           <div>
             <div className="p-6 border-b border-stone-100 bg-stone-50/30">
+              {/* Linked News Badge */}
+              {selectedPost.related_post_id && (
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-accent-200 text-accent-700 text-[10px] font-bold rounded-md">
+                    <LinkIcon className="w-3 h-3" />
+                    연관 지능물: {selectedPost.related_post_title || 'ID ' + selectedPost.related_post_id}
+                  </span>
+                </div>
+              )}
               <h2 className="text-xl font-bold text-primary-800 mb-2">{selectedPost.title}</h2>
               <div className="flex items-center gap-3 text-xs text-stone-500">
-                <span className="bg-stone-100 px-2 py-1 rounded-md text-stone-600 border border-stone-200">{selectedPost.author}</span>
-                <span>{new Date(selectedPost.timestamp).toLocaleString()}</span>
+                <span className="bg-stone-100 px-2 py-1 rounded-md text-stone-600 border border-stone-200">{selectedPost.author_name}</span>
+                <span>{new Date(selectedPost.created_at).toLocaleString()}</span>
               </div>
             </div>
             
-            <div className="p-6 min-h-[150px] text-primary-800 leading-relaxed">
+            <div className="p-6 min-h-[150px] text-primary-800 leading-relaxed whitespace-pre-wrap">
               {selectedPost.content}
             </div>
 
             {/* Comments Section */}
             <div className="bg-stone-50 border-t border-stone-100 p-6">
               <h4 className="text-sm font-bold text-stone-700 mb-4 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> Discussion ({selectedPost.comments.length})
+                <MessageSquare className="w-4 h-4" /> Discussion ({comments.length})
               </h4>
               
               <div className="space-y-4 mb-6">
-                {selectedPost.comments.length === 0 ? (
+                {comments.length === 0 ? (
                   <p className="text-sm text-stone-400 italic">No comments yet. Start the debate!</p>
                 ) : (
-                  selectedPost.comments.map(comment => (
+                  comments.map(comment => (
                     <div key={comment.id} className="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
                       <div className="flex justify-between items-center mb-1">
-                        <span className={`text-xs font-bold ${comment.author.includes('admin') ? 'text-accent-600' : 'text-stone-600'}`}>
-                          {comment.author} {comment.author.includes('admin') && '(Official)'}
+                        <span className={`text-xs font-bold ${comment.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-600'}`}>
+                          {comment.author_name} {comment.author_name.includes('Admin') && '(Official)'}
                         </span>
-                        <span className="text-[10px] text-stone-400">{new Date(comment.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-[10px] text-stone-400">{new Date(comment.created_at).toLocaleTimeString()}</span>
                       </div>
                       <p className="text-sm text-stone-700">{comment.content}</p>
                     </div>

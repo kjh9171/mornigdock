@@ -63,7 +63,8 @@ export function logoutAPI() { localStorage.removeItem('token'); localStorage.rem
 export interface Post {
   id: number; type: string; category: string; title: string; content: string
   author_name: string; author_id?: number; pinned: boolean; view_count: number
-  like_count: number; source?: string; comment_count?: number; created_at: string
+  like_count: number; source?: string; source_url?: string; comment_count?: number; 
+  created_at: string; ai_analysis?: string; related_post_id?: number; related_post_title?: string;
 }
 export interface Comment {
   id: number; post_id: number; parent_id: number | null; author_name: string
@@ -77,12 +78,26 @@ export const getPostAPI = (id: number) =>
   fetchAPI<{ success: boolean; post: Post; comments: Comment[] }>(`/posts/${id}`)
 export const createPostAPI = (data: Partial<Post>) =>
   fetchAPI<{ success: boolean; post: Post }>('/posts', { method: 'POST', body: JSON.stringify(data) })
+export const updatePostAPI = (id: number, data: Partial<Post>) =>
+  fetchAPI<{ success: boolean }>('/posts/' + id, { method: 'PUT', body: JSON.stringify(data) })
 export const deletePostAPI = (id: number) =>
   fetchAPI<{ success: boolean }>(`/posts/${id}`, { method: 'DELETE' })
 export const addCommentAPI = (postId: number, content: string, parent_id?: number) =>
   fetchAPI<{ success: boolean; comment: Comment }>(`/posts/${postId}/comments`, {
     method: 'POST', body: JSON.stringify({ content, parent_id })
   })
+export const updatePostAnalysisAPI = (id: number, ai_analysis: string) =>
+  fetchAPI<{ success: boolean }>(`/posts/${id}/analysis`, {
+    method: 'PATCH', body: JSON.stringify({ ai_analysis })
+  })
+
+// 증시 관련
+export interface StockInfo {
+  id: number; symbol: string; name: string; price: number;
+  change_val: number; change_rate: number; market_status: string;
+  ai_summary: string; updated_at: string;
+}
+export const getStocksAPI = () => fetchAPI<{ success: boolean; stocks: StockInfo[] }>('/stocks')
 
 // 미디어 센터 관련
 export interface MediaItem {

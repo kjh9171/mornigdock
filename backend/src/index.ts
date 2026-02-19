@@ -7,8 +7,10 @@ import { authRouter } from './routes/auth'
 import { postsRouter } from './routes/posts'
 import { mediaRouter } from './routes/media'
 import { adminRouter } from './routes/admin'
+import { stocksRouter } from './routes/stocks'
 import pool from './db'
 import { fetchNewsService } from './newsService'
+import { fetchStockService } from './stockService'
 import { logActivity } from './utils/logger'
 
 const app = new Hono()
@@ -44,20 +46,25 @@ app.route('/api/auth', authRouter)
 app.route('/api/posts', postsRouter)
 app.route('/api/media', mediaRouter)
 app.route('/api/admin', adminRouter)
+app.route('/api/stocks', stocksRouter)
 
 const port = 8787
 initDB().then(() => {
   console.log(`🚀 아고라 서버 기동 완료 (Port: ${port})`)
   
+  // 1시간마다 뉴스 및 증시 수집 작전 수행
   setInterval(async () => {
     try {
       await fetchNewsService();
+      await fetchStockService();
     } catch (e) {
       console.error('CRITICAL: 자동 수집 중 오류 발생', e);
     }
   }, 1000 * 60 * 60);
 
+  // 초기 기동 시 즉시 수집
   fetchNewsService().catch(console.error);
+  fetchStockService().catch(console.error);
 
   serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
 })

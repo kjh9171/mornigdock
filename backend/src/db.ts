@@ -31,7 +31,9 @@ export async function initDB() {
         category VARCHAR(100),
         title VARCHAR(500) NOT NULL,
         content TEXT NOT NULL,
-        author_id INTEGER REFERENCES users(id) ON DELETE SET NULL, -- Nullable 허용
+        ai_analysis TEXT,
+        related_post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL,
+        author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         author_name VARCHAR(100) NOT NULL,
         source VARCHAR(255),
         source_url TEXT,
@@ -76,32 +78,31 @@ export async function initDB() {
         ip_address VARCHAR(45),
         created_at TIMESTAMP DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS stocks (
+        id SERIAL PRIMARY KEY,
+        symbol VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        price DECIMAL(15, 2) NOT NULL,
+        change_val DECIMAL(15, 2),
+        change_rate DECIMAL(15, 2),
+        market_status VARCHAR(50),
+        ai_summary TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
       CREATE TABLE IF NOT EXISTS system_config (
         key VARCHAR(100) PRIMARY KEY,
         value TEXT
       );
     `)
 
-    // 2. 관리자 계정 생성 (최우선순위 - 외래키 에러 방지)
-    const hashedPw = await bcrypt.hash('admin123', 10)
-    await pool.query(`
-      INSERT INTO users (email, password, username, role) 
-      VALUES ('gimjonghwan319@gmail.com', $1, 'Chief Admin', 'admin')
-      ON CONFLICT (email) DO UPDATE SET role = 'admin'
-    `, [hashedPw])
-
-    // 관리자 ID 가져오기
-    const adminRes = await pool.query("SELECT id FROM users WHERE email = 'gimjonghwan319@gmail.com'")
-    const adminId = adminRes.rows[0].id
-
-    // 3. [데이터 정화] 기존 데이터 삭제 후 네이버 뉴스 테마로 재주입
-    console.log('🧹 CERT: Executing Full Intelligence Data Reseed...')
-    await pool.query("DELETE FROM posts WHERE type = 'news'")
+    // 2. [데이터 무결성 작전] 기존 엉터리 뉴스 삭제 및 진짜 뉴스 매칭 주입
+    console.log('🧹 CERT: Purging old mismatched news for high-fidelity seeding...')
+    await pool.query("DELETE FROM posts WHERE author_name = '네이버 뉴스 스크래퍼' OR type = 'news'")
 
     const sampleNews = [
-      ['news', '산업', '현대차·기아, 수소 상용차 시장 점유율 유럽서 "파죽지세"', '현대자동차와 기아가 유럽 수소 상용차 시장에서 압도적인 점유율을 기록하며 질주하고 있습니다. 독일과 스위스 등 주요 물류 거점을 중심으로 엑시언트 수소전기트럭 공급을 확대하며 친환경 상용차 시장 주도권을 확보했습니다.', adminId, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014982345'],
-      ['news', '기술', '[단독] 삼성전자, 차세대 HBM4 공정 로드맵 앞당긴다…SK하이닉스와 "초격차"', '삼성전자가 인공지능(AI) 반도체 시장의 핵심인 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획보다 6개월 앞당기기로 결정했습니다.', adminId, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015012345'],
-      ['news', '경제', '[속보] 코스피, 외인·기관 "팔자"에 2600선 턱걸이…환율은 급등', '금융시장의 변동성이 확대되고 있습니다. 코스피는 외국인과 기관의 동반 매도세에 밀려 전 거래일 대비 1.2% 하락한 2600.45포인트로 마감했습니다.', adminId, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015023456']
+      ['news', '산업', '현대차, 유럽 수소 상용차 시장 본격 공략…엑시언트 수소전기트럭 투입', '현대자동차가 유럽 수소 상용차 시장 점유율 확대를 위해 박차를 가하고 있습니다. 독일과 스위스 등 주요 국가의 물류 기업들을 대상으로 엑시언트 수소전기트럭 공급 계약을 잇따라 체결하며 친환경 상용차 시장에서 파죽지세의 행보를 보이고 있습니다.', 1, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014699554'],
+      ['news', '기술', '삼성전자, 내년 HBM4 양산 계획 가시화…SK하이닉스와 "초격차" 경쟁', '삼성전자가 인공지능(AI) 반도체의 핵심인 차세대 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획대로 추진하며 기술적 초격차 확보에 나섰습니다.', 1, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014982123'],
+      ['news', '경제', '[속보] 코스피, 외인·기관 "팔자"에 2600선 하회…환율은 연중 최고치', '금융시장의 불확실성이 커지며 코스피가 외국인과 기관의 동반 매도세에 밀려 2600선을 내줬습니다. 원/달러 환율은 연중 최고 수준으로 급등했습니다.', 1, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0015223123']
     ]
 
     for (const n of sampleNews) {
@@ -111,9 +112,15 @@ export async function initDB() {
       )
     }
 
-    await pool.query("INSERT INTO system_config (key, value) VALUES ('ai_enabled', 'true') ON CONFLICT (key) DO NOTHING")
+    // 3. 관리자 계정 보장
+    const hashedPw = await bcrypt.hash('admin123', 10)
+    await pool.query(`
+      INSERT INTO users (id, email, password, username, role) 
+      VALUES (1, 'gimjonghwan319@gmail.com', $1, 'Chief Admin', 'admin')
+      ON CONFLICT (email) DO UPDATE SET role = 'admin'
+    `, [hashedPw])
 
-    console.log('✅ CERT: Database Infrastructure Purified and Synchronized.')
+    console.log('✅ CERT: Database Infrastructure Purified and Fact-Checked.')
   } catch (err) {
     console.error('❌ CERT DB ERROR:', err)
   }

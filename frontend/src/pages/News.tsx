@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { getPostsAPI, getPostAPI, Post, addCommentAPI } from '../lib/api'
 import { useActivityLog } from '../utils/activityLogger'
 import { Pin, ShieldCheck, MessageSquare, ChevronRight, AlertCircle, Loader2, Cpu, Sparkles, Send, CornerDownRight, ExternalLink } from 'lucide-react'
+import { StockMarket } from '../components/StockMarket'
 
 const NEWS_CATEGORIES = ['전체', '경제', '기술', '정치', '글로벌', '산업']
 const CAT_BADGE: Record<string, string> = {
@@ -99,6 +100,8 @@ export default function News() {
 
   return (
     <div className="w-full space-y-6">
+      {!id && <StockMarket />}
+      
       <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {NEWS_CATEGORIES.map(cat => (
           <button key={cat} onClick={() => { setCategory(cat); navigate('/'); }} className={`text-sm px-4 py-2 rounded-full font-bold border transition-all whitespace-nowrap ${category === cat && !id ? 'bg-amber-600 text-white border-amber-600 shadow-md' : 'bg-white text-stone-500 border-stone-200'}`}>{cat}</button>

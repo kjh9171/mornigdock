@@ -40,7 +40,8 @@ postsRouter.get('/', optionalAuth, async (c) => {
     params.push(limit, offset)
     const result = await pool.query(
       `SELECT p.*,
-              (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count
+              (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count,
+              (SELECT title FROM posts rp WHERE rp.id = p.related_post_id) AS related_post_title
        FROM posts p
        ${whereClause}
        ORDER BY p.pinned DESC, p.updated_at DESC, p.created_at DESC
@@ -64,7 +65,10 @@ postsRouter.get('/:id', optionalAuth, async (c) => {
     const id = parseInt(c.req.param('id'))
     const user = c.get('user')
     await pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = $1', [id])
-    const result = await pool.query(`SELECT * FROM posts WHERE id = $1`, [id])
+    const result = await pool.query(
+      `SELECT p.*, (SELECT title FROM posts rp WHERE rp.id = p.related_post_id) AS related_post_title 
+       FROM posts WHERE id = $1`, [id]
+    )
     if (result.rows.length === 0) return c.json({ success: false }, 404)
     
     // 🔥 조회 로그 기록
@@ -86,16 +90,54 @@ postsRouter.post('/', authMiddleware, async (c) => {
   try {
     const user = c.get('user') as any
     const body = await c.req.json()
-    const { type = 'board', category, title, content, source, source_url, related_video_url, related_audio_url } = body
+    const { type = 'board', category, title, content, source, source_url, related_video_url, related_audio_url, related_post_id } = body
     const result = await pool.query(
-      `INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url, related_video_url, related_audio_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [type, category || '자유', title, content, user.sub, user.username, source, source_url, related_video_url, related_audio_url]
+      `INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url, related_video_url, related_audio_url, related_post_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [type, category || '자유', title, content, user.sub, user.username, source, source_url, related_video_url, related_audio_url, related_post_id]
     )
     
     await logActivity(user.sub, user.email, `게시글 작성: ${title}`, c.req.header('x-forwarded-for'))
     
     return c.json({ success: true, post: result.rows[0] }, 201)
+  } catch (err) { return c.json({ success: false }, 500) }
+})
+
+// ─── PATCH /api/posts/:id/analysis ───
+postsRouter.patch('/:id/analysis', authMiddleware, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'))
+    const { ai_analysis } = await c.req.json()
+    const user = c.get('user') as any
+    
+    await pool.query('UPDATE posts SET ai_analysis = $1, updated_at = NOW() WHERE id = $2', [ai_analysis, id])
+    await logActivity(user.sub, user.email, `지능 분석 업데이트: ID ${id}`, c.req.header('x-forwarded-for'))
+    
+    return c.json({ success: true })
+  } catch (err) { return c.json({ success: false }, 500) }
+})
+
+// ─── PUT /api/posts/:id ───
+postsRouter.put('/:id', authMiddleware, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'))
+    const user = c.get('user') as any
+    const { title, content, category, type, source, source_url } = await c.req.json()
+    
+    // 관리자이거나 작성자 본인만 수정 가능
+    const postRes = await pool.query('SELECT author_id FROM posts WHERE id = $1', [id])
+    if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
+    if (user.role !== 'admin' && postRes.rows[0].author_id !== user.sub) {
+      return c.json({ success: false, message: 'Unauthorized' }, 403)
+    }
+
+    await pool.query(
+      `UPDATE posts SET title = $1, content = $2, category = $3, type = $4, source = $5, source_url = $6, updated_at = NOW() WHERE id = $7`,
+      [title, content, category, type, source, source_url, id]
+    )
+    
+    await logActivity(user.sub, user.email, `지능물 수정: ${title}`, c.req.header('x-forwarded-for'))
+    return c.json({ success: true })
   } catch (err) { return c.json({ success: false }, 500) }
 })
 
