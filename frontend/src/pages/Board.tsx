@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getPostsAPI, Post } from '../lib/api'
-import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText } from 'lucide-react'
+import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText, Loader2 } from 'lucide-react'
 
 const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타', '뉴스 분석']
 
@@ -39,7 +39,6 @@ export default function Board() {
     setIsLoading(true)
     const params: Record<string, string | number> = { page, limit: 25 }
     
-    // 🔥 '뉴스 분석' 카테고리 선택 시 type='news'로 요청
     if (category === '뉴스 분석') {
       params.type = 'news'
     } else {
@@ -63,7 +62,6 @@ export default function Board() {
   const changeCategory = (cat: string) => { setCategory(cat); setPage(1) }
 
   const handlePostClick = (post: Post) => {
-    // 🔥 뉴스 타입이면 뉴스 상세로, 보드 타입이면 보드 상세로 이동
     if (post.type === 'news') navigate(`/news/${post.id}`)
     else navigate(`/board/${post.id}`)
   }
