@@ -10,10 +10,17 @@ import {
 import { 
   Users, FileText, MessageSquare, Play, LayoutDashboard, 
   Shield, Activity, Settings, Plus, Edit2, Trash2, 
-  Lock, Unlock, Pin, Sparkles, Loader2, Mail, Globe, Clock, Server, RefreshCw, Key, UserPlus, ChevronRight, AlertCircle, BarChart3
+  Lock, Unlock, Pin, Sparkles, Loader2, Mail, Globe, Clock, Server, RefreshCw, Key, UserPlus, ChevronRight, AlertCircle, BarChart3, ExternalLink
 } from 'lucide-react'
 
 type AdminTab = 'dashboard' | 'users' | 'posts' | 'media' | 'logs'
+
+// 🔥 유튜브 ID 추출 헬퍼
+const parseYouTubeId = (url: string) => {
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[7].length === 11) ? match[7] : url;
+}
 
 function Card({ children, title, action, icon: Icon }: { children: React.ReactNode; title: string; action?: React.ReactNode; icon?: any }) {
   return (
@@ -98,7 +105,8 @@ function MediaModal({ item, onSave, onClose }: { item?: MediaItem; onSave: (d: a
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">URL 또는 비디오 ID</label>
-            <input name="url" value={form.url} onChange={h} required placeholder="유튜브 ID 또는 오디오 주소" className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-mono focus:ring-2 focus:ring-amber-500/20 outline-none" />
+            <input name="url" value={form.url} onChange={h} required placeholder="유튜브 주소 또는 ID" className="w-full text-sm px-5 py-3 bg-stone-50 border border-stone-200 rounded-2xl font-mono focus:ring-2 focus:ring-amber-500/20 outline-none" />
+            <p className="text-[9px] text-stone-400 px-1 italic">* 주소 전체를 넣으셔도 시스템이 ID만 자동 추출합니다.</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -172,7 +180,12 @@ export default function Admin() {
     const r = await fetch(`${API_BASE}/api/admin/users/${id}`, { method: 'DELETE', headers }).then(r => r.json())
     if (r.success) loadData()
   }
+  
   const handleSaveMedia = async (data: any) => {
+    // 🔥 저장 전 유튜브 ID 추출 로직 적용
+    if (data.type === 'youtube') {
+      data.url = parseYouTubeId(data.url)
+    }
     const url = data.id ? `${API_BASE}/api/media/${data.id}` : `${API_BASE}/api/media`
     const r = await fetch(url, { method: data.id ? 'PUT' : 'POST', headers, body: JSON.stringify(data) }).then(r => r.json())
     if (r.success) { setMediaModal({ open: false }); loadData(); }
@@ -194,7 +207,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-[#F9F9F9] flex flex-col md:flex-row overflow-hidden">
       {/* ── 사이드바 ── */}
-      <aside className="w-full md:w-72 bg-white border-r border-stone-200 flex flex-col z-10">
+      <aside className="w-full md:w-72 bg-white border-r border-stone-200 flex flex-col z-10 shrink-0">
         <div className="p-8 border-b border-stone-100 bg-stone-50/50">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 bg-stone-900 rounded-xl flex items-center justify-center shadow-lg"><Shield className="w-4 h-4 text-amber-500" /></div>
@@ -226,9 +239,9 @@ export default function Admin() {
         <div className="p-6 border-t border-stone-100">
           <div className="flex items-center gap-3 p-4 bg-stone-50 rounded-2xl">
             <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center font-black text-amber-700 text-xs">{user.username.charAt(0)}</div>
-            <div className="min-w-0">
-              <p className="text-xs font-black text-stone-800 truncate uppercase">{user.username}</p>
-              <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Authorized</p>
+            <div className="min-w-0 text-xs">
+              <p className="font-black text-stone-800 truncate uppercase">{user.username}</p>
+              <p className="font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Authorized</p>
             </div>
           </div>
         </div>
@@ -239,7 +252,7 @@ export default function Admin() {
         {userModal.open && <UserModal item={userModal.item} onSave={handleSaveUser} onClose={() => setUserModal({ open: false })} />}
         {mediaModal.open && <MediaModal item={mediaModal.item} onSave={handleSaveMedia} onClose={() => setMediaModal({ open: false })} />}
 
-        <div className="max-w-5xl mx-auto space-y-10 pb-20">
+        <div className="max-w-6xl mx-auto space-y-10 pb-20">
           {/* 헤더 섹션 */}
           <div className="flex items-center justify-between animate-in slide-in-from-top-4 duration-500">
             <div>
@@ -247,7 +260,7 @@ export default function Admin() {
                 {MENU_ITEMS.find(m => m.key === tab)?.label}
               </h1>
               <div className="flex items-center gap-2 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                <Globe className="w-3 h-3" /> AGORA GLOBAL INTEL NETWORK <span className="text-stone-200">|</span> v1.0.4-STABLE
+                <Globe className="w-3 h-3" /> AGORA GLOBAL INTEL NETWORK <span className="text-stone-200">|</span> v1.0.5-STABLE
               </div>
             </div>
             <button onClick={loadData} className="p-3 bg-white border border-stone-200 rounded-2xl text-stone-400 hover:text-stone-900 hover:border-stone-900 transition-all shadow-sm active:scale-95">
@@ -293,9 +306,19 @@ export default function Admin() {
 
               {tab === 'users' && (
                 <Card title="요원 레지스트리 및 프로토콜" icon={Shield} action={<button onClick={() => setUserModal({ open: true })} className="flex items-center gap-2 text-[10px] font-black bg-stone-900 text-white px-5 py-2.5 rounded-xl uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-stone-200"><UserPlus className="w-4 h-4" /> 신규 요원 배치</button>}>
-                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30"><th className="py-5 px-8 text-left">식별 ID / 호출명</th><th className="py-5 px-8 text-left">보안 권한</th><th className="py-5 px-8 text-center">상태</th><th className="py-5 px-8 text-right">전략 통제</th></tr></thead><tbody className="divide-y divide-stone-50">
+                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30">
+                    <th className="py-5 px-8 text-left whitespace-nowrap">식별 ID / 호출명</th>
+                    <th className="py-5 px-8 text-left whitespace-nowrap">보안 권한</th>
+                    <th className="py-5 px-8 text-center whitespace-nowrap">상태</th>
+                    <th className="py-5 px-8 text-right whitespace-nowrap">전략 통제</th>
+                  </tr></thead><tbody className="divide-y divide-stone-50">
                     {users.map(u => (
-                      <tr key={u.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8"><span className="font-black text-stone-800 block uppercase tracking-tight">{u.username}</span><span className="text-[10px] text-stone-400 font-mono italic">{u.email}</span></td><td className="py-6 px-8"><span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase ${u.role === 'admin' ? 'bg-stone-900 text-amber-400' : 'bg-stone-100 text-stone-600'}`}>{u.role}</span></td><td className="py-6 px-8 text-center"><span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase ${u.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>{u.is_active ? '정상 작동' : '접속 차단'}</span></td><td className="py-6 px-8 text-right"><div className="flex justify-end gap-2"><button onClick={() => setUserModal({ open: true, item: u })} className="p-3 text-stone-400 hover:text-stone-900 hover:bg-white rounded-2xl shadow-sm transition-all border border-transparent hover:border-stone-200"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDeleteUser(u.id)} disabled={u.id === user.id} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td></tr>
+                      <tr key={u.id} className="hover:bg-stone-50/50 transition-all">
+                        <td className="py-6 px-8 whitespace-nowrap"><span className="font-black text-stone-800 block uppercase tracking-tight">{u.username}</span><span className="text-[10px] text-stone-400 font-mono italic">{u.email}</span></td>
+                        <td className="py-6 px-8 whitespace-nowrap"><span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase ${u.role === 'admin' ? 'bg-stone-900 text-amber-400' : 'bg-stone-100 text-stone-600'}`}>{u.role}</span></td>
+                        <td className="py-6 px-8 text-center whitespace-nowrap"><span className={`text-[9px] font-black px-3 py-1.5 rounded-full uppercase ${u.is_active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>{u.is_active ? '정상 작동' : '접속 차단'}</span></td>
+                        <td className="py-6 px-8 text-right whitespace-nowrap"><div className="flex justify-end gap-2"><button onClick={() => setUserModal({ open: true, item: u })} className="p-3 text-stone-400 hover:text-stone-900 hover:bg-white rounded-2xl shadow-sm transition-all border border-transparent hover:border-stone-200"><Edit2 className="w-4 h-4" /></button><button onClick={() => handleDeleteUser(u.id)} disabled={u.id === user.id} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td>
+                      </tr>
                     ))}
                   </tbody></table></div>
                 </Card>
@@ -305,11 +328,12 @@ export default function Admin() {
                 <Card title="멀티미디어 인텔리전스 자산" icon={Play} action={<button onClick={() => setMediaModal({ open: true })} className="flex items-center gap-2 text-[10px] font-black bg-stone-900 text-white px-5 py-2.5 rounded-xl uppercase tracking-widest hover:bg-black transition-all"><Plus className="w-4 h-4" /> 신규 자산 배치</button>}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {media.map(m => (
-                      <div key={m.id} className="group flex items-center gap-5 p-6 border border-stone-100 rounded-[2rem] hover:bg-stone-50 transition-all hover:border-amber-200 bg-white">
+                      <div key={m.id} className="group flex items-center gap-5 p-6 border border-stone-100 rounded-[2rem] hover:bg-stone-50 transition-all hover:border-amber-200 bg-white shadow-sm">
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-inner ${m.type==='youtube'?'bg-red-50 text-red-600':'bg-violet-50 text-violet-600'}`}>{m.type==='youtube'?'▶':'🎙'}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-black text-stone-800 truncate uppercase leading-tight mb-1">{m.title}</p>
                           <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{m.author} · {m.duration}</p>
+                          <p className="text-[9px] text-stone-300 font-mono truncate mt-1">{m.url}</p>
                         </div>
                         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => setMediaModal({ open: true, item: m })} className="p-2 text-stone-400 hover:text-stone-900 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-stone-200"><Edit2 className="w-3.5 h-3.5" /></button>
@@ -323,9 +347,17 @@ export default function Admin() {
 
               {tab === 'logs' && (
                 <Card title="사령부 보안 감사 타임라인" icon={Activity}>
-                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30"><th className="py-5 px-8 text-left">실행 주체</th><th className="py-5 px-8 text-left">감사 내역 (Action)</th><th className="py-5 px-8 text-right">접속 IP / 타임스탬프</th></tr></thead><tbody className="divide-y divide-stone-50">
+                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30">
+                    <th className="py-5 px-8 text-left whitespace-nowrap">실행 주체</th>
+                    <th className="py-5 px-8 text-left whitespace-nowrap">감사 내역 (Action)</th>
+                    <th className="py-5 px-8 text-right whitespace-nowrap">접속 IP / 타임스탬프</th>
+                  </tr></thead><tbody className="divide-y divide-stone-50">
                     {logs.map(l => (
-                      <tr key={l.id} className="hover:bg-stone-50/50 transition-all"><td className="py-6 px-8 font-black text-stone-800 text-xs uppercase">{l.username || 'Unknown Operator'}</td><td className="py-6 px-8"><span className={`text-[9px] font-black px-2.5 py-1.5 rounded-lg uppercase tracking-widest ${l.action.includes('ADMIN') ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>{l.action}</span></td><td className="py-6 px-8 text-right flex flex-col items-end gap-1"><span className="text-[10px] text-stone-400 font-mono font-bold">{l.ip_address}</span><span className="text-[9px] text-stone-300 font-mono">{new Date(l.created_at).toLocaleString('ko-KR')}</span></td></tr>
+                      <tr key={l.id} className="hover:bg-stone-50/50 transition-all">
+                        <td className="py-6 px-8 font-black text-stone-800 text-xs uppercase whitespace-nowrap">{l.username || 'Unknown Operator'}</td>
+                        <td className="py-6 px-8 whitespace-nowrap"><span className={`text-[9px] font-black px-2.5 py-1.5 rounded-lg uppercase tracking-widest ${l.action.includes('ADMIN') ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>{l.action}</span></td>
+                        <td className="py-6 px-8 text-right flex flex-col items-end gap-1 whitespace-nowrap"><span className="text-[10px] text-stone-400 font-mono font-bold">{l.ip_address}</span><span className="text-[9px] text-stone-300 font-mono">{new Date(l.created_at).toLocaleString('ko-KR')}</span></td>
+                      </tr>
                     ))}
                   </tbody></table></div>
                 </Card>
@@ -333,9 +365,19 @@ export default function Admin() {
 
               {tab === 'posts' && (
                 <Card title="인텔리전스 분석물 통제" icon={FileText}>
-                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30"><th className="py-5 px-8 text-left">분류</th><th className="py-5 px-8 text-left">리포트 제목</th><th className="py-5 px-8 text-left">분석관</th><th className="py-5 px-8 text-right">통제</th></tr></thead><tbody className="divide-y divide-stone-50">
+                  <div className="overflow-x-auto -mx-8"><table className="w-full text-sm"><thead><tr className="text-[10px] font-black text-stone-400 uppercase border-b border-stone-100 bg-stone-50/30">
+                    <th className="py-5 px-8 text-left whitespace-nowrap">분류</th>
+                    <th className="py-5 px-8 text-left whitespace-nowrap">리포트 제목</th>
+                    <th className="py-5 px-8 text-left whitespace-nowrap">분석관</th>
+                    <th className="py-5 px-8 text-right whitespace-nowrap">통제</th>
+                  </tr></thead><tbody className="divide-y divide-stone-50">
                     {posts.map(p => (
-                      <tr key={p.id} className={`hover:bg-stone-50/50 transition-all ${p.pinned ? 'bg-amber-50/30' : ''}`}><td className="py-6 px-8"><span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase ${p.type === 'news' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>{p.type}</span></td><td className="py-6 px-8 max-w-[300px]"><div className="flex items-center gap-2">{p.pinned && <Pin className="w-3 h-3 text-amber-600" />}<span className="text-stone-800 font-black truncate leading-tight tracking-tight">{p.title}</span></div></td><td className="py-6 px-8 text-stone-400 font-bold text-[10px] uppercase">{p.author_name}</td><td className="py-6 px-8 text-right"><div className="flex justify-end gap-1"><button onClick={() => adminDeletePostAPI(p.id).then(() => loadData())} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td></tr>
+                      <tr key={p.id} className={`hover:bg-stone-50/50 transition-all ${p.pinned ? 'bg-amber-50/30' : ''}`}>
+                        <td className="py-6 px-8 whitespace-nowrap"><span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase ${p.type === 'news' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>{p.type}</span></td>
+                        <td className="py-6 px-8 max-w-[400px]"><div className="flex items-center gap-2">{p.pinned && <Pin className="w-3 h-3 text-amber-600" />}<span className="text-stone-800 font-black truncate leading-tight tracking-tight">{p.title}</span></div></td>
+                        <td className="py-6 px-8 text-stone-400 font-bold text-[10px] uppercase whitespace-nowrap">{p.author_name}</td>
+                        <td className="py-6 px-8 text-right whitespace-nowrap"><div className="flex justify-end gap-1"><button onClick={() => adminDeletePostAPI(p.id).then(() => loadData())} className="p-3 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"><Trash2 className="w-4 h-4" /></button></div></td>
+                      </tr>
                     ))}
                   </tbody></table></div>
                 </Card>
