@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 
 export const adminRouter = new Hono()
 
+// 모든 관리자 라우트에 인증 및 권한 미들웨어 적용
 adminRouter.use('*', authMiddleware)
 adminRouter.use('*', adminMiddleware)
 
@@ -18,42 +19,57 @@ async function logAdminAction(c: any, action: string) {
   )
 }
 
-// ─── 지능 분석물 (Posts) 관리 ───
+// ─── 지능 즉시 수집 (신설/복구) ───
+adminRouter.post('/fetch-news', async (c) => {
+  try {
+    await fetchNewsService()
+    await logAdminAction(c, '지능 즉시 수집 실행')
+    return c.json({ success: true, message: '지능 수집 완료' })
+  } catch (err) {
+    return c.json({ success: false, message: '수집 실패' }, 500)
+  }
+})
 
-// [조회]
+// ─── 시스템 설정 (복구) ───
+adminRouter.get('/config', async (c) => {
+  const result = await pool.query('SELECT * FROM system_config')
+  const config = result.rows.reduce((acc: any, r: any) => ({...acc, [r.key]: r.value}), {})
+  return c.json({ success: true, config })
+})
+
+adminRouter.put('/config', async (c) => {
+  const { key, value } = await c.req.json()
+  await pool.query('INSERT INTO system_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, String(value)])
+  await logAdminAction(c, `시스템 설정 변경: ${key}=${value}`)
+  return c.json({ success: true })
+})
+
+// ─── 지능 분석물 (Posts) 관리 ───
 adminRouter.get('/posts', async (c) => {
   const res = await pool.query('SELECT * FROM posts ORDER BY id DESC')
   return c.json({ success: true, posts: res.rows })
 })
 
-// [생성] - 🔥 연동 오류 수정
 adminRouter.post('/posts', async (c) => {
   try {
     const user = c.get('user')
     const body = await c.req.json()
     const { type, category, title, content, source, source_url } = body
-    
     const result = await pool.query(
       `INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [type || 'news', category, title, content, user.sub, user.username, source || '사령부 HQ', source_url]
     )
-    
     await logAdminAction(c, `지능 분석물 생성: ${title}`)
     return c.json({ success: true, post: result.rows[0] })
-  } catch (err) { 
-    console.error(err)
-    return c.json({ success: false, message: '생성 실패' }, 500) 
-  }
+  } catch (err) { return c.json({ success: false }, 500) }
 })
 
-// [삭제] - 🔥 연동 오류 수정
 adminRouter.delete('/posts/:id', async (c) => {
   try {
     const id = parseInt(c.req.param('id'))
     const postRes = await pool.query('SELECT title FROM posts WHERE id = $1', [id])
-    if (postRes.rows.length === 0) return c.json({ success: false, message: '대상 없음' }, 404)
-    
+    if (postRes.rows.length === 0) return c.json({ success: false }, 404)
     await pool.query('DELETE FROM posts WHERE id = $1', [id])
     await logAdminAction(c, `지능 분석물 삭제: ${postRes.rows[0].title}`)
     return c.json({ success: true })
@@ -61,9 +77,8 @@ adminRouter.delete('/posts/:id', async (c) => {
 })
 
 // ─── 요원 (Users) 관리 ───
-
 adminRouter.get('/users', async (c) => {
-  const res = await pool.query('SELECT id, email, username, role, is_active, created_at FROM users ORDER BY id DESC')
+  const res = await pool.query('SELECT id, username, email, role, is_active, created_at FROM users ORDER BY id DESC')
   return c.json({ success: true, users: res.rows })
 })
 
@@ -86,8 +101,7 @@ adminRouter.delete('/users/:id', async (c) => {
   return c.json({ success: true })
 })
 
-// ─── 기타 통제 ───
-
+// ─── 대시보드 통계 ───
 adminRouter.get('/stats', async (c) => {
   const [u, p, m] = await Promise.all([
     pool.query('SELECT COUNT(*) FROM users'),

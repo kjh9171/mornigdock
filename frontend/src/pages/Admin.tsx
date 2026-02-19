@@ -5,7 +5,7 @@ import {
   getAdminStatsAPI, getAdminUsersAPI,
   getAdminPostsAPI, togglePinAPI, adminDeletePostAPI,
   getMediaAPI, createMediaAPI, updateMediaAPI, deleteMediaAPI,
-  MediaItem, Post, createPostAPI
+  MediaItem, Post
 } from '../lib/api'
 import { 
   Users, FileText, MessageSquare, Play, LayoutDashboard, 
@@ -176,7 +176,6 @@ export default function Admin() {
 
   useEffect(() => { loadData() }, [tab])
 
-  // 🔥 [수동 지능 수집 실행]
   const handleManualFetch = async () => {
     setIsFetching(true)
     try {
@@ -194,8 +193,13 @@ export default function Admin() {
   }
 
   const handleSavePost = async (data: any) => {
+    // 🔥 관리자 전용 엔드포인트로 통일
     const url = data.id ? `${API_BASE}/api/posts/${data.id}` : `${API_BASE}/api/admin/posts`
-    const r = await fetch(url, { method: data.id ? 'PUT' : 'POST', headers, body: JSON.stringify(data) }).then(r => r.json())
+    const r = await fetch(url, { 
+      method: data.id ? 'PUT' : 'POST', 
+      headers, 
+      body: JSON.stringify(data) 
+    }).then(r => r.json())
     if (r.success) { setPostModal({ open: false }); loadData(); }
   }
   const handleDeletePost = async (id: number) => {
