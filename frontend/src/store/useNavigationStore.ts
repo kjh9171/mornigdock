@@ -2,16 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware'; // 새로고침 시 상태 유지를 위해 추가
 
 // ─────────────────────────────────────────────
-// Navigation 타입 정의
+// Navigation 타입 정의 (6대 핵심 구역 정의)
 // ─────────────────────────────────────────────
 interface NavigationState {
   view: 'user' | 'admin' | 'news-detail' | 'ai-analysis';
-  userTab: 'news' | 'discussion' | 'media' | 'finance';
+  userTab: 'news' | 'finance' | 'discussion' | 'media' | 'settings';
   selectedNewsId: number | null;
   
   // Actions
   setView: (view: 'user' | 'admin' | 'news-detail' | 'ai-analysis') => void;
-  setUserTab: (tab: 'news' | 'discussion' | 'media' | 'finance') => void;
+  setUserTab: (tab: 'news' | 'finance' | 'discussion' | 'media' | 'settings') => void;
   setSelectedNewsId: (id: number | null) => void;
   resetNavigation: () => void; // 로그아웃 등을 위한 초기화 함수 추가
 }
@@ -23,7 +23,7 @@ export const useNavigationStore = create<NavigationState>()(
   persist(
     (set) => ({
       view: 'user',
-      userTab: 'news',
+      userTab: 'news', // 대표님 명령: 지능보고서(news)를 기본값으로 설정
       selectedNewsId: null,
 
       // 뷰 전환 시 관련 데이터가 꼬이지 않도록 로직 보강

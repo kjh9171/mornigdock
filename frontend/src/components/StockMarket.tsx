@@ -42,11 +42,11 @@ export function StockMarket() {
 
   const getNaverStockUrl = (symbol: string) => {
     switch (symbol) {
-      case 'KOSPI': return 'https://m.stock.naver.com/domestic/index/KOSPI/total';
-      case 'KOSDAQ': return 'https://m.stock.naver.com/domestic/index/KOSDAQ/total';
-      case 'DJI': return 'https://m.stock.naver.com/world/index/.DJI';
-      case 'NASDAQ': return 'https://m.stock.naver.com/world/index/.IXIC';
-      default: return 'https://m.stock.naver.com/';
+      case 'KOSPI': return 'https://stock.naver.com/domestic';
+      case 'KOSDAQ': return 'https://stock.naver.com/domestic';
+      case 'DJI': return 'https://stock.naver.com/world';
+      case 'NASDAQ': return 'https://stock.naver.com/world';
+      default: return 'https://stock.naver.com/';
     }
   };
 
@@ -63,7 +63,7 @@ export function StockMarket() {
       <div className="flex justify-between items-center px-2">
         <h2 className="text-lg font-black text-primary-800 flex items-center gap-2 uppercase tracking-tighter">
           <Activity className="w-5 h-5 text-accent-600" />
-          Global Strategic Market Monitor
+          Real-time Market Pulse
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[10px] text-stone-400 font-mono font-bold">
@@ -130,11 +130,11 @@ export function StockMarket() {
               </div>
               <div>
                 <h3 className="text-sm font-black text-white uppercase tracking-widest">AI Market Strategist Briefing</h3>
-                <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest">Global Vector Intelligence Active</p>
+                <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest">Live NPay Intelligence Stream</p>
               </div>
               <span className="ml-auto flex items-center gap-1.5 text-[10px] font-black text-accent-500 animate-pulse bg-accent-500/5 px-3 py-1 rounded-full border border-accent-500/20">
                 <AlertCircle className="w-3 h-3" />
-                INTELLIGENCE_STREAM_LOCKED
+                ANALYSIS_SYNC_OK
               </span>
             </div>
             
@@ -143,7 +143,7 @@ export function StockMarket() {
                 <div key={s.symbol} className="space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-accent-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
-                    <span className="text-[11px] font-black text-stone-400 uppercase tracking-tight">{s.name} Strategic Outlook</span>
+                    <span className="text-[11px] font-black text-stone-400 uppercase tracking-tight">{s.name} Outlook</span>
                   </div>
                   <p className="text-sm text-stone-200 leading-relaxed font-medium italic">
                     "{s.ai_summary}"
@@ -153,7 +153,7 @@ export function StockMarket() {
             </div>
             
             <div className="mt-8 pt-6 border-t border-stone-800/50 flex justify-between items-center">
-              <p className="text-[10px] text-stone-600 font-bold italic uppercase tracking-tighter">Analysis synchronized with latest HQ market vectors.</p>
+              <p className="text-[10px] text-stone-600 font-bold italic uppercase tracking-tighter">Data sourced from real-time Naver Finance polling.</p>
               <div className="text-[10px] font-mono text-accent-600 font-black tracking-widest bg-accent-600/5 px-3 py-1 rounded-md border border-accent-600/10">SECURITY CLEARANCE: LEVEL 4</div>
             </div>
           </div>
