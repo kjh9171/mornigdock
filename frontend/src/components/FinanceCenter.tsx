@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStocksAPI, StockInfo } from '../lib/api';
-import { Globe, TrendingUp, MessageSquare, BarChart3, Coins, Info, ExternalLink, ShieldCheck, Activity, Clock } from 'lucide-react';
+import { Globe, TrendingUp, MessageSquare, BarChart3, Coins, Info, ExternalLink, ShieldCheck, Activity, Clock, Newspaper, Bot } from 'lucide-react';
 
 const FINANCE_SECTIONS = [
   { id: 'domestic', name: '국내증시', icon: TrendingUp, url: 'https://stock.naver.com/domestic', color: 'text-red-600', bg: 'bg-red-50' },
@@ -21,6 +21,8 @@ export function FinanceCenter() {
       setLoading(false);
     });
   }, []);
+
+  const marketSummary = stocks.find(s => s.symbol === 'MARKET_SUMMARY');
 
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -46,31 +48,41 @@ export function FinanceCenter() {
         </div>
       </div>
 
-      {/* 2. 실전 데이터 브리핑 섹션 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {stocks.filter(s => s.symbol === 'KOSPI' || s.symbol === 'NASDAQ').map(stock => (
-          <div key={stock.symbol} className="bg-white p-8 rounded-[2.5rem] border border-stone-200 shadow-soft relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em]">{stock.symbol} Analysis</span>
-                <h3 className="text-2xl font-black text-primary-950 mt-1">{stock.name} 리포트</h3>
+      {/* 2. 실전 데이터 브리핑 섹션 - Market Summary */}
+      <div className="bg-white p-10 rounded-[3rem] border-2 border-stone-100 shadow-xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12 transition-transform duration-1000 group-hover:rotate-0">
+          <Newspaper className="w-48 h-48 text-stone-900" />
+        </div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-stone-900 rounded-2xl shadow-lg">
+                <Bot className="w-6 h-6 text-white" />
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-50 rounded-full border border-stone-100">
-                <Clock className="w-3 h-3 text-stone-400" />
-                <span className="text-[10px] font-bold text-stone-500 font-mono">LATEST</span>
+              <div>
+                <h3 className="text-2xl font-black text-primary-950 uppercase tracking-tight">{marketSummary?.name || '이시각 증시요약'}</h3>
+                <p className="text-[10px] text-stone-400 font-black uppercase tracking-[0.3em] mt-1">Intelligence Scrutiny Active</p>
               </div>
             </div>
-            <p className="text-stone-600 font-medium leading-relaxed italic mb-4">
-              "{stock.ai_summary}"
-            </p>
-            <div className="flex items-center gap-4 pt-4 border-t border-stone-100">
-              <span className="text-3xl font-black text-primary-900 tracking-tighter">{Number(stock.price).toLocaleString()}</span>
-              <span className={`text-sm font-bold ${stock.change_val >= 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                {stock.change_val >= 0 ? '▲' : '▼'} {Math.abs(stock.change_val).toLocaleString()} ({stock.change_rate}%)
-              </span>
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-stone-50 rounded-full border border-stone-100">
+              <Clock className="w-4 h-4 text-stone-400" />
+              <span className="text-[10px] font-bold text-stone-500 font-mono uppercase">Live Intelligence</span>
             </div>
           </div>
-        ))}
+          
+          <div className="bg-stone-50/50 p-8 rounded-[2rem] border border-stone-100">
+            <p className="text-xl text-stone-700 font-bold leading-relaxed italic">
+              "{marketSummary?.ai_summary || '증시 첩보를 수신 중입니다...'}"
+            </p>
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <a href="https://stock.naver.com/" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs font-black text-amber-600 uppercase hover:underline">
+              View Detailed Dashboard <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* 3. 전술 섹션 그리드 - NPay 항목별 직결 */}
