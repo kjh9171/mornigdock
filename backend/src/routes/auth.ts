@@ -78,6 +78,7 @@ auth.post('/login', async (c) => {
     otpCode:  z.string().optional(),
   });
   const body = await c.req.json().catch(() => null);
+  console.log(`[Auth] Login attempt: ${body?.email}`);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return c.json({ success: false, message: '입력값을 확인하세요.' }, 400);

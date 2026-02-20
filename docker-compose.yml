@@ -32,6 +32,9 @@ services:
       dockerfile: Dockerfile
     container_name: agora_backend
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     environment:
       PORT: 8787
       NODE_ENV: ${NODE_ENV:-production}
