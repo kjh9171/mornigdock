@@ -33,7 +33,8 @@ export function AgoraDiscussion() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await getPostsAPI({ type: 'discussion' });
+      // 🔥 [타입 표준화] 모든 사용자 게시글은 'board' 타입으로 통합 관리
+      const res = await getPostsAPI({ type: 'board', limit: 20 });
       if (res.success) setPosts(res.posts);
     } catch (err) {
       console.error(err);
@@ -57,8 +58,8 @@ export function AgoraDiscussion() {
       const res = await createPostAPI({ 
         title, 
         content, 
-        type: 'discussion',
-        category: '아고라',
+        type: 'board', // 🔥 'discussion' 대신 'board'로 표준화
+        category: '자유',
         related_post_id: relatedId 
       });
       
@@ -69,6 +70,7 @@ export function AgoraDiscussion() {
         setView('list');
         setDraft(null);
         setStoreView('list');
+        fetchPosts(); // 리스트 갱신
       }
     } catch (err) {
       console.error(err);
@@ -108,19 +110,22 @@ export function AgoraDiscussion() {
   };
 
   return (
-    <div className="w-full max-w-2xl min-h-[500px]">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-primary-800 flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-accent-600" />
-          Agora Discussion
-        </h2>
+    <div className="w-full max-w-full min-h-[600px] animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-8 px-2">
+        <div>
+          <h2 className="text-2xl font-black text-primary-800 flex items-center gap-3 uppercase tracking-tighter">
+            <MessageSquare className="w-7 h-7 text-accent-600" />
+            Agora Discussion
+          </h2>
+          <p className="text-sm text-stone-400 font-bold mt-1 uppercase tracking-widest">Public Intelligence Sharing Forum</p>
+        </div>
         {view === 'list' && (
           <button 
             onClick={() => setView('write')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-full text-sm font-medium hover:bg-stone-900 transition-all shadow-soft"
+            className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl"
           >
             <PenSquare className="w-4 h-4" />
-            Write Post
+            New Post
           </button>
         )}
         {view !== 'list' && (
@@ -130,40 +135,53 @@ export function AgoraDiscussion() {
               setDraft(null);
               setStoreView('list');
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-stone-600 border border-stone-200 rounded-full text-sm font-medium hover:bg-stone-50 transition-all shadow-soft"
+            className="flex items-center gap-2 px-6 py-3 bg-white text-stone-600 border-2 border-stone-100 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-stone-50 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to List
+            Back to Archive
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-soft border-[0.5px] border-stone-200 overflow-hidden min-h-[400px]">
+      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-stone-100 overflow-hidden min-h-[500px]">
         {/* List View */}
         {view === 'list' && (
-          <div className="divide-y divide-stone-100">
+          <div className="divide-y divide-stone-50">
             {loading ? (
-              <div className="flex justify-center p-8"><Loader2 className="animate-spin text-stone-300" /></div>
+              <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-accent-600" /></div>
             ) : posts.length === 0 ? (
-              <div className="text-center p-12 text-stone-400">No active discussions. Be the first!</div>
+              <div className="text-center p-32">
+                <MessageSquare className="w-16 h-16 text-stone-100 mx-auto mb-4" />
+                <p className="text-stone-400 font-black uppercase tracking-widest">No Active Intelligence Discussions</p>
+              </div>
             ) : (
               posts.map(post => (
                 <div 
                   key={post.id} 
                   onClick={() => handlePostClick(post)}
-                  className="p-5 hover:bg-stone-50 transition-colors cursor-pointer group"
+                  className="p-8 hover:bg-stone-50/50 transition-all cursor-pointer group flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg text-primary-800 group-hover:text-accent-600 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="px-2 py-0.5 bg-stone-100 text-stone-500 text-[10px] font-black rounded uppercase tracking-tighter">
+                        {post.category || '자유'}
+                      </span>
+                      {post.related_post_id && (
+                        <span className="flex items-center gap-1 text-[10px] font-black text-accent-600 bg-accent-50 px-2 py-0.5 rounded uppercase tracking-tighter">
+                          <LinkIcon className="w-3 h-3" /> INTEL_LINKED
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-black text-xl text-primary-900 group-hover:text-accent-600 transition-colors leading-tight mb-3 truncate">
                       {post.title}
                     </h3>
-                    {post.related_post_id && <LinkIcon className="w-3 h-3 text-accent-400" />}
+                    <div className="flex items-center gap-6 text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                      <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{post.author_name}</span>
+                      <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{new Date(post.created_at).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1.5 text-accent-600"><MessageSquare className="w-3.5 h-3.5" />{post.comment_count || 0} Comments</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-stone-400">
-                    <span className="flex items-center gap-1"><User className="w-3 h-3" />{post.author_name}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(post.created_at).toLocaleDateString()}</span>
-                    <span>{post.comment_count || 0} comments</span>
-                  </div>
+                  <ChevronRight className="w-6 h-6 text-stone-200 group-hover:text-accent-600 group-hover:translate-x-1 transition-all ml-8" />
                 </div>
               ))
             )}
@@ -172,106 +190,106 @@ export function AgoraDiscussion() {
 
         {/* Write View */}
         {view === 'write' && (
-          <form onSubmit={handleCreatePost} className="p-6 space-y-4">
-            {/* Draft Notice */}
+          <form onSubmit={handleCreatePost} className="p-12 space-y-8 animate-in slide-in-from-bottom-4">
             {draft && (
-              <div className="p-3 bg-accent-50 text-accent-700 text-xs rounded-lg border border-accent-100 mb-2">
-                사령부 지능물에서 연결된 토론 초안이 로드되었습니다.
+              <div className="p-4 bg-accent-50 text-accent-700 text-xs font-black rounded-2xl border-2 border-accent-100 flex items-center gap-3">
+                <LinkIcon className="w-4 h-4" />
+                INTELLIGENCE SOURCE DRAFT LOADED
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-stone-600 mb-1">Topic</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] ml-1">Operational Topic</label>
               <input 
                 type="text" 
                 required 
-                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
-                placeholder="What's on your mind?"
+                className="w-full p-5 bg-stone-50 border-2 border-transparent focus:border-accent-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-900 text-lg"
+                placeholder="What is the mission objective?"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-600 mb-1">Content</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] ml-1">Intelligence Content</label>
               <textarea 
                 required 
-                rows={8}
-                className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20 resize-none"
-                placeholder="Share your thoughts..."
+                rows={10}
+                className="w-full p-8 bg-stone-50 border-2 border-transparent focus:border-accent-600/20 rounded-[2rem] outline-none transition-all font-medium text-primary-800 leading-relaxed resize-none"
+                placeholder="Detail your strategic insights..."
                 value={content}
                 onChange={e => setContent(e.target.value)}
               />
             </div>
             <button 
               type="submit" 
-              className="w-full py-3 bg-accent-600 text-white rounded-xl font-medium hover:bg-accent-700 transition-colors shadow-lg shadow-accent-100"
+              className="w-full py-5 bg-accent-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-accent-700 transition-all shadow-2xl shadow-accent-600/20 text-sm"
             >
-              Publish to Agora
+              Authorize & Publish to Agora
             </button>
           </form>
         )}
 
         {/* Detail View */}
         {view === 'detail' && selectedPost && (
-          <div>
-            <div className="p-6 border-b border-stone-100 bg-stone-50/30">
-              {/* Linked News Badge */}
+          <div className="animate-in fade-in duration-500">
+            <div className="p-12 border-b border-stone-50 bg-gradient-to-br from-stone-50/50 to-white">
               {selectedPost.related_post_id && (
-                <div className="mb-3">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-accent-200 text-accent-700 text-[10px] font-bold rounded-md">
-                    <LinkIcon className="w-3 h-3" />
-                    연관 지능물: {selectedPost.related_post_title || 'ID ' + selectedPost.related_post_id}
+                <div className="mb-6">
+                  <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border-2 border-accent-100 text-accent-700 text-[10px] font-black rounded-full uppercase tracking-widest shadow-sm">
+                    <LinkIcon className="w-3.5 h-3.5" />
+                    Linked Intel: {selectedPost.related_post_title || 'SECURE_SOURCE_' + selectedPost.related_post_id}
                   </span>
                 </div>
               )}
-              <h2 className="text-xl font-bold text-primary-800 mb-2">{selectedPost.title}</h2>
-              <div className="flex items-center gap-3 text-xs text-stone-500">
-                <span className="bg-stone-100 px-2 py-1 rounded-md text-stone-600 border border-stone-200">{selectedPost.author_name}</span>
+              <h2 className="text-3xl font-black text-primary-950 leading-tight tracking-tighter mb-6">{selectedPost.title}</h2>
+              <div className="flex items-center gap-6 text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                <span className="bg-stone-900 text-white px-3 py-1 rounded-md">{selectedPost.author_name}</span>
                 <span>{new Date(selectedPost.created_at).toLocaleString()}</span>
+                <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" />{selectedPost.view_count} Views</span>
               </div>
             </div>
             
-            <div className="p-6 min-h-[150px] text-primary-800 leading-relaxed whitespace-pre-wrap">
+            <div className="p-12 min-h-[250px] text-lg text-primary-900 leading-relaxed font-medium whitespace-pre-wrap">
               {selectedPost.content}
             </div>
 
             {/* Comments Section */}
-            <div className="bg-stone-50 border-t border-stone-100 p-6">
-              <h4 className="text-sm font-bold text-stone-700 mb-4 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> Discussion ({comments.length})
+            <div className="bg-stone-50/50 border-t border-stone-100 p-12">
+              <h4 className="text-sm font-black text-stone-900 mb-8 flex items-center gap-3 uppercase tracking-widest">
+                <MessageSquare className="w-5 h-5 text-accent-600" /> Operational Feedback ({comments.length})
               </h4>
               
-              <div className="space-y-4 mb-6">
+              <div className="space-y-6 mb-12">
                 {comments.length === 0 ? (
-                  <p className="text-sm text-stone-400 italic">No comments yet. Start the debate!</p>
+                  <p className="text-center py-12 text-stone-300 font-bold italic uppercase tracking-widest">No Strategic Input Yet</p>
                 ) : (
                   comments.map(comment => (
-                    <div key={comment.id} className="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`text-xs font-bold ${comment.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-600'}`}>
-                          {comment.author_name} {comment.author_name.includes('Admin') && '(Official)'}
+                    <div key={comment.id} className="bg-white p-6 rounded-[1.5rem] border border-stone-100 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${comment.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
+                          {comment.author_name} {comment.author_name.includes('Admin') && '(HQ)'}
                         </span>
-                        <span className="text-[10px] text-stone-400">{new Date(comment.created_at).toLocaleTimeString()}</span>
+                        <span className="text-[9px] text-stone-300 font-mono">{new Date(comment.created_at).toLocaleTimeString()}</span>
                       </div>
-                      <p className="text-sm text-stone-700">{comment.content}</p>
+                      <p className="text-sm text-stone-700 font-bold leading-relaxed">{comment.content}</p>
                     </div>
                   ))
                 )}
               </div>
 
-              <form onSubmit={handleAddComment} className="flex gap-2">
+              <form onSubmit={handleAddComment} className="flex gap-3">
                 <input 
                   type="text" 
-                  className="flex-1 p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20 text-sm"
-                  placeholder="Add to the discussion..."
+                  className="flex-1 p-5 bg-white border-2 border-stone-100 rounded-[1.25rem] outline-none focus:border-accent-600/20 transition-all text-sm font-bold"
+                  placeholder="Share your strategic feedback..."
                   value={commentText}
                   onChange={e => setCommentText(e.target.value)}
                 />
                 <button 
                   type="submit" 
                   disabled={!commentText.trim()}
-                  className="p-3 bg-primary-800 text-white rounded-xl hover:bg-stone-900 transition-colors disabled:opacity-50"
+                  className="p-5 bg-stone-900 text-white rounded-[1.25rem] hover:bg-black transition-all shadow-xl disabled:opacity-30"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </button>
               </form>
             </div>

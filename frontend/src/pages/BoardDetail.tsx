@@ -134,8 +134,8 @@ export default function BoardDetail() {
   )
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex items-center justify-between">
+    <div className="w-full max-w-full space-y-8 animate-in fade-in duration-500 pb-20">
+      <div className="flex items-center justify-between px-2">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-xs font-black text-amber-600 uppercase hover:underline">
           <ArrowLeft className="w-4 h-4" /> 뒤로가기
         </button>

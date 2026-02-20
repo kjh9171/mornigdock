@@ -13,13 +13,6 @@ export default function Home() {
 
   return (
     <div className="w-full animate-in fade-in duration-500">
-      {/* ─── 상단 상황판 (지능보고서 및 증시지휘소 리스트 뷰에서만 노출) ─── */}
-      {view === 'user' && (userTab === 'news' || userTab === 'finance') && (
-        <div className="mb-8">
-          <StockMarket />
-        </div>
-      )}
-
       {/* ─── 중앙 주 작전 구역 (탭별로 엄격히 분리) ─── */}
       <div className="w-full">
         {view === 'user' && (
@@ -31,9 +24,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* 2. 증시 지휘소 구역 */}
+            {/* 2. 증시 지휘소 구역 (증시 지표를 여기에만 배치) */}
             {userTab === 'finance' && (
-              <div className="animate-in slide-in-from-bottom-2">
+              <div className="space-y-8 animate-in slide-in-from-bottom-2">
+                <StockMarket />
                 <FinanceCenter />
               </div>
             )}

@@ -58,59 +58,59 @@ export function StockMarket() {
   });
 
   return (
-    <div className="w-full space-y-4 mb-8 animate-in fade-in duration-700">
+    <div className="w-full space-y-6 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="flex justify-between items-center px-2">
-        <h2 className="text-lg font-black text-primary-800 flex items-center gap-2 uppercase tracking-tighter">
-          <Activity className="w-5 h-5 text-accent-600" />
+      <div className="flex justify-between items-center px-4 py-2 bg-white rounded-2xl border border-stone-100 shadow-sm">
+        <h2 className="text-xl font-black text-primary-800 flex items-center gap-3 uppercase tracking-tighter">
+          <Activity className="w-6 h-6 text-accent-600 animate-pulse" />
           Real-time Market Pulse
         </h2>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-[10px] text-stone-400 font-mono font-bold">
-            <Clock className="w-3 h-3" />
-            LIVE_SYNC: {lastUpdated || 'CONNECTING...'}
+          <div className="flex items-center gap-2 text-[10px] text-stone-400 font-mono font-black bg-stone-50 px-3 py-1.5 rounded-full border border-stone-100">
+            <Clock className="w-3 h-3 text-accent-600" />
+            SYNC: {lastUpdated || 'CONNECTING...'}
           </div>
-          <button onClick={fetchStocks} className="p-1.5 hover:bg-stone-100 rounded-full transition-all border border-stone-100">
-            <RefreshCw className={`w-3.5 h-3.5 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
+          <button onClick={fetchStocks} className="p-2 hover:bg-stone-50 rounded-full transition-all border border-stone-100 shadow-sm">
+            <RefreshCw className={`w-4 h-4 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Indices Grid - Always 4 items */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {displayStocks.map((stock) => (
           <a 
             key={stock.symbol} 
             href={getNaverStockUrl(stock.symbol)}
             target="_blank"
             rel="noreferrer"
-            className="bg-white rounded-[2rem] p-6 border border-stone-200 shadow-soft hover:border-accent-400 hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
+            className="bg-white rounded-[2.5rem] p-8 border border-stone-200 shadow-soft hover:border-accent-400 hover:shadow-2xl transition-all duration-500 group relative overflow-hidden"
           >
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <ExternalLink className="w-4 h-4 text-accent-600" />
+            <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+              <ExternalLink className="w-5 h-5 text-accent-600" />
             </div>
             
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{stock.symbol}</span>
-                <h3 className="text-base font-black text-primary-900">{stock.name}</h3>
+                <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-1 block">{stock.symbol}</span>
+                <h3 className="text-xl font-black text-primary-900 tracking-tight">{stock.name}</h3>
               </div>
-              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${stock.market_status === 'OPEN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
+              <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${stock.market_status === 'OPEN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
                 {stock.market_status}
               </span>
             </div>
             
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-2xl font-black text-primary-950 tracking-tighter">
-                {stock.price > 0 ? Number(stock.price).toLocaleString() : '---'}
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-3xl font-black text-primary-950 tracking-tighter">
+                {Number(stock.price) > 0 ? Number(stock.price).toLocaleString() : '---'}
               </span>
-              <div className={`flex items-center text-xs font-black ${getChangeColor(stock.change_val)}`}>
-                {getTrendIcon(stock.change_val)}
-                {stock.change_val !== 0 ? Math.abs(stock.change_val).toLocaleString() : ''}
+              <div className={`flex items-center text-sm font-black ${getChangeColor(Number(stock.change_val))}`}>
+                {getTrendIcon(Number(stock.change_val))}
+                {Number(stock.change_val) !== 0 ? Math.abs(Number(stock.change_val)).toLocaleString() : ''}
               </div>
             </div>
-            <div className={`text-xs font-bold ${getChangeColor(stock.change_val)}`}>
-              {stock.change_val > 0 ? '+' : ''}{stock.change_rate}%
+            <div className={`text-sm font-black ${getChangeColor(Number(stock.change_val))}`}>
+              {Number(stock.change_val) > 0 ? '+' : ''}{stock.change_rate}%
             </div>
           </a>
         ))}
@@ -118,43 +118,46 @@ export function StockMarket() {
 
       {/* AI Market Summary */}
       {stocks.length > 0 && (
-        <div className="bg-stone-900 rounded-[2.5rem] p-8 border border-stone-800 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-10 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <Bot className="w-40 h-40 text-white" />
+        <div className="bg-stone-900 rounded-[3rem] p-10 border border-stone-800 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-12 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-1000">
+            <Bot className="w-48 h-48 text-white" />
           </div>
           
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-accent-600 rounded-xl shadow-lg shadow-accent-600/20">
-                <Bot className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-accent-600 rounded-2xl shadow-xl shadow-accent-600/20">
+                <Bot className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white uppercase tracking-widest">AI Market Strategist Briefing</h3>
-                <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest">Live NPay Intelligence Stream</p>
+                <h3 className="text-lg font-black text-white uppercase tracking-widest leading-none">AI Market Strategist Briefing</h3>
+                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-[0.3em] mt-2">Operational Vector Intelligence</p>
               </div>
-              <span className="ml-auto flex items-center gap-1.5 text-[10px] font-black text-accent-500 animate-pulse bg-accent-500/5 px-3 py-1 rounded-full border border-accent-500/20">
-                <AlertCircle className="w-3 h-3" />
+              <span className="ml-auto flex items-center gap-2 text-[10px] font-black text-accent-500 animate-pulse bg-accent-500/5 px-4 py-2 rounded-full border border-accent-500/20">
+                <AlertCircle className="w-4 h-4" />
                 ANALYSIS_SYNC_OK
               </span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {displayStocks.filter(s => s.symbol === 'KOSPI' || s.symbol === 'NASDAQ').map(s => (
-                <div key={s.symbol} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-accent-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
-                    <span className="text-[11px] font-black text-stone-400 uppercase tracking-tight">{s.name} Outlook</span>
+                <div key={s.symbol} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 bg-accent-500 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.6)]"></div>
+                    <span className="text-xs font-black text-stone-400 uppercase tracking-widest">{s.name} Strategic Outlook</span>
                   </div>
-                  <p className="text-sm text-stone-200 leading-relaxed font-medium italic">
+                  <p className="text-base text-stone-200 leading-relaxed font-medium italic opacity-90">
                     "{s.ai_summary}"
                   </p>
                 </div>
               ))}
             </div>
             
-            <div className="mt-8 pt-6 border-t border-stone-800/50 flex justify-between items-center">
-              <p className="text-[10px] text-stone-600 font-bold italic uppercase tracking-tighter">Data sourced from real-time Naver Finance polling.</p>
-              <div className="text-[10px] font-mono text-accent-600 font-black tracking-widest bg-accent-600/5 px-3 py-1 rounded-md border border-accent-600/10">SECURITY CLEARANCE: LEVEL 4</div>
+            <div className="mt-10 pt-8 border-t border-stone-800/50 flex justify-between items-end">
+              <div>
+                <p className="text-[10px] text-stone-600 font-black uppercase tracking-widest mb-1">Source Authentication</p>
+                <p className="text-[10px] text-stone-500 font-bold italic">Polling real-time vectors from Naver NPay Financial Network.</p>
+              </div>
+              <div className="text-[11px] font-mono text-accent-600 font-black tracking-[0.2em] bg-accent-600/5 px-4 py-2 rounded-xl border border-accent-600/10 shadow-inner">SECURITY CLEARANCE: LEVEL 4</div>
             </div>
           </div>
         </div>

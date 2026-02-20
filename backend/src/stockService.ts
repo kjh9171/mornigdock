@@ -17,13 +17,15 @@ export const fetchStockService = async () => {
     // 국내 데이터 매핑
     if (domesticData.result?.datas) {
       domesticData.result.datas.forEach((d: any) => {
-        const price = d.nv / 100
-        const change_val = d.cv / 100
+        const price = d.nv // API에 따라 단위가 다를 수 있음 (보통 현재가)
+        const change_val = d.cv
         const change_rate = d.cr
         const symbol = d.cd
         const name = d.nm
         const status = d.ms === 'OPEN' ? 'OPEN' : 'CLOSED'
         
+        console.log(`📊 [DOMESTIC] ${name} (${symbol}): ${price}`)
+
         stockItems.push({
           symbol,
           name,
@@ -31,7 +33,7 @@ export const fetchStockService = async () => {
           change_val,
           change_rate,
           market_status: status,
-          ai_summary: `${name} 지수는 현재 ${price.toLocaleString()} 포인트를 기록 중입니다. 전일 대비 ${Math.abs(change_val)} (${change_rate}%) ${change_val >= 0 ? '상승' : '하락'}한 추세를 보이고 있으며, 시장의 ${status === 'OPEN' ? '실시간 수급 상황이 변동성' : '마감 결과가 향후 지지선'}에 영향을 미칠 것으로 분석됩니다.`
+          ai_summary: `${name} 지수는 현재 ${price.toLocaleString()} 포인트를 기록 중입니다. 시장의 실시간 수급 상황이 변동성에 영향을 미칠 것으로 분석됩니다.`
         })
       })
     }
@@ -39,12 +41,14 @@ export const fetchStockService = async () => {
     // 해외 데이터 매핑
     if (worldData.result?.datas) {
       worldData.result.datas.forEach((d: any) => {
-        const price = d.nv / 100
-        const change_val = d.cv / 100
+        const price = d.nv
+        const change_val = d.cv
         const change_rate = d.cr
         const symbol = d.cd === '.DJI' ? 'DJI' : (d.cd === '.IXIC' ? 'NASDAQ' : d.cd)
         const name = d.nm
         const status = d.ms === 'OPEN' ? 'OPEN' : 'CLOSED'
+
+        console.log(`📊 [WORLD] ${name} (${symbol}): ${price}`)
 
         stockItems.push({
           symbol,
@@ -53,7 +57,7 @@ export const fetchStockService = async () => {
           change_val,
           change_rate,
           market_status: status,
-          ai_summary: `${name} 지수는 ${price.toLocaleString()} 선에서 ${status === 'OPEN' ? '움직이고' : '마감되었'}습니다. 글로벌 매크로 지표와 금리 향방에 따른 기술주들의 반응이 ${change_val >= 0 ? '긍정적' : '보수적'}인 흐름을 견인하고 있는 것으로 관측됩니다.`
+          ai_summary: `${name} 지수는 ${price.toLocaleString()} 선에서 등락을 거듭하고 있습니다. 글로벌 매크로 지표에 따른 반응이 주목됩니다.`
         })
       })
     }
@@ -74,7 +78,7 @@ export const fetchStockService = async () => {
       )
     }
     
-    console.log('✅ CERT: Real-time market indices successfully synchronized from Naver Finance.')
+    console.log('✅ CERT: Real-time market indices successfully synchronized.')
   } catch (err) {
     console.error('❌ CERT STOCK FETCH ERROR:', err)
   }

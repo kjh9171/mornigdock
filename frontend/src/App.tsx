@@ -97,8 +97,8 @@ function App() {
         </div>
       </header>
 
-      {/* 🔥 메인 콘텐츠 영역 */}
-      <main className="w-full max-w-[1600px] mt-24 p-4 md:p-8">
+      {/* 🔥 메인 콘텐츠 영역 (와이드스크린 대응 확장) */}
+      <main className="w-full max-w-[1800px] mt-24 p-4 md:p-8">
         <Outlet />
       </main>
     </div>
