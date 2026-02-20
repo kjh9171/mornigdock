@@ -103,13 +103,15 @@ export async function initDB() {
       ON CONFLICT (email) DO UPDATE SET role = 'admin'
     `, [hashedPw])
 
-    // 3. [데이터 정화 작전] 기존 오염된 샘플/가짜 뉴스 전량 소각
+    // 3. [데이터 정화 작전] 기존 오염된 샘플/가짜 뉴스 전량 소각 (1회 실행 후 주석 처리 권장)
+    /*
     await pool.query(`
       DELETE FROM posts 
       WHERE author_name IN ('네이버 뉴스 스크래퍼', '네이버 증권 수집기', '네이버 뉴스 수집기')
     `);
+    */
 
-    console.log('✅ CERT: Database Infrastructure Purified. All Fake News Eliminated.')
+    console.log('✅ CERT: Database Infrastructure Purified. Ready for Real-time Intelligence.')
   } catch (err) {
     console.error('❌ CERT DB ERROR:', err)
   }
