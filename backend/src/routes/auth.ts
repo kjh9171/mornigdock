@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { authenticator } = require('otplib');
+import * as otplib from 'otplib';
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import { query, transaction } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+
+// ESM/CJS 하이브리드 환경을 위한 무적의 authenticator 추출 로직
+const authenticator = (otplib as any).authenticator ?? (otplib as any).default?.authenticator ?? (otplib as any).default;
 
 const auth = new Hono();
 
