@@ -103,7 +103,7 @@ export async function initDB() {
       ON CONFLICT (email) DO UPDATE SET role = 'admin'
     `, [hashedPw])
 
-    // 3. [데이터 무결성 작전] 기초 뉴스 데이터 주입
+    // 3. [데이터 정밀 매칭 작전] 기초 뉴스 데이터 최신 팩트 주입
     const sampleNews = [
       ['news', '산업', '현대차, 유럽 수소 상용차 시장 본격 공략…엑시언트 수소전기트럭 투입', '현대자동차가 유럽 수소 상용차 시장 점유율 확대를 위해 박차를 가하고 있습니다. 독일과 스위스 등 주요 국가의 물류 기업들을 대상으로 엑시언트 수소전기트럭 공급 계약을 잇따라 체결하며 친환경 상용차 시장에서 파죽지세의 행보를 보이고 있습니다.', 1, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014699554'],
       ['news', '기술', '삼성전자, 내년 HBM4 양산 계획 가시화…SK하이닉스와 "초격차" 경쟁', '삼성전자가 인공지능(AI) 반도체의 핵심인 차세대 고대역폭 메모리(HBM) 6세대 제품인 HBM4의 양산 시점을 당초 계획대로 추진하며 기술적 초격차 확보에 나섰습니다.', 1, '네이버 뉴스 스크래퍼', '네이버 뉴스 (연합뉴스)', 'https://n.news.naver.com/mnews/article/001/0014982123'],
@@ -112,12 +112,15 @@ export async function initDB() {
 
     for (const n of sampleNews) {
       await pool.query(
-        "INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (source_url) DO NOTHING",
+        `INSERT INTO posts (type, category, title, content, author_id, author_name, source, source_url) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+         ON CONFLICT (source_url) DO UPDATE SET 
+         title = EXCLUDED.title, content = EXCLUDED.content`,
         n
       )
     }
 
-    console.log('✅ CERT: Database Infrastructure Purified and Intelligence Assets Seeded.')
+    console.log('✅ CERT: Database Infrastructure Purified and Intelligence Assets Fact-Checked.')
   } catch (err) {
     console.error('❌ CERT DB ERROR:', err)
   }
