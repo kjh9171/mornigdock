@@ -15,6 +15,7 @@ import commentRoutes from './routes/comments.js';
 import mediaRoutes   from './routes/media.js';
 import adminRoutes   from './routes/admin.js';
 import stocksRoutes  from './routes/stocks.js';
+import postsRoutes   from './routes/posts.js';
 
 const app = new Hono();
 const PORT = Number(process.env.PORT ?? 8787);
@@ -65,6 +66,7 @@ app.route('/api/comments', commentRoutes);
 app.route('/api/media',    mediaRoutes);
 app.route('/api/admin',    adminRoutes);
 app.route('/api/stocks',   stocksRoutes);
+app.route('/api/posts',    postsRoutes);
 
 // ── 404 핸들러 ───────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ success: false, message: `Route not found: ${c.req.path}` }, 404));

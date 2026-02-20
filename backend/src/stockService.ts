@@ -159,8 +159,8 @@ export const fetchStockService = async () => {
 
       for (const report of reports.slice(0, 5)) { // 각 카테고리별 상위 5개
         await pool.query(
-          `INSERT INTO posts (type, category, title, content, user_id, author_name, source, source_url, ai_analysis, updated_at) 
-           VALUES ('news', '리서치', $1, $2, (SELECT id FROM users WHERE role='admin' LIMIT 1), '네이버 리서치 센터', $3, $4, $5, NOW())
+          `INSERT INTO posts (type, category, title, content, user_id, source, source_url, ai_analysis, updated_at) 
+           VALUES ('news', '리서치', $1, $2, (SELECT id FROM users WHERE role='admin' LIMIT 1), $3, $4, $5, NOW())
            ON CONFLICT (source_url) DO UPDATE SET 
            title = EXCLUDED.title,
            updated_at = NOW()`,

@@ -31,15 +31,18 @@ postsRouter.get('/', optionalAuth(), async (c) => {
     const countResult = await query(`SELECT COUNT(*) FROM posts p ${whereClause}`, params)
     const total = parseInt(countResult.rows[0].count)
 
-    params.push(limit, offset)
+    const dataParams = [...params, limit, offset]
     const result = await query(
       `SELECT p.*,
+              p.user_id as author_id,
+              u.name as author_name,
               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count
        FROM posts p
+       LEFT JOIN users u ON p.user_id = u.id
        ${whereClause}
        ORDER BY p.is_pinned DESC, p.created_at DESC
-       LIMIT $${params.length - 1} OFFSET $${params.length}`,
-      params
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     )
 
     return c.json({
@@ -58,11 +61,21 @@ postsRouter.get('/:id', optionalAuth(), async (c) => {
   try {
     const id = parseInt(c.req.param('id'))
     await query('UPDATE posts SET view_count = view_count + 1 WHERE id = $1', [id])
-    const result = await query(`SELECT * FROM posts WHERE id = $1`, [id])
+    const result = await query(
+      `SELECT p.*, u.name as author_name, p.user_id as author_id 
+       FROM posts p 
+       LEFT JOIN users u ON p.user_id = u.id 
+       WHERE p.id = $1`, 
+      [id]
+    )
     if (result.rows.length === 0) return c.json({ success: false }, 404)
     
     const comments = await query(
-      `SELECT * FROM comments WHERE post_id = $1 AND is_deleted = false ORDER BY created_at ASC`,
+      `SELECT c.*, u.name as author_name 
+       FROM comments c 
+       LEFT JOIN users u ON c.user_id = u.id 
+       WHERE c.post_id = $1 AND c.is_deleted = false 
+       ORDER BY c.created_at ASC`,
       [id]
     )
     return c.json({ success: true, post: result.rows[0], comments: comments.rows })
@@ -76,13 +89,13 @@ postsRouter.post('/', requireAuth(), async (c) => {
   try {
     const user = c.get('user') as any
     const body = await c.req.json()
-    const { type = 'board', category, title, content } = body
+    const { type = 'post', category, title, content } = body
     const result = await query(
-      `INSERT INTO posts (type, category, title, content, author_id, author_name)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [type, category || 'general', title, content, user.userId, user.name]
+      `INSERT INTO posts (type, category, title, content, user_id, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
+      [type, category || 'general', title, content, user.userId]
     )
-    return c.json({ success: true, post: result.rows[0] }, 201)
+    return c.json({ success: true, post: { ...result.rows[0], author_name: user.name, author_id: user.userId } }, 201)
   } catch (err) { 
     console.error('Post Create Error:', err)
     return c.json({ success: false }, 500) 
@@ -95,10 +108,10 @@ postsRouter.delete('/:id', requireAuth(), async (c) => {
     const id = parseInt(c.req.param('id'))
     const user = c.get('user') as any
     
-    const postRes = await query('SELECT author_id FROM posts WHERE id = $1', [id])
+    const postRes = await query('SELECT user_id FROM posts WHERE id = $1', [id])
     if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
     
-    if (user.role !== 'admin' && postRes.rows[0].author_id !== user.userId) {
+    if (user.role !== 'admin' && postRes.rows[0].user_id !== user.userId) {
       return c.json({ success: false, message: 'Unauthorized' }, 403)
     }
 
