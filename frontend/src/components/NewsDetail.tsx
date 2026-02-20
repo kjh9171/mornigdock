@@ -4,19 +4,21 @@ import { useNavigationStore } from '../store/useNavigationStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDiscussionStore } from '../store/useDiscussionStore';
 import { getPostAPI, deletePostAPI, addCommentAPI, updatePostAPI, Post, Comment } from '../lib/api';
-import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare, CornerDownRight } from 'lucide-react';
 
 export function NewsDetail() {
   const { logActivity } = useActivityLog();
   const { selectedNewsId, setView, setUserTab } = useNavigationStore();
   const { user } = useAuthStore();
-  const { startDiscussion } = useDiscussionStore();
   
   const [newsItem, setNewsItem] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  
   const [editForm, setEditForm] = useState({
     title: '',
     content: '',
@@ -52,14 +54,22 @@ export function NewsDetail() {
     loadData();
   }, [selectedNewsId]);
 
-  const handleAddComment = async (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent, parentId?: number) => {
     e.preventDefault();
-    if (!newsItem || !user || !commentText.trim()) return;
+    if (!newsItem || !user) return;
+    
+    const text = parentId ? replyText : commentText;
+    if (!text.trim()) return;
 
-    const res = await addCommentAPI(newsItem.id, commentText);
+    const res = await addCommentAPI(newsItem.id, text, parentId);
     if (res.success) {
       setComments(prev => [...prev, res.comment]);
-      setCommentText('');
+      if (parentId) {
+        setReplyTo(null);
+        setReplyText('');
+      } else {
+        setCommentText('');
+      }
       logActivity(`Agora Discussion Contribution: ${newsItem.id}`);
     }
   };
@@ -92,6 +102,10 @@ export function NewsDetail() {
     }
   };
 
+  // 🌳 [계층형 트리 작전] 평면 댓글 데이터를 트리 구조로 변환
+  const rootComments = comments.filter(c => !c.parent_id);
+  const getReplies = (parentId: number) => comments.filter(c => c.parent_id === parentId);
+
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-stone-300" /></div>;
   if (!newsItem) return null;
 
@@ -101,7 +115,7 @@ export function NewsDetail() {
       <div className="flex justify-between items-center">
         <button onClick={handleBack} className="flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors">
           <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back to List</span>
+          <span className="text-sm font-medium">지능물 목록으로 복귀</span>
         </button>
         
         <div className="flex gap-2">
@@ -117,13 +131,22 @@ export function NewsDetail() {
       {/* Main Intelligence Card */}
       <div className="bg-white rounded-3xl border border-stone-200 shadow-xl overflow-hidden">
         <div className="p-8 md:p-12">
-          <div className="flex items-center gap-3 mb-6">
-            <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black tracking-widest rounded-full uppercase">
-              {newsItem.source || 'INTEL'}
-            </span>
-            <span className="text-[10px] font-bold text-stone-400">
-              {new Date(newsItem.created_at).toLocaleString()}
-            </span>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black tracking-widest rounded-full uppercase">
+                {newsItem.source || 'INTEL'}
+              </span>
+              <span className="text-[10px] font-bold text-stone-400">
+                {new Date(newsItem.created_at).toLocaleString()}
+              </span>
+            </div>
+            
+            {newsItem.source_url && (
+              <a href={newsItem.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-stone-50 text-stone-600 rounded-xl text-xs font-bold hover:bg-stone-100 transition-all border border-stone-200">
+                <ExternalLink className="w-4 h-4 text-accent-600" />
+                원문 기사(네이버) 확인
+              </a>
+            )}
           </div>
 
           {isEditing ? (
@@ -153,19 +176,13 @@ export function NewsDetail() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-4 items-center justify-between pt-8 border-t border-stone-100">
-                {newsItem.source_url && (
-                  <a href={newsItem.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-black text-accent-600 hover:underline">
-                    <ExternalLink className="w-4 h-4" />
-                    네이버 뉴스 원문 확인
-                  </a>
-                )}
+              <div className="flex justify-center pt-8 border-t border-stone-100">
                 <button 
                   onClick={handleAIAnalysis}
-                  className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-lg"
+                  className="w-full flex items-center justify-center gap-3 py-5 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl hover:shadow-accent-600/20"
                 >
-                  <Bot className="w-5 h-5 text-accent-400" />
-                  지능 분석 보고서 {newsItem.ai_analysis ? '재열람' : '생성'}
+                  <Bot className="w-6 h-6 text-accent-400" />
+                  사령부 AI 지능 분석 보고서 {newsItem.ai_analysis ? '재열람' : '생성 및 열람'}
                 </button>
               </div>
             </>
@@ -188,22 +205,22 @@ export function NewsDetail() {
           </div>
         )}
 
-        {/* Integrated Agora Discussion Section */}
+        {/* Integrated Threaded Discussion Section */}
         <div className="bg-stone-100/50 border-t border-stone-200 p-8 md:p-12">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-black text-stone-900 flex items-center gap-3">
               <MessageSquare className="w-6 h-6 text-accent-600" />
-              아고라 통합 토론장 <span className="text-stone-400 text-sm font-mono">({comments.length})</span>
+              아고라 통합 토론 게시판 <span className="text-stone-400 text-sm font-mono">({comments.length})</span>
             </h3>
           </div>
 
-          {/* Comment Form */}
-          <form onSubmit={handleAddComment} className="mb-10 relative">
+          {/* Root Comment Form */}
+          <form onSubmit={(e) => handleAddComment(e)} className="mb-12 relative">
             <textarea 
               value={commentText} onChange={e => setCommentText(e.target.value)}
-              placeholder={user ? "사령부 요원으로서 당신의 전략적 견해를 남겨주세요..." : "인증된 요원만 토론에 참여할 수 있습니다."}
+              placeholder={user ? "이 지능물에 대한 당신의 전략적 통찰을 발제하십시오..." : "요원 가동 승인(로그인) 후 참여 가능합니다."}
               disabled={!user}
-              className="w-full p-6 bg-white border border-stone-200 rounded-3xl text-sm font-medium outline-none focus:ring-4 focus:ring-accent-600/10 transition-all pr-20 shadow-inner"
+              className="w-full p-6 bg-white border border-stone-200 rounded-3xl text-sm font-bold outline-none focus:ring-4 focus:ring-accent-600/10 transition-all pr-20 shadow-inner"
               rows={3}
             />
             <button 
@@ -214,20 +231,56 @@ export function NewsDetail() {
             </button>
           </form>
 
-          {/* Comment List */}
-          <div className="space-y-4">
-            {comments.length === 0 ? (
-              <div className="text-center py-12 text-stone-400 font-medium italic">아직 발제된 의견이 없습니다. 첫 번째 통찰을 공유하세요.</div>
+          {/* Threaded Comment List */}
+          <div className="space-y-6">
+            {rootComments.length === 0 ? (
+              <div className="text-center py-12 text-stone-400 font-bold italic">현재 발제된 공식 의견이 없습니다.</div>
             ) : (
-              comments.map(c => (
-                <div key={c.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className={`text-[11px] font-black uppercase tracking-wider ${c.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
-                      {c.author_name} {c.author_name.includes('Admin') && '(HQ)'}
-                    </span>
-                    <span className="text-[10px] text-stone-300 font-mono italic">{new Date(c.created_at).toLocaleTimeString()}</span>
+              rootComments.map(c => (
+                <div key={c.id} className="space-y-4">
+                  {/* Root Comment Card */}
+                  <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className={`text-[11px] font-black uppercase tracking-wider ${c.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
+                        {c.author_name} {c.author_name.includes('Admin') && '(HQ)'}
+                      </span>
+                      <span className="text-[10px] text-stone-300 font-mono italic">{new Date(c.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-sm text-stone-700 leading-relaxed font-bold mb-4">{c.content}</p>
+                    <button 
+                      onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
+                      className="text-[10px] font-black text-accent-600 uppercase hover:underline flex items-center gap-1"
+                    >
+                      <MessageSquarePlus className="w-3 h-3" />
+                      대댓글(답글) 작성
+                    </button>
                   </div>
-                  <p className="text-sm text-stone-700 leading-relaxed font-medium">{c.content}</p>
+
+                  {/* Replies (Thread) */}
+                  {getReplies(c.id).map(r => (
+                    <div key={r.id} className="ml-8 flex gap-3 animate-in slide-in-from-left-4">
+                      <CornerDownRight className="w-5 h-5 text-stone-300 mt-2 shrink-0" />
+                      <div className="flex-1 bg-white/60 p-5 rounded-2xl border border-stone-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[10px] font-black text-stone-500 uppercase">{r.author_name}</span>
+                          <span className="text-[10px] text-stone-300 font-mono italic">{new Date(r.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        <p className="text-xs text-stone-600 leading-relaxed font-medium">{r.content}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Reply Form */}
+                  {replyTo === c.id && (
+                    <form onSubmit={(e) => handleAddComment(e, c.id)} className="ml-12 mt-2 flex gap-2 animate-in slide-in-from-top-2">
+                      <input 
+                        value={replyText} onChange={e => setReplyText(e.target.value)}
+                        placeholder="대댓글 내용을 입력하십시오..."
+                        className="flex-1 bg-white border border-accent-200 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-accent-600/20"
+                      />
+                      <button type="submit" className="bg-accent-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md">등록</button>
+                    </form>
+                  )}
                 </div>
               ))
             )}
