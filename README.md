@@ -47,7 +47,7 @@ docker-compose --profile cloudflare up -d --build
 ### 3. 초기 접속 정보
 - 프론트엔드: http://localhost (80 포트)
 - API 서버: http://localhost:8787
-- 관리자 계정: admin@agora.com / Admin@1234! (로그인 후 즉시 비밀번호 변경 권장)
+- 관리자 계정: admin@agora.com / admin@1234! (로그인 후 즉시 비밀번호 변경 권장)
 
 ---
 
