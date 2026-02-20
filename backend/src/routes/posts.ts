@@ -67,7 +67,7 @@ postsRouter.get('/:id', optionalAuth, async (c) => {
     await pool.query('UPDATE posts SET view_count = view_count + 1 WHERE id = $1', [id])
     const result = await pool.query(
       `SELECT p.*, (SELECT title FROM posts rp WHERE rp.id = p.related_post_id) AS related_post_title 
-       FROM posts WHERE id = $1`, [id]
+       FROM posts p WHERE p.id = $1`, [id]
     )
     if (result.rows.length === 0) return c.json({ success: false }, 404)
     
@@ -81,6 +81,7 @@ postsRouter.get('/:id', optionalAuth, async (c) => {
     )
     return c.json({ success: true, post: result.rows[0], comments: comments.rows })
   } catch (err) {
+    console.error('❌ SQL ERROR:', err)
     return c.json({ success: false }, 500)
   }
 })
