@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
 import { useDiscussionStore } from '../store/useDiscussionStore';
 import { getPostsAPI, getPostAPI, createPostAPI, addCommentAPI, Post, Comment } from '../lib/api';
-import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon } from 'lucide-react';
+import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon, ChevronRight, Eye } from 'lucide-react';
 
 export function AgoraDiscussion() {
   const { user } = useAuthStore();
@@ -58,7 +58,7 @@ export function AgoraDiscussion() {
       const res = await createPostAPI({ 
         title, 
         content, 
-        type: 'board', // 🔥 'discussion' 대신 'board'로 표준화
+        type: 'board', 
         category: '자유',
         related_post_id: relatedId 
       });
