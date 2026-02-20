@@ -131,7 +131,7 @@ ON CONFLICT (key) DO NOTHING;
 INSERT INTO users (email, password, name, role, otp_enabled)
 VALUES (
   'admin@agora.com',
-  '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.iK2S',
+  '$2a$12$IOmk9pcX83gvdTQ5ROiKPOefc/8tCpFcrud0kB6S308BmpJEvFCcy',
   'Agora Admin',
   'admin',
   false

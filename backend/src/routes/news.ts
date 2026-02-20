@@ -41,7 +41,7 @@ news.get('/', optionalAuth(), async (c) => {
      FROM news n
      ${whereClause}
      ORDER BY n.is_pinned DESC, n.published_at DESC
-     LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+     LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
     [...params, limit, offset]
   );
 

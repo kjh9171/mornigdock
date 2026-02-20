@@ -33,41 +33,51 @@ async function saveRefreshToken(userId: number, token: string) {
 
 // ─── POST /auth/register ─────────────────────────────────────────────────────
 auth.post('/register', async (c) => {
-  const schema = z.object({
-    email:    z.string().email(),
-    password: z.string().min(8, '비밀번호는 최소 8자 이상'),
-    name:     z.string().min(1).max(50),
-  });
-  const body = await c.req.json().catch(() => null);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ success: false, message: parsed.error.errors[0].message }, 400);
+  try {
+    const schema = z.object({
+      email:    z.string().email(),
+      password: z.string().min(8, '비밀번호는 최소 8자 이상'),
+      name:     z.string().min(1).max(50),
+    });
+    const body = await c.req.json().catch(() => null);
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ success: false, message: parsed.error.errors[0].message }, 400);
+    }
+    const { email, password, name } = parsed.data;
+
+    const exists = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if ((exists.rowCount ?? 0) > 0) {
+      return c.json({ success: false, message: '이미 사용 중인 이메일입니다.' }, 409);
+    }
+
+    const hash = await bcrypt.hash(password, 12);
+    const otpSecret = authenticator.generateSecret();
+
+    const result = await query(
+      `INSERT INTO users (email, password, name, otp_secret)
+       VALUES ($1, $2, $3, $4) RETURNING id, email, name, role`,
+      [email, hash, name, otpSecret]
+    );
+    const user = result.rows[0];
+
+    const otpUrl = authenticator.keyuri(email, 'Agora', otpSecret);
+    let qrCode = '';
+    try {
+      qrCode = await QRCode.toDataURL(otpUrl);
+    } catch (qrErr) {
+      console.error('[Auth] QR Code Generation Error:', qrErr);
+    }
+
+    return c.json({
+      success: true,
+      message: '회원가입 완료. OTP를 설정하세요.',
+      data: { user, qrCode, otpSecret },
+    }, 201);
+  } catch (err: any) {
+    console.error('[Auth] Register Error:', err);
+    return c.json({ success: false, message: '서버 내부 오류가 발생했습니다.' }, 500);
   }
-  const { email, password, name } = parsed.data;
-
-  const exists = await query('SELECT id FROM users WHERE email = $1', [email]);
-  if ((exists.rowCount ?? 0) > 0) {
-    return c.json({ success: false, message: '이미 사용 중인 이메일입니다.' }, 409);
-  }
-
-  const hash = await bcrypt.hash(password, 12);
-  const otpSecret = authenticator.generateSecret();
-
-  const result = await query(
-    `INSERT INTO users (email, password, name, otp_secret)
-     VALUES ($1, $2, $3, $4) RETURNING id, email, name, role`,
-    [email, hash, name, otpSecret]
-  );
-  const user = result.rows[0];
-
-  const otpUrl = authenticator.keyuri(email, 'Agora', otpSecret);
-  const qrCode = await QRCode.toDataURL(otpUrl);
-
-  return c.json({
-    success: true,
-    message: '회원가입 완료. OTP를 설정하세요.',
-    data: { user, qrCode, otpSecret },
-  }, 201);
 });
 
 // ─── POST /auth/login ────────────────────────────────────────────────────────
