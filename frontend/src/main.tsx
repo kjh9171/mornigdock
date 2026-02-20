@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Layout from './App'
 import Login from './pages/Login'
-import News from './pages/News'
+import Home from './pages/Home'
 import Board from './pages/Board'
 import BoardDetail from './pages/BoardDetail'
 import BoardWrite from './pages/BoardWrite'
@@ -30,9 +30,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-            {/* 🔥 뉴스 상세 경로 추가하여 토론장과 연동 */}
-            <Route path="/" element={<News />} />
-            <Route path="/news/:id" element={<News />} /> 
+            {/* 🔥 통합 지휘소(Home)를 루트로 설정 */}
+            <Route path="/" element={<Home />} />
+            <Route path="/news/:id" element={<Home />} /> 
             
             <Route path="/board" element={<Board />} />
             <Route path="/board/write" element={<BoardWrite />} />

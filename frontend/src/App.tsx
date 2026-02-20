@@ -21,16 +21,24 @@ function App() {
     }
   }, [isAuthenticated, user?.isAdmin, setView]);
 
+  // ✅ 메뉴 이동 통합 제어 함수
+  const handleNav = (tab: 'news' | 'discussion' | 'media' | 'finance') => {
+    setUserTab(tab);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F9F9F9] flex flex-col items-center">
       <header className="fixed top-0 left-0 w-full p-4 md:p-6 flex justify-between items-center bg-white border-b border-stone-200 z-50">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setUserTab('news'); navigate('/'); }}>
           <ShieldCheck className="w-6 h-6 text-amber-600" />
           <h1 className="text-xl font-bold text-stone-900 tracking-tight uppercase italic">아고라</h1>
         </div>
         
         <div className="flex items-center gap-3">
-          {/* ✅ 관리자 전용 메뉴 스위치 한글화 */}
+          {/* ✅ 관리자 전용 메뉴 스위치 */}
           {isAuthenticated && user?.isAdmin && (
             <div className="flex bg-stone-100 rounded-full p-1 border border-stone-200 shadow-inner mr-2">
               <button
@@ -48,12 +56,12 @@ function App() {
             </div>
           )}
 
-          {/* 일반 메뉴 한글화 및 게시판 추가 */}
+          {/* 일반 메뉴: 클릭 시 홈으로 이동하며 탭 전환 */}
           <nav className="hidden lg:flex items-center gap-1 mr-4">
-             <button onClick={() => setUserTab('news')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'news' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</button>
-             <button onClick={() => setUserTab('finance')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'finance' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>증시 지휘소</button>
-             <button onClick={() => setUserTab('discussion')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'discussion' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>아고라 토론</button>
-             <button onClick={() => setUserTab('media')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'media' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>미디어 센터</button>
+             <button onClick={() => handleNav('news')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'news' && view === 'user' && location.pathname === '/' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</button>
+             <button onClick={() => handleNav('finance')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'finance' && view === 'user' && location.pathname === '/' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>증시 지휘소</button>
+             <button onClick={() => handleNav('discussion')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'discussion' && view === 'user' && location.pathname === '/' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>아고라 토론</button>
+             <button onClick={() => handleNav('media')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'media' && view === 'user' && location.pathname === '/' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>미디어 센터</button>
           </nav>
 
           <button onClick={toggleLanguage} className="px-3 py-1.5 text-[10px] font-black border border-stone-200 rounded-full bg-white hover:bg-stone-50 transition-colors uppercase tracking-widest">
@@ -68,7 +76,7 @@ function App() {
         </div>
       </header>
 
-      {/* 🔥 화면 폭을 더 넓게 사용하여 모니터 전체를 활용하도록 수정 */}
+      {/* 🔥 메인 콘텐츠 영역 */}
       <main className="w-full max-w-[1600px] mt-24 p-4 md:p-8">
         <Outlet />
       </main>
