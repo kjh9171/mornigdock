@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { query } from '../db/pool.js';
+import { query } from '../db/pool.ts';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY ?? '';
 const MAX_PER_FETCH = 20;
@@ -32,7 +32,7 @@ export async function fetchLatestNews(): Promise<number> {
       const response = await axios.get('https://newsapi.org/v2/top-headlines', {
         params: {
           category,
-          language: 'en',
+          country: 'kr', // 한국 뉴스 타겟팅
           pageSize: Math.floor(MAX_PER_FETCH / categories.length),
           apiKey: NEWS_API_KEY,
         },
@@ -81,25 +81,25 @@ export async function fetchLatestNews(): Promise<number> {
 async function insertMockNews(): Promise<number> {
   const mockArticles = [
     {
-      title: 'Global Markets Show Signs of Recovery Amid Economic Uncertainty',
-      description: 'Financial markets worldwide are experiencing a cautious uptick as investors digest mixed economic signals from major economies.',
-      url: `https://mock-news.example.com/markets-recovery-${Date.now()}`,
+      title: '글로벌 증시, 경제 불확실성 속에서 회복 조짐 가속화',
+      description: '전 세계 금융 시장은 주요국들의 혼조세 경제 지표를 소화하며 신중한 상승세를 보이고 있습니다.',
+      url: `https://mock-news.agora.io/markets-recovery-v1`,
       category: 'business',
-      source_name: 'Agora Intelligence',
+      source_name: '아고라 인텔리전스',
     },
     {
-      title: 'AI Technology Breakthroughs Reshape Industries in 2025',
-      description: 'Artificial intelligence continues to transform sectors from healthcare to manufacturing, with new applications emerging weekly.',
-      url: `https://mock-news.example.com/ai-breakthrough-${Date.now()}`,
+      title: 'AI 기술 혁신, 2025년 산업 전반의 지형도를 바꾸다',
+      description: '인공지능 기술이 헬스케어부터 제조까지 전 산업 분야를 혁신하며 매주 새로운 응용 사례가 쏟아지고 있습니다.',
+      url: `https://mock-news.agora.io/ai-breakthrough-v1`,
       category: 'technology',
-      source_name: 'Tech Weekly',
+      source_name: '테크 위클리',
     },
     {
-      title: 'Geopolitical Shifts Drive New Trade Alliances Worldwide',
-      description: 'Nations are forging new economic partnerships as global power dynamics continue to evolve in unprecedented ways.',
-      url: `https://mock-news.example.com/geopolitics-${Date.now()}`,
+      title: '지정학적 변화에 따른 새로운 글로벌 무역 동맹 형성',
+      description: '세계 강대국 간의 역학 관계가 변화함에 따라 국가들이 새로운 경제 파트너십을 구축하고 있습니다.',
+      url: `https://mock-news.agora.io/geopolitics-v1`,
       category: 'general',
-      source_name: 'Global Report',
+      source_name: '글로벌 리포트',
     },
   ];
 

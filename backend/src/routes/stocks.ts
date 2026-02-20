@@ -1,11 +1,11 @@
 import { Hono } from 'hono'
-import pool from '../db'
-import { optionalAuth } from '../middleware/auth'
+import { pool } from '../db/pool.js'
+import { optionalAuth } from '../middleware/auth.js'
 
-export const stocksRouter = new Hono()
+const stocksRouter = new Hono()
 
 // ─── GET /api/stocks ───
-stocksRouter.get('/', optionalAuth, async (c) => {
+stocksRouter.get('/', optionalAuth(), async (c) => {
   try {
     const result = await pool.query('SELECT * FROM stocks ORDER BY id ASC')
     return c.json({
@@ -16,3 +16,5 @@ stocksRouter.get('/', optionalAuth, async (c) => {
     return c.json({ success: false }, 500)
   }
 })
+
+export default stocksRouter

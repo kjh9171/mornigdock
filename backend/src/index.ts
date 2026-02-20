@@ -8,11 +8,13 @@ import { prettyJSON } from 'hono/pretty-json';
 import cron from 'node-cron';
 import { checkDbConnection } from './db/pool.js';
 import { fetchLatestNews } from './services/newsService.js';
+import { fetchStockService } from './stockService.js';
 import authRoutes    from './routes/auth.js';
 import newsRoutes    from './routes/news.js';
 import commentRoutes from './routes/comments.js';
 import mediaRoutes   from './routes/media.js';
 import adminRoutes   from './routes/admin.js';
+import stocksRoutes  from './routes/stocks.js';
 
 const app = new Hono();
 const PORT = Number(process.env.PORT ?? 8787);
@@ -62,6 +64,7 @@ app.route('/api/news',     newsRoutes);
 app.route('/api/comments', commentRoutes);
 app.route('/api/media',    mediaRoutes);
 app.route('/api/admin',    adminRoutes);
+app.route('/api/stocks',   stocksRoutes);
 
 // ── 404 핸들러 ───────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ success: false, message: `Route not found: ${c.req.path}` }, 404));
@@ -72,12 +75,13 @@ app.onError((err, c) => {
   return c.json({ success: false, message: '서버 오류가 발생했습니다.' }, 500);
 });
 
-// ── 뉴스 자동 수집 스케줄러 ──────────────────────────────────────────────────
+// ── 데이터 자동 수집 스케줄러 (뉴스 및 증시 리서치) ──────────────────
 cron.schedule('0 * * * *', async () => {
-  console.log('[Scheduler] 뉴스 자동 수집 시작...');
+  console.log('[Scheduler] 통합 데이터 수집 시작...');
   try {
     const count = await fetchLatestNews();
-    console.log(`[Scheduler] 완료 - ${count}개 수집`);
+    await fetchStockService();
+    console.log(`[Scheduler] 완료 - ${count}개 뉴스 및 증시 첩보 수집`);
   } catch (err: any) {
     console.error('[Scheduler] 수집 실패:', err.message);
   }
@@ -98,8 +102,15 @@ async function bootstrap() {
     await new Promise(r => setTimeout(r, 3000));
   }
 
-  // 초기 뉴스 수집
-  fetchLatestNews().catch(err => console.error('[Boot] 초기 뉴스 수집 실패:', err.message));
+  // 초기 데이터 수집 실행
+  Promise.all([
+    fetchLatestNews(),
+    fetchStockService()
+  ]).then(() => {
+    console.log('[Boot] 초기 지능 데이터 수집 완료');
+  }).catch(err => {
+    console.error('[Boot] 초기 수집 오류:', err.message);
+  });
 
   serve({ fetch: app.fetch, port: PORT }, () => {
     console.log(`\n🏛️  Agora Backend v2.0`);

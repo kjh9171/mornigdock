@@ -64,16 +64,47 @@ CREATE TABLE IF NOT EXISTS ai_reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 게시판 테이블 (통합 지능 저장소)
+CREATE TABLE IF NOT EXISTS posts (
+  id           SERIAL PRIMARY KEY,
+  user_id      INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category     VARCHAR(50) DEFAULT 'general',
+  type         VARCHAR(20) DEFAULT 'post' CHECK (type IN ('post','news','notice')),
+  title        TEXT NOT NULL,
+  content      TEXT NOT NULL,
+  source       TEXT,
+  source_url   TEXT UNIQUE,
+  ai_analysis  TEXT,
+  is_pinned    BOOLEAN NOT NULL DEFAULT false,
+  view_count   INT NOT NULL DEFAULT 0,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- 댓글 테이블 (계층형)
 CREATE TABLE IF NOT EXISTS comments (
   id         SERIAL PRIMARY KEY,
   news_id    INT REFERENCES news(id) ON DELETE CASCADE,
+  post_id    INT REFERENCES posts(id) ON DELETE CASCADE,
   user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   parent_id  INT REFERENCES comments(id) ON DELETE CASCADE,
   content    TEXT NOT NULL,
   is_deleted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 증시 지수 정보 테이블
+CREATE TABLE IF NOT EXISTS stocks (
+  id            SERIAL PRIMARY KEY,
+  symbol        VARCHAR(50) UNIQUE NOT NULL,
+  name          VARCHAR(100) NOT NULL,
+  price         DECIMAL(15,2) NOT NULL DEFAULT 0,
+  change_val    DECIMAL(15,2) NOT NULL DEFAULT 0,
+  change_rate   DECIMAL(10,4) NOT NULL DEFAULT 0,
+  market_status VARCHAR(20) DEFAULT 'CLOSED',
+  ai_summary    TEXT,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 미디어 테이블
@@ -87,18 +118,6 @@ CREATE TABLE IF NOT EXISTS media (
   duration    INT,
   is_active   BOOLEAN NOT NULL DEFAULT true,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- 게시판 테이블
-CREATE TABLE IF NOT EXISTS posts (
-  id         SERIAL PRIMARY KEY,
-  user_id    INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title      TEXT NOT NULL,
-  content    TEXT NOT NULL,
-  is_pinned  BOOLEAN NOT NULL DEFAULT false,
-  view_count INT NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 시스템 설정 테이블
