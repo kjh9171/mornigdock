@@ -22,6 +22,7 @@ export function AgoraDiscussion() {
   // Form States
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [writeCategory, setWriteCategory] = useState('자유');
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -61,14 +62,15 @@ export function AgoraDiscussion() {
       const res = await createPostAPI({ 
         title, 
         content, 
-        type: 'board', 
-        category: '자유'
+        type: writeCategory === '뉴스 분석' ? 'news' : 'board', 
+        category: writeCategory
       });
       
       if (res.success) {
-        logActivity(`Create Agora Post: ${title}`);
+        logActivity(`Create Agora Post: ${title} (${writeCategory})`);
         setTitle('');
         setContent('');
+        setWriteCategory('자유');
         setInternalView('list');
         setPage(1);
         fetchPosts();
@@ -197,14 +199,28 @@ export function AgoraDiscussion() {
 
         {internalView === 'write' && (
           <form onSubmit={handleCreatePost} className="p-12 space-y-10 animate-in slide-in-from-bottom-8">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Strategic Topic</label>
-              <input 
-                required
-                value={title} onChange={e => setTitle(e.target.value)}
-                className="w-full p-6 bg-stone-50 border-2 border-transparent focus:border-amber-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-950 text-2xl"
-                placeholder="Define your mission objective..."
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Classification</label>
+                <select 
+                  value={writeCategory} 
+                  onChange={e => setWriteCategory(e.target.value)}
+                  className="w-full p-6 bg-stone-50 border-2 border-transparent focus:border-amber-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-950 text-lg appearance-none"
+                >
+                  {BOARD_CATEGORIES.filter(c => c !== '전체').map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Strategic Topic</label>
+                <input 
+                  required
+                  value={title} onChange={e => setTitle(e.target.value)}
+                  className="w-full p-6 bg-stone-50 border-2 border-transparent focus:border-amber-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-950 text-lg"
+                  placeholder="Define your mission objective..."
+                />
+              </div>
             </div>
             <div className="space-y-3">
               <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Intelligence Content</label>

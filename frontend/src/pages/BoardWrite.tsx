@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { createPostAPI } from '../lib/api'
 import { PenSquare, AlertCircle, ArrowLeft, Save } from 'lucide-react'
 
-const CATEGORIES = ['자유', '정보', '질문', '유머', '기타']
+const CATEGORIES = ['자유', '정보', '질문', '유머', '기타', '뉴스 분석']
 
 export default function BoardWrite() {
   const { user } = useAuth()
@@ -20,7 +20,10 @@ export default function BoardWrite() {
     if (!form.content.trim()) { setError('내용을 입력해주세요.'); return }
     setIsSubmitting(true)
     try {
-      const res = await createPostAPI({ type: 'board', ...form })
+      const res = await createPostAPI({ 
+        type: form.category === '뉴스 분석' ? 'news' : 'board', 
+        ...form 
+      })
       if (res.success && res.post) {
         navigate(`/board/${res.post.id}`)
       } else {

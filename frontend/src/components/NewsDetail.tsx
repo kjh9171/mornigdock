@@ -171,39 +171,43 @@ export function NewsDetail() {
               </h1>
               
               <div className="prose prose-stone max-w-none mb-12">
-                <p className="text-lg text-stone-700 leading-relaxed whitespace-pre-wrap font-medium">
-                  {newsItem.content}
-                </p>
+                <div className="bg-stone-50 p-8 rounded-3xl border border-stone-100 mb-8">
+                  <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> 원문 기사 첩보 내용
+                  </h4>
+                  <p className="text-lg text-stone-700 leading-relaxed whitespace-pre-wrap font-medium">
+                    {newsItem.content}
+                  </p>
+                </div>
+
+                {newsItem.ai_analysis && (
+                  <div className="bg-amber-50/30 p-8 md:p-12 rounded-[2.5rem] border-2 border-amber-100 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12"><Bot className="w-32 h-32 text-amber-600" /></div>
+                    <div className="flex items-center gap-3 mb-6 text-amber-700 relative z-10">
+                      <Sparkles className="w-6 h-6 animate-pulse" />
+                      <h3 className="text-xl font-black tracking-tight uppercase">사령부 정밀 지능 분석 보고서</h3>
+                    </div>
+                    <pre className="text-sm md:text-base text-stone-800 whitespace-pre-wrap font-sans leading-relaxed relative z-10 italic bg-white/60 p-8 rounded-2xl border border-white shadow-sm">
+                      {newsItem.ai_analysis}
+                    </pre>
+                  </div>
+                )}
               </div>
 
-              <div className="flex justify-center pt-8 border-t border-stone-100">
-                <button 
-                  onClick={handleAIAnalysis}
-                  className="w-full flex items-center justify-center gap-3 py-5 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl hover:shadow-accent-600/20"
-                >
-                  <Bot className="w-6 h-6 text-accent-400" />
-                  사령부 AI 지능 분석 보고서 {newsItem.ai_analysis ? '재열람' : '생성 및 열람'}
-                </button>
-              </div>
+              {!newsItem.ai_analysis && (
+                <div className="flex justify-center pt-8 border-t border-stone-100">
+                  <button 
+                    onClick={handleAIAnalysis}
+                    className="w-full flex items-center justify-center gap-3 py-5 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl hover:shadow-accent-600/20"
+                  >
+                    <Bot className="w-6 h-6 text-accent-400" />
+                    사령부 AI 지능 분석 보고서 생성 및 열람
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {/* AI Analysis Preview */}
-        {newsItem.ai_analysis && !isEditing && (
-          <div className="bg-stone-50 border-t border-stone-100 p-8 md:p-12">
-            <div className="flex items-center gap-2 mb-6 text-accent-700">
-              <Bot className="w-6 h-6" />
-              <h3 className="text-xl font-black tracking-tight text-primary-900 uppercase">Strategic Analysis Result</h3>
-            </div>
-            <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5"><Bot className="w-20 h-20" /></div>
-              <pre className="text-sm text-stone-700 whitespace-pre-wrap font-sans leading-relaxed relative z-10 italic">
-                {newsItem.ai_analysis}
-              </pre>
-            </div>
-          </div>
-        )}
 
         {/* Integrated Threaded Discussion Section */}
         <div className="bg-stone-100/50 border-t border-stone-200 p-8 md:p-12">
