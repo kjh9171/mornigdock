@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuth } from '../contexts/AuthContext';
 import { useActivityLog } from '../utils/activityLogger';
 import { useDiscussionStore } from '../store/useDiscussionStore';
 import { getPostsAPI, getPostAPI, createPostAPI, addCommentAPI, Post, Comment } from '../lib/api';
 import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon, ChevronRight, Eye } from 'lucide-react';
 
 export function AgoraDiscussion() {
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const { logActivity } = useActivityLog();
   const { view: storeView, setView: setStoreView, draft, setDraft } = useDiscussionStore();
   
@@ -33,7 +33,6 @@ export function AgoraDiscussion() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      // 🔥 [타입 표준화] 모든 사용자 게시글은 'board' 타입으로 통합 관리
       const res = await getPostsAPI({ type: 'board', limit: 20 });
       if (res.success) setPosts(res.posts);
     } catch (err) {
@@ -49,10 +48,13 @@ export function AgoraDiscussion() {
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      alert('요원 인증 정보가 없습니다. 다시 로그인해 주세요.');
+      return;
+    }
 
     try {
-      // @ts-ignore - related_post_id passed via draft
+      // @ts-ignore
       const relatedId = (draft as any)?.related_post_id;
       
       const res = await createPostAPI({ 
@@ -70,10 +72,13 @@ export function AgoraDiscussion() {
         setView('list');
         setDraft(null);
         setStoreView('list');
-        fetchPosts(); // 리스트 갱신
+        fetchPosts();
+      } else {
+        alert(res.message || '게시글 작성에 실패했습니다.');
       }
     } catch (err) {
       console.error(err);
+      alert('서버 통신 중 오류가 발생했습니다.');
     }
   };
 

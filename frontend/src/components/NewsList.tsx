@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useActivityLog } from '../utils/activityLogger';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { getPostsAPI, Post } from '../lib/api';
-import { FileText, Loader2, Bot, ChevronRight } from 'lucide-react';
+import { FileText, Loader2, Bot, ChevronRight, Eye, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function NewsList() {
