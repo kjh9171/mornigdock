@@ -29,7 +29,9 @@ app.use('*', secureHeaders());
 app.use('*', prettyJSON());
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin) return origin; // 같은 origin 요청
+    if (!origin) return origin;
+    // localhost는 모든 포트 허용 (개발 및 로컬 환경 편의성)
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return origin;
     if (allowedOrigins.includes(origin)) return origin;
     if (process.env.NODE_ENV === 'development') return origin;
     return null;

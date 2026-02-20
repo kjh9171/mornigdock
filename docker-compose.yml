@@ -67,7 +67,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
+        VITE_API_URL: ""
     container_name: agora_frontend
     restart: unless-stopped
     ports:
