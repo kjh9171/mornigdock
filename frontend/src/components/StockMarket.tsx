@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStocksAPI, StockInfo } from '../lib/api';
-import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink, Activity, ShieldCheck } from 'lucide-react';
 
 export function StockMarket() {
   const [stocks, setStocks] = useState<StockInfo[]>([]);
@@ -11,7 +11,7 @@ export function StockMarket() {
     setLoading(true);
     try {
       const res = await getStocksAPI();
-      if (res.success) {
+      if (res.success && res.stocks && res.stocks.length > 0) {
         setStocks(res.stocks);
         setLastUpdated(new Date().toLocaleTimeString());
       }
@@ -24,7 +24,7 @@ export function StockMarket() {
 
   useEffect(() => {
     fetchStocks();
-    const interval = setInterval(fetchStocks, 1000 * 60 * 10); // 10분마다 갱신
+    const interval = setInterval(fetchStocks, 1000 * 60 * 5); // 5분마다 갱신
     return () => clearInterval(interval);
   }, []);
 
@@ -50,27 +50,37 @@ export function StockMarket() {
     }
   };
 
-  // 🔥 [4대 천왕 고정 작전] 무조건 4개의 카드를 보여주기 위한 정렬 및 매칭
+  // 🔥 [4대 천왕 고정 작전] 데이터가 없더라도 틀은 유지하며 정밀 매칭
   const targetSymbols = ['KOSPI', 'KOSDAQ', 'DJI', 'NASDAQ'];
   const displayStocks = targetSymbols.map(symbol => {
-    const found = stocks.find(s => s.symbol === symbol);
-    return found || { symbol, name: symbol, price: 0, change_val: 0, change_rate: 0, market_status: 'WAITING', ai_summary: '데이터 수신 대기 중...' };
+    const found = stocks.find(s => s.symbol === symbol || s.symbol.includes(symbol));
+    return found ? {
+      ...found,
+      price: Number(found.price),
+      change_val: Number(found.change_val),
+      change_rate: Number(found.change_rate)
+    } : { symbol, name: symbol, price: 0, change_val: 0, change_rate: 0, market_status: 'WAITING', ai_summary: '데이터 동기화 대기 중...' };
   });
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-700">
       {/* Header */}
-      <div className="flex justify-between items-center px-4 py-2 bg-white rounded-2xl border border-stone-100 shadow-sm">
-        <h2 className="text-xl font-black text-primary-800 flex items-center gap-3 uppercase tracking-tighter">
-          <Activity className="w-6 h-6 text-accent-600 animate-pulse" />
-          Real-time Market Pulse
-        </h2>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-[10px] text-stone-400 font-mono font-black bg-stone-50 px-3 py-1.5 rounded-full border border-stone-100">
-            <Clock className="w-3 h-3 text-accent-600" />
-            SYNC: {lastUpdated || 'CONNECTING...'}
+      <div className="flex justify-between items-center px-6 py-4 bg-white rounded-3xl border border-stone-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-50 rounded-xl">
+            <Activity className="w-6 h-6 text-emerald-600 animate-pulse" />
           </div>
-          <button onClick={fetchStocks} className="p-2 hover:bg-stone-50 rounded-full transition-all border border-stone-100 shadow-sm">
+          <div>
+            <h2 className="text-xl font-black text-primary-800 uppercase tracking-tighter leading-none">Global Market Pulse</h2>
+            <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest mt-1">Real-time Intelligence Feed</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-[10px] text-stone-400 font-mono font-black bg-stone-50 px-4 py-2 rounded-full border border-stone-100">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            SECURE_SYNC: {lastUpdated || 'FETCHING...'}
+          </div>
+          <button onClick={fetchStocks} className="p-2.5 hover:bg-stone-50 rounded-full transition-all border border-stone-100 shadow-sm active:scale-95">
             <RefreshCw className={`w-4 h-4 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -95,22 +105,22 @@ export function StockMarket() {
                 <span className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] mb-1 block">{stock.symbol}</span>
                 <h3 className="text-xl font-black text-primary-900 tracking-tight">{stock.name}</h3>
               </div>
-              <span className={`text-[10px] font-black px-3 py-1 rounded-full border ${stock.market_status === 'OPEN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
+              <span className={`text-[9px] font-black px-3 py-1 rounded-full border ${stock.market_status === 'OPEN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
                 {stock.market_status}
               </span>
             </div>
             
             <div className="flex items-baseline gap-3 mb-2">
               <span className="text-3xl font-black text-primary-950 tracking-tighter">
-                {Number(stock.price) > 0 ? Number(stock.price).toLocaleString() : '---'}
+                {stock.price > 0 ? stock.price.toLocaleString() : '---'}
               </span>
-              <div className={`flex items-center text-sm font-black ${getChangeColor(Number(stock.change_val))}`}>
-                {getTrendIcon(Number(stock.change_val))}
-                {Number(stock.change_val) !== 0 ? Math.abs(Number(stock.change_val)).toLocaleString() : ''}
+              <div className={`flex items-center text-sm font-black ${getChangeColor(stock.change_val)}`}>
+                {getTrendIcon(stock.change_val)}
+                {stock.change_val !== 0 ? Math.abs(stock.change_val).toLocaleString() : ''}
               </div>
             </div>
-            <div className={`text-sm font-black ${getChangeColor(Number(stock.change_val))}`}>
-              {Number(stock.change_val) > 0 ? '+' : ''}{stock.change_rate}%
+            <div className={`text-sm font-black ${getChangeColor(stock.change_val)}`}>
+              {stock.change_val > 0 ? '+' : ''}{stock.change_rate}%
             </div>
           </a>
         ))}
@@ -129,12 +139,12 @@ export function StockMarket() {
                 <Bot className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white uppercase tracking-widest leading-none">AI Market Strategist Briefing</h3>
-                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-[0.3em] mt-2">Operational Vector Intelligence</p>
+                <h3 className="text-lg font-black text-white uppercase tracking-widest leading-none">Market Strategist Outlook</h3>
+                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-[0.3em] mt-2">Vector Intelligence Active</p>
               </div>
               <span className="ml-auto flex items-center gap-2 text-[10px] font-black text-accent-500 animate-pulse bg-accent-500/5 px-4 py-2 rounded-full border border-accent-500/20">
                 <AlertCircle className="w-4 h-4" />
-                ANALYSIS_SYNC_OK
+                VECTORS_STABLE
               </span>
             </div>
             
@@ -143,21 +153,13 @@ export function StockMarket() {
                 <div key={s.symbol} className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 bg-accent-500 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.6)]"></div>
-                    <span className="text-xs font-black text-stone-400 uppercase tracking-widest">{s.name} Strategic Outlook</span>
+                    <span className="text-xs font-black text-stone-400 uppercase tracking-widest">{s.name} Analysis</span>
                   </div>
                   <p className="text-base text-stone-200 leading-relaxed font-medium italic opacity-90">
                     "{s.ai_summary}"
                   </p>
                 </div>
               ))}
-            </div>
-            
-            <div className="mt-10 pt-8 border-t border-stone-800/50 flex justify-between items-end">
-              <div>
-                <p className="text-[10px] text-stone-600 font-black uppercase tracking-widest mb-1">Source Authentication</p>
-                <p className="text-[10px] text-stone-500 font-bold italic">Polling real-time vectors from Naver NPay Financial Network.</p>
-              </div>
-              <div className="text-[11px] font-mono text-accent-600 font-black tracking-[0.2em] bg-accent-600/5 px-4 py-2 rounded-xl border border-accent-600/10 shadow-inner">SECURITY CLEARANCE: LEVEL 4</div>
             </div>
           </div>
         </div>
