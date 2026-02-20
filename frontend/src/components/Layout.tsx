@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from 'react-i18next';
-import { Newspaper, Tv, Shield, User, LogIn, LogOut, Columns2, Globe, MessageSquare } from 'lucide-react';
+import { Newspaper, Tv, Shield, User, LogIn, LogOut, Columns2, Globe, MessageSquare, BarChart3 } from 'lucide-react';
 
 export default function Layout() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -13,8 +13,9 @@ export default function Layout() {
 
   const nav = [
     { path: '/news',  label: t('news'), icon: Newspaper },
-    { path: '/media', label: t('media_center'), icon: Tv },
+    { path: '/finance', label: t('finance'), icon: BarChart3 },
     { path: '/board', label: t('board'), icon: MessageSquare },
+    { path: '/media', label: t('media_center'), icon: Tv },
     ...(user?.role === 'admin' ? [{ path: '/admin', label: t('admin'), icon: Shield }] : []),
   ];
 
@@ -34,8 +35,8 @@ export default function Layout() {
               <Columns2 className="text-white" size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tighter uppercase leading-none">Agora</span>
-              <span className="text-[8px] font-bold text-agora-accent tracking-widest uppercase mt-0.5">Intelligence</span>
+              <span className="text-xl font-black tracking-tighter uppercase leading-none text-white">Agora</span>
+              <span className="text-[8px] font-bold text-primary-400 tracking-widest uppercase mt-0.5">Business Intelligence</span>
             </div>
           </Link>
 

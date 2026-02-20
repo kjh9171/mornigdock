@@ -88,13 +88,13 @@ export default function AdminPage() {
         <div>
           <div className="flex items-center gap-2 text-agora-gold mb-2">
             <Shield size={16} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Command Protocol v2.4</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">System Admin Console</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white uppercase">{t('admin_panel')}</h1>
-          <p className="text-white/30 text-xs font-bold mt-2 uppercase tracking-wider">High-Level System Monitoring & Override</p>
+          <p className="text-white/30 text-xs font-bold mt-2 uppercase tracking-wider">Service Monitoring & System Control</p>
         </div>
         
-        {/* 탭 디자인 개선 */}
+        {/* 탭 디자인 보정 */}
         <div className="flex gap-2 bg-white/5 p-1.5 rounded-[1.25rem] border border-white/5">
             {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key}
@@ -151,7 +151,7 @@ export default function AdminPage() {
                                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('db_status')}</span>
                             </div>
                             <span className={`text-[10px] font-black uppercase tracking-widest ${dash.system.dbConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {dash.system.dbConnected ? 'Operational' : 'Critical'}
+                                {dash.system.dbConnected ? '연결됨 (Normal)' : '연결 끊김 (Critical)'}
                             </span>
                         </div>
                         <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
@@ -160,7 +160,7 @@ export default function AdminPage() {
                                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('uptime')}</span>
                             </div>
                             <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                                {Math.floor(dash.system.uptime / 3600)}H {Math.floor((dash.system.uptime % 3600) / 60)}M
+                                {Math.floor(dash.system.uptime / 3600)}시간 {Math.floor((dash.system.uptime % 3600) / 60)}분
                             </span>
                         </div>
                     </div>
@@ -181,10 +181,10 @@ export default function AdminPage() {
                         <table className="w-full">
                             <thead>
                                 <tr className="text-left border-b border-white/5">
-                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Agent</th>
-                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Identifier</th>
-                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Protocol</th>
-                                    <th className="pb-4 text-right text-[9px] font-black uppercase tracking-widest text-white/20">Operational Time</th>
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">사용자</th>
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">IP 주소</th>
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">수행 동작</th>
+                                    <th className="pb-4 text-right text-[9px] font-black uppercase tracking-widest text-white/20">시간</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">

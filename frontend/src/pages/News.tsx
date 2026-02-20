@@ -98,7 +98,7 @@ export default function NewsPage() {
         <div>
           <div className="flex items-center gap-2 text-agora-accent mb-2">
             <Sparkles size={16} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Intelligence Stream</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Live News Briefing</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white uppercase">{t('news')}</h1>
           <p className="text-white/30 text-xs font-bold mt-2 uppercase tracking-wider">{t('subtitle')}</p>
@@ -107,7 +107,7 @@ export default function NewsPage() {
           <button onClick={handleFetch} disabled={fetching}
             className="group px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl active:scale-95">
             {fetching ? <Loader2 size={16} className="animate-spin text-agora-accent" /> : <RefreshCw size={16} className="group-hover:rotate-180 transition-transform duration-500" />}
-            {fetching ? 'Fetching...' : 'Force Intelligence Update'}
+            {fetching ? '수집 중...' : '뉴스 데이터 수집'}
           </button>
         )}
       </div>
@@ -213,7 +213,7 @@ export default function NewsPage() {
                   {aiLoading === item.id && (
                     <div className="mb-6 p-6 bg-white/5 rounded-2xl border border-white/5 animate-pulse">
                       <div className="flex items-center justify-between mb-3 text-[10px] font-black text-agora-accent uppercase tracking-widest">
-                         <span>Generating AI Intelligence...</span>
+                         <span>AI 분석 보고서 생성 중...</span>
                          <Brain size={14} className="animate-bounce" />
                       </div>
                       <div className="h-1 bg-white/5 rounded-full overflow-hidden">
@@ -227,18 +227,18 @@ export default function NewsPage() {
                     <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
                       {item.published_at && !isNaN(new Date(item.published_at).getTime())
                         ? formatDistanceToNow(new Date(item.published_at), { addSuffix: true, locale: dateLocale })
-                        : 'REC.'}
+                        : '최근'}
                     </span>
                     <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"
                       onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
                       <ChevronDown size={14} className={`transition-transform duration-500 ${expandedId === item.id ? 'rotate-180 text-agora-accent' : ''}`} />
-                      {expandedId === item.id ? 'Close' : 'Observe'}
+                      {expandedId === item.id ? '닫기' : '내용 보기'}
                     </button>
                     {!item.ai_report && (
                       <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-agora-accent hover:text-white transition-all group/ai"
                         onClick={() => handleAiReport(item.id)} disabled={aiLoading === item.id}>
                         <Brain size={14} className="group-hover/ai:rotate-12 transition-transform" />
-                        Analyze
+                        AI 심층 분석
                       </button>
                     )}
                     <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all"

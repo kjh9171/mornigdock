@@ -10,6 +10,7 @@ import ProfilePage from './pages/Profile';
 import BoardPage   from './pages/Board';
 import BoardDetail from './pages/BoardDetail';
 import BoardWrite  from './pages/BoardWrite';
+import FinancePage from './pages/Finance';
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user } = useAuthStore();
@@ -31,6 +32,7 @@ export default function App() {
           <Route index                element={<Navigate to="/news" replace />} />
           <Route path="news"          element={<NewsPage />} />
           <Route path="media"         element={<MediaPage />} />
+          <Route path="finance"       element={<FinancePage />} />
           <Route path="board"         element={<BoardPage />} />
           <Route path="board/write"   element={<ProtectedRoute><BoardWrite /></ProtectedRoute>} />
           <Route path="board/:id"     element={<BoardDetail />} />
