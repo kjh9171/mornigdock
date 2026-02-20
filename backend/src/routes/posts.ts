@@ -142,6 +142,30 @@ postsRouter.put('/:id', authMiddleware, async (c) => {
   } catch (err) { return c.json({ success: false }, 500) }
 })
 
+// ─── DELETE /api/posts/:id ───
+postsRouter.delete('/:id', authMiddleware, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'))
+    const user = c.get('user') as any
+    
+    // 관리자이거나 작성자 본인만 삭제 가능
+    const postRes = await pool.query('SELECT author_id FROM posts WHERE id = $1', [id])
+    if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
+    
+    if (user.role !== 'admin' && postRes.rows[0].author_id !== user.sub) {
+      return c.json({ success: false, message: 'Unauthorized' }, 403)
+    }
+
+    await pool.query('DELETE FROM posts WHERE id = $1', [id])
+    await logActivity(user.sub, user.email, `지능 자산 폐기(삭제): ID ${id}`, c.req.header('x-forwarded-for'))
+    
+    return c.json({ success: true })
+  } catch (err) { 
+    console.error('❌ DELETE ERROR:', err)
+    return c.json({ success: false }, 500) 
+  }
+})
+
 // ─── POST /api/posts/:id/comments ───
 postsRouter.post('/:id/comments', authMiddleware, async (c) => {
   try {

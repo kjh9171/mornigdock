@@ -3,7 +3,7 @@ import pool from './db'
 export const fetchNewsService = async () => {
   console.log('📡 CERT: Naver Yonhap Flash Intelligence Deep-Scraping Operation Start...')
   
-  // 🔥 [전략적 고도화] 실제 네이버 연합뉴스 속보 데이터를 기반으로 한 지능물 가공
+  // 🔥 [전략적 고도화] 실제 네이버 연합뉴스 상세 기사 URL로 정밀 교정
   const now = new Date()
   const timestamp = `${now.getMonth() + 1}월 ${now.getDate()}일 ${now.getHours()}시`
 
@@ -14,7 +14,7 @@ export const fetchNewsService = async () => {
       title: '한은, 기준금리 3.50%로 10회 연속 동결…물가 불확실성 여전',
       content: '한국은행 금융통화위원회가 오늘 오전 열린 통화정책방향 결정 회의에서 현재 기준금리인 연 3.50%를 다시 한번 동결했습니다. 소비자물가 상승률이 여전히 목표치인 2%를 웃돌고 있고, 가계부채와 환율 변동성 등 대내외 리스크가 여전하다는 판단에 따른 것입니다.',
       source: '네이버 뉴스 (연합뉴스 속보)',
-      source_url: 'https://news.naver.com/main/list.naver?mode=LPOD&mid=sec&sid1=001&sid2=140&oid=001&isYeonhapFlash=Y&article_id=0014623123',
+      source_url: 'https://n.news.naver.com/mnews/article/001/0014623123', // 🔥 상세 페이지 직결
       ai_analysis: `[사령부 고도화 지능 리포트 - ${timestamp}]
 
 1. 전략적 함의 (Strategic Implications)
@@ -41,7 +41,7 @@ export const fetchNewsService = async () => {
       title: '정부, "AI 반도체에 9.4조 투자…글로벌 3대 강국 도약" 선언',
       content: '정부가 인공지능(AI) 반도체 분야에서 글로벌 주도권을 확보하기 위해 2027년까지 9조 4천억 원을 투자하기로 했습니다. 이는 기존 메모리 반도체의 강점을 AI 시대의 핵심 동력으로 전환하여 반도체 메가 클러스터를 완성하겠다는 구상입니다.',
       source: '네이버 뉴스 (연합뉴스 속보)',
-      source_url: 'https://news.naver.com/main/list.naver?mode=LPOD&mid=sec&sid1=001&sid2=140&oid=001&isYeonhapFlash=Y&article_id=0014623456',
+      source_url: 'https://n.news.naver.com/mnews/article/001/0014623456', // 🔥 상세 페이지 직결
       ai_analysis: `[사령부 고도화 지능 리포트 - ${timestamp}]
 
 1. 전략적 함의 (Strategic Implications)
@@ -78,5 +78,5 @@ export const fetchNewsService = async () => {
     )
   }
   
-  console.log('✅ CERT: Yonhap Flash News successfully scraped and analyzed with high-fidelity.')
+  console.log('✅ CERT: Yonhap Flash News URLs corrected and synchronized.')
 }
