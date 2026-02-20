@@ -1,94 +1,52 @@
 import { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
-import { ShieldCheck, Mail, Lock, Loader2, ArrowRight, UserPlus } from 'lucide-react';
-import { QRCodeCanvas } from 'qrcode.react';
+import { ShieldCheck, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function Login() {
-  const { setAuth } = useAuthStore();
+  const { login, register } = useAuthStore();
   const { logActivity } = useActivityLog();
   
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<'info' | 'otp'>('info');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Signup State
   const [isSignup, setIsSignup] = useState(false);
-  const [qrUrl, setQrUrl] = useState('');
+  const [qrCode, setQrCode] = useState('');
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
       if (isSignup) {
-          // Signup Flow
-          const res = await fetch('http://localhost:8787/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-          });
-          const data = await res.json();
-          
-          if (!res.ok) {
-             if (res.status === 409) {
-                 setError(data.error);
-             } else {
-                 throw new Error(data.error || 'Signup failed');
-             }
-          } else {
-             // Success -> Show QR
-             setQrUrl(data.otpauth);
-             setStep('otp'); // Move to verification
+        if (step === 'info') {
+          const res = await register(email, password, name);
+          if (res.success) {
+            setQrCode(res.data.qrCode);
+            setStep('otp');
           }
+        } else {
+          // 회원가입 후 바로 로그인 시도 (OTP 검증 포함)
+          const res = await login(email, password, otpCode);
+          if (!res.requireOtp) {
+            logActivity('User Signup & Login');
+          }
+        }
       } else {
-          // Login Flow
-          const res = await fetch('http://localhost:8787/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-          });
-          const data = await res.json();
-          
-          if (!res.ok) {
-             if (data.needSignup) {
-                 setError('User not found. Please Sign Up first.');
-             } else {
-                throw new Error(data.error || 'Login failed');
-             }
-          } else {
-             // Success -> Ask for OTP
-             setStep('otp');
-          }
+        const res = await login(email, password, otpCode);
+        if (res.requireOtp) {
+          setStep('otp');
+        } else {
+          logActivity('User Login');
+        }
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('http://localhost:8787/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
-
-      // Success
-      setAuth(data.token, data.user);
-      logActivity(isSignup ? 'User Signup' : 'User Login');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -112,13 +70,13 @@ export function Login() {
 
       <div className="flex bg-stone-100 p-1 rounded-lg mb-6">
           <button 
-             onClick={() => { setIsSignup(false); setStep('email'); setError(''); }} 
+             onClick={() => { setIsSignup(false); setStep('info'); setError(''); }} 
              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isSignup ? 'bg-white text-primary-800 shadow-sm' : 'text-stone-500'}`}
           >
               Login
           </button>
           <button 
-             onClick={() => { setIsSignup(true); setStep('email'); setError(''); }} 
+             onClick={() => { setIsSignup(true); setStep('info'); setError(''); }} 
              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isSignup ? 'bg-white text-primary-800 shadow-sm' : 'text-stone-500'}`}
           >
               Sign Up
@@ -132,79 +90,83 @@ export function Login() {
         </div>
       )}
 
-      {step === 'email' ? (
-        <form onSubmit={handleEmailSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all font-medium text-stone-800"
-                placeholder="name@company.com"
-              />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {step === 'info' ? (
+          <>
+            {isSignup && (
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Full Name</label>
+                <input
+                  type="text" required value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                  placeholder="Hong Gil Dong"
+                />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <input
+                  type="email" required value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                  placeholder="name@company.com"
+                />
+              </div>
             </div>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary-800 text-white rounded-xl font-bold text-sm hover:bg-stone-900 transition-all shadow-lg shadow-stone-200 flex items-center justify-center gap-2 group disabled:opacity-70"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                <>
-                  Next Step <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <input
+                  type="password" required value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center space-y-4">
+            {isSignup && qrCode && (
+              <div className="p-4 bg-white border border-stone-100 rounded-xl shadow-sm inline-block">
+                <p className="text-xs text-stone-500 mb-2 font-bold">Scan with Google Authenticator</p>
+                <QRCodeSVG value={qrCode} size={160} />
+              </div>
             )}
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={handleVerify} className="space-y-6">
-          <div className="text-center">
-            {isSignup && qrUrl && (
-                <div className="mb-6 p-4 bg-white border border-stone-100 rounded-xl shadow-sm inline-block">
-                    <p className="text-sm text-stone-500 mb-2">Scan with Google Authenticator</p>
-                    <div className="flex justify-center">
-                         <QRCodeCanvas value={qrUrl} size={160} />
-                    </div>
-                </div>
-            )}
-            
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-               {isSignup ? 'Enter Verification Code' : 'Google Authenticator Code'}
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-2">Google Authenticator Code</label>
               <input
-                type="text"
-                required
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20 focus:border-accent-600 transition-all font-mono text-center text-xl tracking-widest text-primary-800"
+                type="text" required maxLength={6} value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none text-center text-xl tracking-widest font-mono"
                 placeholder="000 000"
               />
             </div>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-accent-600 text-white rounded-xl font-bold text-sm hover:bg-accent-700 transition-all shadow-lg shadow-accent-200 flex items-center justify-center gap-2 disabled:opacity-70"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignup ? 'Complete Signup' : 'Verify & Login')}
+        )}
+
+        <button
+          type="submit" disabled={loading}
+          className="w-full py-3 bg-primary-800 text-white rounded-xl font-bold text-sm hover:bg-stone-900 transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+            <>
+              {step === 'info' ? (isSignup ? 'Create Account' : 'Next Step') : 'Verify & Login'}
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </>
+          )}
+        </button>
+        
+        {step === 'otp' && (
+          <button type="button" onClick={() => setStep('info')} className="w-full text-xs text-stone-400 hover:text-stone-600">
+            Back to Credentials
           </button>
-          
-          <button 
-            type="button" 
-            onClick={() => setStep('email')}
-            className="w-full text-xs text-stone-400 hover:text-stone-600"
-          >
-            Change Email
-          </button>
-        </form>
-      )}
+        )}
+      </form>
     </div>
   );
 }

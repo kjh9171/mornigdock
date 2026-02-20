@@ -1,72 +1,109 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
-import { initDB } from './db'
-import { authRouter } from './routes/auth'
-import { postsRouter } from './routes/posts'
-import { mediaRouter } from './routes/media'
-import { adminRouter } from './routes/admin'
-import { stocksRouter } from './routes/stocks'
-import pool from './db'
-import { fetchNewsService } from './newsService'
-import { fetchStockService } from './stockService'
-import { logActivity } from './utils/logger'
+import 'dotenv/config';
+import { serve } from '@hono/node-server';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { secureHeaders } from 'hono/secure-headers';
+import { prettyJSON } from 'hono/pretty-json';
+import cron from 'node-cron';
+import { checkDbConnection } from './db/pool.js';
+import { fetchLatestNews } from './services/newsService.js';
+import authRoutes    from './routes/auth.js';
+import newsRoutes    from './routes/news.js';
+import commentRoutes from './routes/comments.js';
+import mediaRoutes   from './routes/media.js';
+import adminRoutes   from './routes/admin.js';
 
-const app = new Hono()
+const app = new Hono();
+const PORT = Number(process.env.PORT ?? 8787);
 
-app.use('*', logger())
+// ── 허용 Origins 파싱 ────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
+// ── 미들웨어 ─────────────────────────────────────────────────────────────────
+app.use('*', logger());
+app.use('*', secureHeaders());
+app.use('*', prettyJSON());
 app.use('*', cors({
   origin: (origin) => {
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) return origin;
-    return 'http://localhost:5173';
+    if (!origin) return origin; // 같은 origin 요청
+    if (allowedOrigins.includes(origin)) return origin;
+    if (process.env.NODE_ENV === 'development') return origin;
+    return null;
   },
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-}))
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposeHeaders: ['X-Total-Count'],
+  maxAge: 86400,
+}));
 
-app.get('/', (c) => c.json({ message: '아고라 API v1.0' }))
+// ── 헬스 체크 ────────────────────────────────────────────────────────────────
+app.get('/health', async (c) => {
+  const dbOk = await checkDbConnection();
+  const status = dbOk ? 200 : 503;
+  return c.json({
+    status: dbOk ? 'ok' : 'degraded',
+    db: dbOk,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+  }, status);
+});
 
-// 🔥 [긴급 추가] 프론트엔드 전용 활동 로그 엔드포인트
-app.post('/api/log', async (c) => {
+// ── 라우터 등록 ──────────────────────────────────────────────────────────────
+app.route('/api/auth',     authRoutes);
+app.route('/api/news',     newsRoutes);
+app.route('/api/comments', commentRoutes);
+app.route('/api/media',    mediaRoutes);
+app.route('/api/admin',    adminRoutes);
+
+// ── 404 핸들러 ───────────────────────────────────────────────────────────────
+app.notFound((c) => c.json({ success: false, message: `Route not found: ${c.req.path}` }, 404));
+
+// ── 전역 에러 핸들러 ─────────────────────────────────────────────────────────
+app.onError((err, c) => {
+  console.error('[Server Error]', err);
+  return c.json({ success: false, message: '서버 오류가 발생했습니다.' }, 500);
+});
+
+// ── 뉴스 자동 수집 스케줄러 ──────────────────────────────────────────────────
+cron.schedule('0 * * * *', async () => {
+  console.log('[Scheduler] 뉴스 자동 수집 시작...');
   try {
-    const { email, action } = await c.req.json()
-    const userRes = await pool.query('SELECT id FROM users WHERE email = $1', [email])
-    const userId = userRes.rows[0]?.id
-    await logActivity(userId || null, email, action, c.req.header('x-forwarded-for') || '127.0.0.1')
-    return c.json({ success: true })
-  } catch (e) {
-    return c.json({ success: false }, 500)
+    const count = await fetchLatestNews();
+    console.log(`[Scheduler] 완료 - ${count}개 수집`);
+  } catch (err: any) {
+    console.error('[Scheduler] 수집 실패:', err.message);
   }
-})
+});
 
-app.route('/api/auth', authRouter)
-app.route('/api/posts', postsRouter)
-app.route('/api/media', mediaRouter)
-app.route('/api/admin', adminRouter)
-app.route('/api/stocks', stocksRouter)
-
-const port = 8787
-initDB().then(() => {
-  console.log(`🚀 아고라 서버 기동 완료 (Port: ${port})`)
-  
-  // 1시간마다 뉴스 및 증시 수집 작전 수행
-  setInterval(async () => {
-    try {
-      await fetchNewsService();
-      await fetchStockService();
-    } catch (e) {
-      console.error('CRITICAL: 자동 수집 중 오류 발생', e);
+// ── 서버 시작 ────────────────────────────────────────────────────────────────
+async function bootstrap() {
+  // DB 연결 대기 (최대 30초)
+  console.log('[Boot] DB 연결 확인 중...');
+  for (let i = 0; i < 10; i++) {
+    if (await checkDbConnection()) {
+      console.log('[Boot] DB 연결 성공 ✓');
+      break;
     }
-  }, 1000 * 60 * 60);
+    if (i === 9) {
+      console.error('[Boot] DB 연결 실패 - 계속 진행합니다.');
+    }
+    await new Promise(r => setTimeout(r, 3000));
+  }
 
-  // 초기 기동 시 즉시 수집
-  fetchNewsService().catch(console.error);
-  fetchStockService().catch(console.error);
+  // 초기 뉴스 수집
+  fetchLatestNews().catch(err => console.error('[Boot] 초기 뉴스 수집 실패:', err.message));
 
-  serve({ fetch: app.fetch, port, hostname: '0.0.0.0' })
-})
+  serve({ fetch: app.fetch, port: PORT }, () => {
+    console.log(`\n🏛️  Agora Backend v2.0`);
+    console.log(`📡 http://localhost:${PORT}`);
+    console.log(`❤️  http://localhost:${PORT}/health\n`);
+  });
+}
 
-export default app
+bootstrap();

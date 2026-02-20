@@ -1,131 +1,163 @@
-import axios from 'axios'
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// ✅ API 호출의 기준점 설정 (Vite Proxy 사용 시 빈 문자열로 두어 상대 경로 처리)
-const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+// ── 무적의 하이브리드 데이터 타입 정의 ──────────────────────────────────────
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'editor' | 'user';
+  otp_enabled?: boolean;
+}
+
+export interface Post {
+  id: number;
+  title: string;
+  content: string;
+  description?: string;
+  url?: string;
+  image_url?: string;
+  source_name?: string;
+  source?: string;
+  source_url?: string;
+  category: string;
+  is_pinned: boolean;
+  ai_analysis?: string;
+  published_at: string;
+  created_at: string;
+  // 구식 컴포넌트 호환용 필드 추가
+  type?: string;
+  author_id?: number;
+  author_name?: string;
+  view_count?: number;
+  comment_count?: number;
+  pinned?: boolean;
+}
+
+export interface Comment {
+  id: number;
+  news_id?: number;
+  post_id?: number;
+  parent_id: number | null;
+  user_id: number;
+  author_name: string;
+  content: string;
+  is_deleted: boolean;
+  created_at: string;
+  replies?: Comment[];
+}
+
+export interface StockInfo {
+  id: number;
+  symbol: string;
+  name: string;
+  price: number;
+  change_val: number;
+  change_rate: number;
+  market_status: string;
+  updated_at: string;
+  // 구식 컴포넌트 호환용
+  ai_summary?: string;
+}
+
+export interface MediaItem {
+  id: number;
+  type: 'youtube' | 'podcast' | 'music';
+  title: string;
+  description: string;
+  url: string;
+  thumbnail?: string;
+  duration?: number;
+  created_at: string;
+  // 구식 컴포넌트 호환용
+  author?: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 공통 API 호출 함수: 인증 토큰 주입 및 에러 처리 통합
-// ─────────────────────────────────────────────────────────────────────────────
-async function fetchAPI<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('token')
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  }
 
-  try {
-    // endpoint에 /api가 누락된 경우 자동으로 추가하여 프록시가 작동하게 함
-    const safeEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`
-    
-    const response = await fetch(`${API_BASE_URL}${safeEndpoint}`, { ...options, headers })
-    
-    // 응답 텍스트를 먼저 확인하여 JSON 파싱 에러 방지
-    const text = await response.text()
-    const data = text ? JSON.parse(text) : {}
+const BASE_URL = (import.meta as any).env?.VITE_API_URL ?? '';
 
-    // 인증 만료(401) 처리
-    if (response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+export const api = axios.create({
+  baseURL: `${BASE_URL}/api`,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// 래퍼 함수들 (데이터 자동 추출)
+export const getPostsAPI = (params?: any) => api.get('/news', { params }).then(res => res.data);
+export const getPostAPI = (id: string | number) => api.get(`/news/${id}`).then(res => res.data);
+export const registerAPI = (data: any) => api.post('/auth/register', data).then(res => res.data);
+export const getAdminStatsAPI = () => api.get('/admin/dashboard').then(res => res.data);
+export const getAdminUsersAPI = () => api.get('/admin/users').then(res => res.data);
+export const getAdminPostsAPI = () => api.get('/news').then(res => res.data); 
+export const adminDeletePostAPI = (id: number) => api.delete(`/news/${id}`).then(res => res.data);
+export const createPostAPI = (data: any) => api.post('/news', data).then(res => res.data);
+export const fetchNewsAPI = () => api.post('/news/fetch').then(res => res.data);
+export const getStocksAPI = () => api.get('/stocks').then(res => res.data);
+export const getMediaAPI = (type?: string) => api.get('/media', { params: { type } }).then(res => res.data);
+export const createMediaAPI = (data: any) => api.post('/media', data).then(res => res.data);
+export const deleteMediaAPI = (id: number) => api.delete(`/media/${id}`).then(res => res.data);
+
+// 인자 개수 맞춤 호환성 강화
+export const addCommentAPI = (newsId: number, content: string, parentId?: number | null) => 
+  api.post('/comments', { newsId, content, parentId }).then(res => res.data);
+
+export const updatePostAPI = (id: number, data: any) => api.put(`/news/${id}`, data).then(res => res.data);
+export const deletePostAPI = (id: number) => api.delete(`/news/${id}`).then(res => res.data);
+export const updatePostAnalysisAPI = (id: number, analysis: string) => 
+  api.post(`/news/${id}/ai-report`, { analysis }).then(res => res.data);
+
+// Interceptors
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (v: string) => void; reject: (e: any) => void }> = [];
+
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token!)));
+  failedQueue = [];
+}
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError<{ code?: string; message?: string }>) => {
+    const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    if (error.response?.status === 401 && error.response.data?.code === 'TOKEN_EXPIRED' && !original._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          original.headers.Authorization = `Bearer ${token}`;
+          return api(original);
+        });
+      }
+      original._retry = true;
+      isRefreshing = true;
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('No refresh token');
+        const { data: refreshRes } = await axios.post(`${BASE_URL}/api/auth/refresh`, { refreshToken });
+        const { accessToken, refreshToken: newRefresh } = refreshRes.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', newRefresh);
+        processQueue(null, accessToken);
+        original.headers.Authorization = `Bearer ${accessToken}`;
+        return api(original);
+      } catch (err) {
+        processQueue(err, null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
-
-    if (!response.ok) {
-      return { success: false, message: data.message || '요청 실패' } as T
-    }
-
-    return data
-  } catch (err) {
-    console.error('CERT 통신 장애 로그:', err)
-    return { success: false, message: '서버 연결 실패' } as T
+    return Promise.reject(error);
   }
-}
+);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 인터페이스 및 API 엔드포인트 정의 (Agora 서비스 기준)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface UserInfo { id: number; email: string; username: string; role: string; isAdmin?: boolean }
-export interface AuthResponse { success: boolean; message?: string; token?: string; user?: UserInfo }
-
-// 인증 관련
-export const registerAPI = (p: { email: string; password: string; username: string }) =>
-  fetchAPI<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(p) })
-export const loginAPI = (p: { email: string; password: string }) =>
-  fetchAPI<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(p) })
-export const getMeAPI = () => fetchAPI<{ success: boolean; user?: UserInfo }>('/auth/me')
-export function logoutAPI() { localStorage.removeItem('token'); localStorage.removeItem('user') }
-
-// 게시글 관련
-export interface Post {
-  id: number; type: string; category: string; title: string; content: string
-  author_name: string; author_id?: number; pinned: boolean; view_count: number
-  like_count: number; source?: string; source_url?: string; comment_count?: number; 
-  created_at: string; ai_analysis?: string; related_post_id?: number; related_post_title?: string;
-}
-export interface Comment {
-  id: number; post_id: number; parent_id: number | null; author_name: string
-  content: string; is_deleted: boolean; reported: boolean; created_at: string
-}
-export const getPostsAPI = (params: Record<string, string | number>) => {
-  const qs = new URLSearchParams(params as any).toString()
-  return fetchAPI<{ success: boolean; posts: Post[]; pagination: any }>(`/posts?${qs}`)
-}
-export const getPostAPI = (id: number) =>
-  fetchAPI<{ success: boolean; post: Post; comments: Comment[] }>(`/posts/${id}`)
-export const createPostAPI = (data: Partial<Post>) =>
-  fetchAPI<{ success: boolean; post: Post }>('/posts', { method: 'POST', body: JSON.stringify(data) })
-export const updatePostAPI = (id: number, data: Partial<Post>) =>
-  fetchAPI<{ success: boolean }>('/posts/' + id, { method: 'PUT', body: JSON.stringify(data) })
-export const deletePostAPI = (id: number) =>
-  fetchAPI<{ success: boolean }>(`/posts/${id}`, { method: 'DELETE' })
-export const addCommentAPI = (postId: number, content: string, parent_id?: number) =>
-  fetchAPI<{ success: boolean; comment: Comment }>(`/posts/${postId}/comments`, {
-    method: 'POST', body: JSON.stringify({ content, parent_id })
-  })
-export const updatePostAnalysisAPI = (id: number, ai_analysis: string) =>
-  fetchAPI<{ success: boolean }>(`/posts/${id}/analysis`, {
-    method: 'PATCH', body: JSON.stringify({ ai_analysis })
-  })
-
-// 증시 관련
-export interface StockInfo {
-  id: number; symbol: string; name: string; price: number;
-  change_val: number; change_rate: number; market_status: string;
-  ai_summary: string; updated_at: string;
-}
-export const getStocksAPI = () => fetchAPI<{ success: boolean; stocks: StockInfo[] }>('/stocks')
-
-// 미디어 센터 관련
-export interface MediaItem {
-  id: number; type: string; title: string; description: string; url: string
-  thumbnail_url?: string; author: string; category: string; duration: string; is_active: boolean
-}
-export const getMediaAPI = (type?: string) =>
-  fetchAPI<{ success: boolean; media: MediaItem[] }>(`/media${type ? '?type=' + type : ''}`)
-export const createMediaAPI = (data: Partial<MediaItem>) =>
-  fetchAPI<{ success: boolean; media: MediaItem }>('/media', { method: 'POST', body: JSON.stringify(data) })
-export const updateMediaAPI = (id: number, data: Partial<MediaItem>) =>
-  fetchAPI<{ success: boolean; media: MediaItem }>(`/media/${id}`, { method: 'PUT', body: JSON.stringify(data) })
-export const deleteMediaAPI = (id: number) =>
-  fetchAPI<{ success: boolean }>(`/media/${id}`, { method: 'DELETE' })
-
-// 관리자 패널 전용
-export const getAdminStatsAPI = () => fetchAPI<any>('/admin/stats')
-export const getAdminUsersAPI = () => fetchAPI<any>('/admin/users')
-export const changeUserRoleAPI = (id: number, role: string) =>
-  fetchAPI<any>(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) })
-export const toggleUserAPI = (id: number) =>
-  fetchAPI<any>(`/admin/users/${id}/toggle`, { method: 'PUT' })
-export const getAdminPostsAPI = () => fetchAPI<any>('/admin/posts')
-export const togglePinAPI = (id: number) =>
-  fetchAPI<any>(`/admin/posts/${id}/pin`, { method: 'PUT' })
-export const adminDeletePostAPI = (id: number) =>
-  fetchAPI<any>(`/admin/posts/${id}`, { method: 'DELETE' })
-export const getAdminCommentsAPI = () => fetchAPI<any>('/admin/comments')
-export const adminDeleteCommentAPI = (id: number) =>
-  fetchAPI<any>(`/admin/comments/${id}`, { method: 'DELETE' })
-export const fetchNewsAPI = () => fetchAPI<{ success: boolean; message: string }>('/admin/fetch-news', { method: 'POST' })
+export default api;

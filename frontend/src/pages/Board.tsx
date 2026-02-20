@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../store/useAuthStore'
 import { getPostsAPI, Post } from '../lib/api'
 import { MessageSquare, User, Clock, Eye, Search, PenSquare, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText, Loader2, Sparkles } from 'lucide-react'
 
@@ -25,7 +25,7 @@ const CAT_COLORS: Record<string, string> = {
 }
 
 export default function Board() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const [posts, setPosts] = useState<Post[]>([])
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 })
@@ -59,7 +59,7 @@ export default function Board() {
   }, [category, page])
 
   const filteredPosts = searchQuery
-    ? posts.filter(p => p.title.includes(searchQuery) || p.author_name.includes(searchQuery))
+    ? posts.filter(p => p.title.includes(searchQuery) || (p.author_name ?? '').includes(searchQuery))
     : posts
 
   const changePage = (p: number) => { setPage(p); window.scrollTo(0, 0) }
@@ -121,19 +121,19 @@ export default function Board() {
                         <Sparkles className="w-3 h-3" /> INTEL
                       </span>
                     ) : (
-                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[post.category]?.replace('text-', 'bg-').replace('-600', '-50') || 'bg-stone-100'} ${CAT_COLORS[post.category] || 'text-stone-500'}`}>{post.category}</span>
+                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${CAT_COLORS[post.category ?? '']?.replace('text-', 'bg-').replace('-600', '-50') || 'bg-stone-100'} ${CAT_COLORS[post.category ?? ''] || 'text-stone-500'}`}>{post.category}</span>
                     )}
                     <h3 className={`text-sm font-bold truncate leading-snug ${post.type === 'news' ? 'text-primary-900' : 'text-stone-800'}`}>{post.title}</h3>
-                    {post.comment_count > 0 && <span className="text-[10px] font-black text-amber-600">[{post.comment_count}]</span>}
+                    {(post.comment_count ?? 0) > 0 && <span className="text-[10px] font-black text-amber-600">[{post.comment_count}]</span>}
                   </div>
                   <div className="flex items-center gap-3 text-[10px] font-black text-stone-400 uppercase tracking-tighter">
-                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {post.author_name}</span>
+                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {post.author_name ?? 'Unknown'}</span>
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(post.created_at)}</span>
                   </div>
                 </div>
                 <div className="hidden md:flex items-center gap-4 text-stone-300">
-                  <div className="flex flex-col items-center min-w-[40px]"><Eye className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.view_count}</span></div>
-                  <div className="flex flex-col items-center min-w-[40px]"><MessageSquare className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.comment_count}</span></div>
+                  <div className="flex flex-col items-center min-w-[40px]"><Eye className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.view_count ?? 0}</span></div>
+                  <div className="flex flex-col items-center min-w-[40px]"><MessageSquare className="w-3.5 h-3.5" /><span className="text-[9px] font-black mt-1">{post.comment_count ?? 0}</span></div>
                 </div>
               </div>
             ))

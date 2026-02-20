@@ -1,16 +1,27 @@
-# ✅ 개발 모드 - Vite dev server
-FROM node:20-alpine
+# 🏗️ Stage 1: Build (Node.js)
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# ✅ 패키지 설치 (캐시 최적화)
+# 패키지 설치
 COPY package*.json ./
 RUN npm install
 
-# ✅ 소스 전체 복사
+# 소스 복사 및 빌드
 COPY . .
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+RUN npm run build
 
-EXPOSE 5173
+# 🏗️ Stage 2: Serve (Nginx)
+FROM nginx:stable-alpine
 
-# ✅ Vite dev server - host 0.0.0.0 으로 Docker 외부 접근 허용
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# 빌드 결과물 복사
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Nginx 설정 복사
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

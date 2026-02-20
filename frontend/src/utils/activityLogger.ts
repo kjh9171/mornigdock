@@ -1,8 +1,8 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const useActivityLog = () => {
-  const { user } = useAuth();
-  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const { user } = useAuthStore();
+  const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
 
   const logActivity = async (action: string) => {
     if (!user) return;

@@ -1,78 +1,103 @@
-# ✅ version 필드 제거 (Docker Compose V2에서 obsolete 경고 제거)
+version: "3.9"
 
 services:
-  # ─────────────────────────────────────────────
-  # 1. PostgreSQL 데이터베이스
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────
+  # PostgreSQL Database
+  # ─────────────────────────────────────────
   db:
     image: postgres:16-alpine
-    container_name: mornigdock-db
+    container_name: agora_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mornigdock
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${DB_USER:-agora}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-agora_secret_2024}
+      POSTGRES_DB: ${DB_NAME:-agora_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mornigdock"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-agora} -d ${DB_NAME:-agora_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - mornigdock-net
+      - agora_net
 
-  # ─────────────────────────────────────────────
-  # 2. 백엔드 API 서버 (Hono + Node.js)
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────
+  # Backend (Hono / Node.js)
+  # ─────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: mornigdock-backend
+    container_name: agora_backend
     restart: unless-stopped
     environment:
       PORT: 8787
-      NODE_ENV: development
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: mornigdock
-      DB_USER: postgres
-      DB_PASSWORD: ${DB_PASSWORD:-password}
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${DB_USER:-agora}:${DB_PASSWORD:-agora_secret_2024}@db:5432/${DB_NAME:-agora_db}
+      JWT_SECRET: ${JWT_SECRET:-change_this_jwt_secret_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_this_refresh_secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      MASTER_OTP_CODE: ${MASTER_OTP_CODE:-000000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@agora.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@1234!}
+      NEWS_API_KEY: ${NEWS_API_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-    ports:
-      - "8787:8787"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:80}
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8787:8787"
     networks:
-      - mornigdock-net
+      - agora_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8787/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
-  # ─────────────────────────────────────────────
-  # 3. 프론트엔드 (React + Vite dev server)
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────
+  # Frontend (Vite → Nginx)
+  # ─────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: mornigdock-frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
+    container_name: agora_frontend
     restart: unless-stopped
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8787}
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - agora_net
+
+  # ─────────────────────────────────────────
+  # Cloudflare Tunnel (선택적 - 외부 도메인 없이도 동작)
+  # ─────────────────────────────────────────
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: agora_cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - frontend
       - backend
     networks:
-      - mornigdock-net
+      - agora_net
+    profiles:
+      - cloudflare  # docker-compose --profile cloudflare up 로만 실행됨
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  mornigdock-net:
+  agora_net:
     driver: bridge

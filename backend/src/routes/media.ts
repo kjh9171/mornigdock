@@ -1,69 +1,87 @@
-import { Hono } from 'hono'
-import pool from '../db'
-import { authMiddleware, adminMiddleware } from '../middleware/auth'
-import { logActivity } from '../utils/logger'
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { query } from '../db/pool.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
-export const mediaRouter = new Hono()
+const media = new Hono();
 
-// GET /api/media
-mediaRouter.get('/', async (c) => {
-  try {
-    const type = c.req.query('type')
-    let query = 'SELECT * FROM media WHERE is_active = true'
-    const params: any[] = []
-    if (type) { query += ' AND type = $1'; params.push(type) }
-    query += ' ORDER BY created_at DESC'
-    const result = await pool.query(query, params)
-    return c.json({ success: true, media: result.rows })
-  } catch (err) {
-    return c.json({ success: false }, 500)
+// ─── GET /media ──────────────────────────────────────────────────────────────
+media.get('/', optionalAuth(), async (c) => {
+  const type = c.req.query('type'); // youtube | podcast | music
+
+  let sql = 'SELECT * FROM media WHERE is_active = true';
+  const params: string[] = [];
+  if (type) {
+    sql += ' AND type = $1';
+    params.push(type);
   }
-})
+  sql += ' ORDER BY created_at DESC';
 
-// POST /api/media (관리자 전용 + 로그 기록)
-mediaRouter.post('/', authMiddleware, adminMiddleware, async (c) => {
-  try {
-    const user = c.get('user') as any
-    const body = await c.req.json()
-    const { type, title, description, url, author, category, duration } = body
-    const result = await pool.query(
-      `INSERT INTO media (type, title, description, url, author, category, duration)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [type, title, description, url, author, category, duration]
-    )
-    await logActivity(user.sub, user.email, `미디어 자산 추가: ${title}`, c.req.header('x-forwarded-for'))
-    return c.json({ success: true, media: result.rows[0] }, 201)
-  } catch (err) { return c.json({ success: false }, 500) }
-})
+  const result = await query(sql, params);
+  return c.json({ success: true, data: result.rows });
+});
 
-// PUT /api/media/:id (관리자 전용 + 로그 기록)
-mediaRouter.put('/:id', authMiddleware, adminMiddleware, async (c) => {
-  try {
-    const user = c.get('user') as any
-    const id = parseInt(c.req.param('id'))
-    const body = await c.req.json()
-    const { type, title, description, url, author, category, duration, is_active } = body
-    const result = await pool.query(
-      `UPDATE media SET type=COALESCE($1,type), title=COALESCE($2,title), description=COALESCE($3,description),
-       url=COALESCE($4,url), author=COALESCE($5,author), category=COALESCE($6,category), 
-       duration=COALESCE($7,duration), is_active=COALESCE($8,is_active), updated_at=NOW() 
-       WHERE id=$9 RETURNING *`,
-      [type, title, description, url, author, category, duration, is_active, id]
-    )
-    await logActivity(user.sub, user.email, `미디어 자산 수정: ${title}`, c.req.header('x-forwarded-for'))
-    return c.json({ success: true, media: result.rows[0] })
-  } catch (err) { return c.json({ success: false }, 500) }
-})
+// ─── POST /media ─────────────────────────────────────────────────────────────
+media.post('/', requireAuth(['admin', 'editor']), async (c) => {
+  const schema = z.object({
+    type:        z.enum(['youtube', 'podcast', 'music']),
+    title:       z.string().min(1).max(200),
+    description: z.string().optional(),
+    url:         z.string().url(),
+    thumbnail:   z.string().url().optional(),
+    duration:    z.number().int().positive().optional(),
+  });
+  const body   = await c.req.json().catch(() => null);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ success: false, message: parsed.error.errors[0].message }, 400);
+  }
 
-// DELETE /api/media/:id (관리자 전용 + 로그 기록)
-mediaRouter.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
-  try {
-    const user = c.get('user') as any
-    const id = parseInt(c.req.param('id'))
-    const mediaRes = await pool.query('SELECT title FROM media WHERE id = $1', [id])
-    if (mediaRes.rows.length === 0) return c.json({ success: false }, 404)
-    await pool.query('DELETE FROM media WHERE id = $1', [id])
-    await logActivity(user.sub, user.email, `미디어 자산 폐기: ${mediaRes.rows[0].title}`, c.req.header('x-forwarded-for'))
-    return c.json({ success: true })
-  } catch (err) { return c.json({ success: false }, 500) }
-})
+  const { type, title, description, url, thumbnail, duration } = parsed.data;
+  const result = await query(
+    `INSERT INTO media (type, title, description, url, thumbnail, duration)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [type, title, description ?? null, url, thumbnail ?? null, duration ?? null]
+  );
+  return c.json({ success: true, data: result.rows[0] }, 201);
+});
+
+// ─── PUT /media/:id ──────────────────────────────────────────────────────────
+media.put('/:id', requireAuth(['admin', 'editor']), async (c) => {
+  const id = Number(c.req.param('id'));
+  const body = await c.req.json().catch(() => ({}));
+
+  const fields: string[] = [];
+  const params: (string | number | boolean | null)[] = [];
+  let idx = 1;
+
+  if (body.title       !== undefined) { fields.push(`title = $${idx++}`);       params.push(body.title); }
+  if (body.description !== undefined) { fields.push(`description = $${idx++}`); params.push(body.description); }
+  if (body.url         !== undefined) { fields.push(`url = $${idx++}`);         params.push(body.url); }
+  if (body.thumbnail   !== undefined) { fields.push(`thumbnail = $${idx++}`);   params.push(body.thumbnail); }
+  if (body.is_active   !== undefined) { fields.push(`is_active = $${idx++}`);   params.push(body.is_active); }
+
+  if (fields.length === 0) return c.json({ success: false, message: '수정할 내용이 없습니다.' }, 400);
+
+  params.push(id);
+  const result = await query(
+    `UPDATE media SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+    params
+  );
+  if ((result.rowCount ?? 0) === 0) {
+    return c.json({ success: false, message: '미디어를 찾을 수 없습니다.' }, 404);
+  }
+  return c.json({ success: true, data: result.rows[0] });
+});
+
+// ─── DELETE /media/:id ───────────────────────────────────────────────────────
+media.delete('/:id', requireAuth(['admin']), async (c) => {
+  const id = Number(c.req.param('id'));
+  const result = await query('DELETE FROM media WHERE id = $1', [id]);
+  if ((result.rowCount ?? 0) === 0) {
+    return c.json({ success: false, message: '미디어를 찾을 수 없습니다.' }, 404);
+  }
+  return c.json({ success: true, message: '삭제 완료' });
+});
+
+export default media;

@@ -4,7 +4,7 @@ import { useNavigationStore } from '../store/useNavigationStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDiscussionStore } from '../store/useDiscussionStore';
 import { getPostAPI, deletePostAPI, addCommentAPI, updatePostAPI, Post, Comment } from '../lib/api';
-import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare, CornerDownRight } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare, CornerDownRight, FileText, Sparkles } from 'lucide-react';
 
 export function NewsDetail() {
   const { logActivity } = useActivityLog();

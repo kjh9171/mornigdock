@@ -155,16 +155,16 @@ export function AgoraDiscussion() {
                         <h3 className="font-black text-xl text-primary-900 group-hover:text-amber-600 transition-colors truncate">
                           {post.title}
                         </h3>
-                        {post.comment_count > 0 && (
+                        {(post.comment_count ?? 0) > 0 && (
                           <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                             {post.comment_count}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-8 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                        <span className="flex items-center gap-2"><User className="w-4 h-4 text-stone-300" /> {post.author_name}</span>
+                        <span className="flex items-center gap-2"><User className="w-4 h-4 text-stone-300" /> {post.author_name ?? 'Unknown'}</span>
                         <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-stone-300" /> {new Date(post.created_at).toLocaleDateString()}</span>
-                        <span className="flex items-center gap-2"><Eye className="w-4 h-4 text-stone-300" /> {post.view_count} Views</span>
+                        <span className="flex items-center gap-2"><Eye className="w-4 h-4 text-stone-300" /> {post.view_count ?? 0} Views</span>
                       </div>
                     </div>
                     <ChevronRight className="w-8 h-8 text-stone-200 group-hover:text-amber-600 group-hover:translate-x-2 transition-all ml-8" />
