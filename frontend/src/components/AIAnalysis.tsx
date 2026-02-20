@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { useActivityLog } from '../utils/activityLogger';
 import { getPostAPI, updatePostAnalysisAPI, Post } from '../lib/api';
-import { ArrowLeft, Bot, Loader2, Sparkles, TrendingUp, CheckCircle2, ExternalLink, FileText } from 'lucide-react';
+import { ArrowLeft, Bot, Loader2, Sparkles, TrendingUp, CheckCircle2, ExternalLink, FileText, ArrowRight } from 'lucide-react';
 
 export function AIAnalysis() {
   const { selectedNewsId, setView } = useNavigationStore();
@@ -93,7 +93,7 @@ ${postItem.content.substring(0, 150)}... (생략)
         className="flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="text-sm font-medium">Back to Detail</span>
+        <span className="text-sm font-medium">Back to Intelligence Detail</span>
       </button>
 
       {/* Header */}
@@ -186,10 +186,18 @@ ${postItem.content.substring(0, 150)}... (생략)
           </div>
 
           <button
-            onClick={() => setResult(null)}
-            className="w-full py-3 text-stone-400 text-xs font-medium hover:text-stone-600 transition-colors"
+            onClick={handleBack}
+            className="w-full py-4 bg-primary-800 text-white rounded-xl font-bold text-sm hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2"
           >
-            재분석 요청 (지능 갱신)
+            기사 본문 및 아고라 토론장으로 이동
+            <ArrowRight className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => setResult(null)}
+            className="w-full py-3 text-stone-400 text-[10px] font-medium hover:text-stone-600 transition-colors"
+          >
+            지능 갱신 (재분석 요청)
           </button>
         </div>
       )}

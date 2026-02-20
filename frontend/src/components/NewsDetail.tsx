@@ -3,8 +3,8 @@ import { useActivityLog } from '../utils/activityLogger';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { useDiscussionStore } from '../store/useDiscussionStore';
-import { getPostAPI, deletePostAPI, Post } from '../lib/api';
-import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2 } from 'lucide-react';
+import { getPostAPI, deletePostAPI, addCommentAPI, updatePostAPI, Post, Comment } from '../lib/api';
+import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare } from 'lucide-react';
 
 export function NewsDetail() {
   const { logActivity } = useActivityLog();
@@ -13,45 +13,55 @@ export function NewsDetail() {
   const { startDiscussion } = useDiscussionStore();
   
   const [newsItem, setNewsItem] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [commentText, setCommentText] = useState('');
   const [editForm, setEditForm] = useState({
     title: '',
     content: '',
     source_url: ''
   });
 
-  useEffect(() => {
-    if (!selectedNewsId) {
-      setView('user');
-      return;
-    }
-
+  const loadData = async () => {
+    if (!selectedNewsId) return;
     setLoading(true);
-    getPostAPI(selectedNewsId)
-      .then(res => {
-        if (res.success && res.post) {
-          setNewsItem(res.post);
-          setEditForm({
-            title: res.post.title,
-            content: res.post.content,
-            source_url: res.post.source_url || ''
-          });
-          logActivity(`View News Detail: ${res.post.id}`);
-        } else {
-          setView('user');
-        }
-      })
-      .catch(err => {
-        console.error('Failed to fetch news:', err);
+    try {
+      const res = await getPostAPI(selectedNewsId);
+      if (res.success && res.post) {
+        setNewsItem(res.post);
+        setComments(res.comments || []);
+        setEditForm({
+          title: res.post.title,
+          content: res.post.content,
+          source_url: res.post.source_url || ''
+        });
+        logActivity(`View Integrated Intelligence: ${res.post.id}`);
+      } else {
         setView('user');
-      })
-      .finally(() => setLoading(false));
-  }, [selectedNewsId, setView, logActivity]);
+      }
+    } catch (err) {
+      console.error(err);
+      setView('user');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const canEdit = () => {
-    if (!user || !newsItem) return false;
-    return user.role === 'admin' || user.id === newsItem.author_id;
+  useEffect(() => {
+    loadData();
+  }, [selectedNewsId]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsItem || !user || !commentText.trim()) return;
+
+    const res = await addCommentAPI(newsItem.id, commentText);
+    if (res.success) {
+      setComments(prev => [...prev, res.comment]);
+      setCommentText('');
+      logActivity(`Agora Discussion Contribution: ${newsItem.id}`);
+    }
   };
 
   const handleBack = () => {
@@ -61,207 +71,169 @@ export function NewsDetail() {
 
   const handleAIAnalysis = () => {
     setView('ai-analysis');
-    logActivity(`AI Analysis Request: ${newsItem?.id}`);
-  };
-
-  const handleDiscuss = () => {
-    if (!newsItem) return;
-    
-    // 아고라 토론 연동 작전 개시
-    const draftTitle = `[토론] ${newsItem.title}`;
-    const draftContent = `위 기사(${newsItem.source})에 대한 사령부 요원들의 의견을 구합니다.\n\n원문 요약:\n${newsItem.content.substring(0, 200)}...\n\n본 토론은 지능형 보고 체계와 연동되어 기록됩니다.`;
-    
-    // Discussion Store에 초안 및 연관 ID 설정 (관리에 필수!)
-    // Note: useDiscussionStore might need related_post_id field in its draft
-    startDiscussion(draftTitle, draftContent);
-    
-    // Store에 직접 related_post_id 주입 (draft가 object이므로 확장 가능)
-    const discussionStore = useDiscussionStore.getState();
-    discussionStore.setDraft({ 
-      title: draftTitle, 
-      content: draftContent,
-      // @ts-ignore - Dynamic extension for linking
-      related_post_id: newsItem.id 
-    });
-
-    setView('user');
-    setUserTab('discussion');
-    logActivity(`Start Linked Discussion from News: ${newsItem.id}`);
-  };
-
-  const handleEdit = () => setIsEditing(true);
-
-  const handleCancelEdit = () => {
-    if (!newsItem) return;
-    setEditForm({
-      title: newsItem.title,
-      content: newsItem.content,
-      source_url: newsItem.source_url || ''
-    });
-    setIsEditing(false);
   };
 
   const handleSave = async () => {
     if (!newsItem) return;
-    
-    const res = await updatePostAPI(newsItem.id, {
-      title: editForm.title,
-      content: editForm.content,
-      source_url: editForm.source_url
-    });
-
+    const res = await updatePostAPI(newsItem.id, editForm);
     if (res.success) {
-      logActivity(`Update News Content: ${newsItem.id}`);
       setNewsItem({ ...newsItem, ...editForm });
       setIsEditing(false);
-    } else {
-      alert('수정 승인 실패. 권한을 확인하세요.');
+      logActivity(`Intelligence Correction: ${newsItem.id}`);
     }
   };
 
   const handleDelete = async () => {
     if (!newsItem) return;
-    if (!confirm('정말 이 지능물을 폐기하시겠습니까?')) return;
-
+    if (!confirm('정말 이 지능 자산을 폐기하시겠습니까?')) return;
     const res = await deletePostAPI(newsItem.id);
     if (res.success) {
-      logActivity(`Delete News: ${newsItem.id}`);
-      setView('user');
-      setUserTab('news');
+      handleBack();
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-20">
-        <Loader2 className="w-8 h-8 animate-spin text-stone-300" />
-      </div>
-    );
-  }
-
+  if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-stone-300" /></div>;
   if (!newsItem) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6">
-      {/* Back Button */}
-      <button
-        onClick={handleBack}
-        className="flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="text-sm font-medium">Back to Intelligence</span>
-      </button>
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
+      {/* Top Controls */}
+      <div className="flex justify-between items-center">
+        <button onClick={handleBack} className="flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+          <span className="text-sm font-medium">Back to List</span>
+        </button>
+        
+        <div className="flex gap-2">
+          {user?.role === 'admin' && !isEditing && (
+            <>
+              <button onClick={() => setIsEditing(true)} className="p-2 text-stone-400 hover:text-accent-600 transition-colors"><Edit className="w-5 h-5" /></button>
+              <button onClick={handleDelete} className="p-2 text-stone-400 hover:text-red-600 transition-colors"><Trash2 className="w-5 h-5" /></button>
+            </>
+          )}
+        </div>
+      </div>
 
-      {/* Article Header */}
-      <div className="bg-white rounded-2xl p-8 border border-stone-200 shadow-soft space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-primary-100 text-primary-700 text-xs font-bold tracking-wider rounded uppercase">
+      {/* Main Intelligence Card */}
+      <div className="bg-white rounded-3xl border border-stone-200 shadow-xl overflow-hidden">
+        <div className="p-8 md:p-12">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black tracking-widest rounded-full uppercase">
               {newsItem.source || 'INTEL'}
             </span>
-            {newsItem.type === 'news' && (
-              <span className="text-xs font-medium text-red-500 animate-pulse">● LIVE</span>
-            )}
+            <span className="text-[10px] font-bold text-stone-400">
+              {new Date(newsItem.created_at).toLocaleString()}
+            </span>
           </div>
-          
-          {canEdit() && !isEditing && (
-            <div className="flex gap-2">
-              <button onClick={handleEdit} className="p-2 text-stone-400 hover:text-accent-600 transition-colors"><Edit className="w-5 h-5" /></button>
-              <button onClick={handleDelete} className="p-2 text-stone-400 hover:text-red-600 transition-colors"><Trash2 className="w-5 h-5" /></button>
+
+          {isEditing ? (
+            <div className="space-y-4">
+              <input 
+                value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
+                className="w-full text-3xl font-black text-stone-900 outline-none border-b-2 border-accent-600 pb-2"
+              />
+              <textarea 
+                value={editForm.content} onChange={e => setEditForm({...editForm, content: e.target.value})}
+                rows={10} className="w-full text-lg text-stone-700 outline-none bg-stone-50 p-4 rounded-2xl"
+              />
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setIsEditing(false)} className="px-6 py-2 font-bold text-stone-400">Cancel</button>
+                <button onClick={handleSave} className="px-8 py-2 bg-accent-600 text-white rounded-xl font-bold shadow-lg">Authorize Correction</button>
+              </div>
             </div>
+          ) : (
+            <>
+              <h1 className="text-3xl md:text-4xl font-black text-stone-900 leading-tight tracking-tighter mb-8">
+                {newsItem.title}
+              </h1>
+              
+              <div className="prose prose-stone max-w-none mb-12">
+                <p className="text-lg text-stone-700 leading-relaxed whitespace-pre-wrap font-medium">
+                  {newsItem.content}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4 items-center justify-between pt-8 border-t border-stone-100">
+                {newsItem.source_url && (
+                  <a href={newsItem.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-black text-accent-600 hover:underline">
+                    <ExternalLink className="w-4 h-4" />
+                    네이버 뉴스 원문 확인
+                  </a>
+                )}
+                <button 
+                  onClick={handleAIAnalysis}
+                  className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-lg"
+                >
+                  <Bot className="w-5 h-5 text-accent-400" />
+                  지능 분석 보고서 {newsItem.ai_analysis ? '재열람' : '생성'}
+                </button>
+              </div>
+            </>
           )}
         </div>
 
-        {isEditing ? (
-          <div className="space-y-4">
-            <input
-              type="text"
-              value={editForm.title}
-              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-600 font-bold"
-            />
-            <textarea
-              value={editForm.content}
-              onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-              rows={8}
-              className="w-full px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-600"
-            />
-            <div className="flex gap-3">
-              <button onClick={handleSave} className="flex-1 py-3 bg-accent-600 text-white rounded-xl font-bold flex items-center justify-center gap-2"><Save className="w-5 h-5" />Save</button>
-              <button onClick={handleCancelEdit} className="flex-1 py-3 bg-stone-100 text-stone-600 rounded-xl font-bold flex items-center justify-center gap-2"><X className="w-5 h-5" />Cancel</button>
+        {/* AI Analysis Preview */}
+        {newsItem.ai_analysis && !isEditing && (
+          <div className="bg-stone-50 border-t border-stone-100 p-8 md:p-12">
+            <div className="flex items-center gap-2 mb-6 text-accent-700">
+              <Bot className="w-6 h-6" />
+              <h3 className="text-xl font-black tracking-tight text-primary-900 uppercase">Strategic Analysis Result</h3>
             </div>
-          </div>
-        ) : (
-          <>
-            <h1 className="text-3xl font-bold text-primary-800 leading-tight">
-              {newsItem.title}
-            </h1>
-
-            {newsItem.source_url && (
-              <a 
-                href={newsItem.source_url} 
-                target="_blank" 
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-accent-600 font-medium hover:underline decoration-accent-600 underline-offset-4"
-              >
-                <ExternalLink className="w-4 h-4" />
-                View Original Source
-              </a>
-            )}
-          </>
-        )}
-      </div>
-
-      {!isEditing && (
-        <>
-          {/* Article Content */}
-          <div className="bg-white rounded-2xl p-8 border border-stone-200 shadow-soft">
-            <div className="prose prose-stone max-w-none">
-              <p className="text-stone-700 leading-relaxed whitespace-pre-wrap">
-                {newsItem.content}
-              </p>
-            </div>
-          </div>
-
-          {/* AI Analysis Preview if exists */}
-          {newsItem.ai_analysis && (
-            <div className="bg-stone-900 rounded-2xl p-6 border border-stone-800 text-stone-300">
-              <div className="flex items-center gap-2 mb-4 text-accent-400">
-                <Bot className="w-5 h-5" />
-                <h3 className="font-bold">사령부 지능 분석 완료됨</h3>
-              </div>
-              <p className="text-xs leading-relaxed opacity-80 line-clamp-3 mb-4">
+            <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5"><Bot className="w-20 h-20" /></div>
+              <pre className="text-sm text-stone-700 whitespace-pre-wrap font-sans leading-relaxed relative z-10 italic">
                 {newsItem.ai_analysis}
-              </p>
-              <button 
-                onClick={handleAIAnalysis}
-                className="text-xs font-bold text-accent-400 hover:text-accent-300 underline"
-              >
-                보고서 전문 보기
-              </button>
+              </pre>
             </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={handleAIAnalysis}
-              className="py-4 bg-white border-2 border-stone-200 rounded-xl text-sm font-bold text-stone-700 hover:bg-stone-50 hover:border-accent-600 hover:text-accent-600 transition-all shadow-sm flex items-center justify-center gap-2"
-            >
-              <Bot className="w-5 h-5" />
-              {newsItem.ai_analysis ? '지능 보고서 확인' : 'AI 지능 분석 수행'}
-            </button>
-
-            <button
-              onClick={handleDiscuss}
-              className="py-4 bg-primary-800 text-white rounded-xl text-sm font-bold hover:bg-stone-900 transition-all shadow-lg shadow-stone-200 flex items-center justify-center gap-2"
-            >
-              <MessageSquarePlus className="w-5 h-5" />
-              아고라 토론 발제
-            </button>
           </div>
-        </>
-      )}
+        )}
+
+        {/* Integrated Agora Discussion Section */}
+        <div className="bg-stone-100/50 border-t border-stone-200 p-8 md:p-12">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-black text-stone-900 flex items-center gap-3">
+              <MessageSquare className="w-6 h-6 text-accent-600" />
+              아고라 통합 토론장 <span className="text-stone-400 text-sm font-mono">({comments.length})</span>
+            </h3>
+          </div>
+
+          {/* Comment Form */}
+          <form onSubmit={handleAddComment} className="mb-10 relative">
+            <textarea 
+              value={commentText} onChange={e => setCommentText(e.target.value)}
+              placeholder={user ? "사령부 요원으로서 당신의 전략적 견해를 남겨주세요..." : "인증된 요원만 토론에 참여할 수 있습니다."}
+              disabled={!user}
+              className="w-full p-6 bg-white border border-stone-200 rounded-3xl text-sm font-medium outline-none focus:ring-4 focus:ring-accent-600/10 transition-all pr-20 shadow-inner"
+              rows={3}
+            />
+            <button 
+              type="submit" disabled={!user || !commentText.trim()}
+              className="absolute right-4 bottom-4 p-3 bg-stone-900 text-white rounded-2xl hover:bg-black transition-all disabled:opacity-30 shadow-lg"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+
+          {/* Comment List */}
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <div className="text-center py-12 text-stone-400 font-medium italic">아직 발제된 의견이 없습니다. 첫 번째 통찰을 공유하세요.</div>
+            ) : (
+              comments.map(c => (
+                <div key={c.id} className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className={`text-[11px] font-black uppercase tracking-wider ${c.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
+                      {c.author_name} {c.author_name.includes('Admin') && '(HQ)'}
+                    </span>
+                    <span className="text-[10px] text-stone-300 font-mono italic">{new Date(c.created_at).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-sm text-stone-700 leading-relaxed font-medium">{c.content}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

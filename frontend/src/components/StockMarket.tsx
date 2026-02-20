@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStocksAPI, StockInfo } from '../lib/api';
-import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react';
 
 export function StockMarket() {
   const [stocks, setStocks] = useState<StockInfo[]>([]);
@@ -40,18 +40,28 @@ export function StockMarket() {
     return 'text-stone-500';
   };
 
+  const getNaverStockUrl = (symbol: string) => {
+    switch (symbol) {
+      case 'KOSPI': return 'https://m.stock.naver.com/domestic/index/KOSPI/total';
+      case 'KOSDAQ': return 'https://m.stock.naver.com/domestic/index/KOSDAQ/total';
+      case 'DJI': return 'https://m.stock.naver.com/world/index/.DJI';
+      case 'NASDAQ': return 'https://m.stock.naver.com/world/index/.IXIC';
+      default: return 'https://m.stock.naver.com/';
+    }
+  };
+
   return (
     <div className="w-full space-y-4 mb-8">
       {/* Header */}
       <div className="flex justify-between items-center px-2">
         <h2 className="text-lg font-bold text-primary-800 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-accent-600" />
-          Global Market Intelligence
+          Real-time Market Intelligence
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[10px] text-stone-400 font-mono">
             <Clock className="w-3 h-3" />
-            LAST UPDATE: {lastUpdated}
+            SYNC: {lastUpdated || 'CONNECTING...'}
           </div>
           <button onClick={fetchStocks} className="p-1 hover:bg-stone-100 rounded-full transition-colors">
             <RefreshCw className={`w-3 h-3 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
@@ -62,7 +72,17 @@ export function StockMarket() {
       {/* Indices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stocks.map((stock) => (
-          <div key={stock.symbol} className="bg-white rounded-2xl p-5 border border-stone-100 shadow-soft hover:shadow-md transition-all group">
+          <a 
+            key={stock.symbol} 
+            href={getNaverStockUrl(stock.symbol)}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-white rounded-2xl p-5 border border-stone-100 shadow-soft hover:border-accent-400 hover:shadow-md transition-all group relative overflow-hidden"
+          >
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ExternalLink className="w-3 h-3 text-accent-600" />
+            </div>
+            
             <div className="flex justify-between items-start mb-3">
               <div>
                 <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tighter">{stock.symbol}</span>
@@ -74,7 +94,7 @@ export function StockMarket() {
             </div>
             
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-xl font-bold text-primary-900 tracking-tight">{stock.price.toLocaleString()}</span>
+              <span className="text-xl font-bold text-primary-900 tracking-tight">{Number(stock.price).toLocaleString()}</span>
               <div className={`flex items-center text-xs font-bold ${getChangeColor(stock.change_val)}`}>
                 {getTrendIcon(stock.change_val)}
                 {Math.abs(stock.change_val).toLocaleString()}
@@ -83,7 +103,7 @@ export function StockMarket() {
             <div className={`text-xs font-medium ${getChangeColor(stock.change_val)}`}>
               {stock.change_val > 0 ? '+' : ''}{stock.change_rate}%
             </div>
-          </div>
+          </a>
         ))}
       </div>
 
@@ -102,7 +122,7 @@ export function StockMarket() {
               <h3 className="text-sm font-bold text-white uppercase tracking-widest">AI Market Strategist Briefing</h3>
               <span className="ml-auto flex items-center gap-1.5 text-[10px] font-bold text-accent-500 animate-pulse">
                 <AlertCircle className="w-3 h-3" />
-                REAL-TIME ANALYSIS ACTIVE
+                INTELLIGENCE STREAM ACTIVE
               </span>
             </div>
             
@@ -111,7 +131,7 @@ export function StockMarket() {
                 <div key={s.symbol} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-accent-500 rounded-full"></span>
-                    <span className="text-[10px] font-bold text-stone-500 uppercase">{s.name} Market Outlook</span>
+                    <span className="text-[10px] font-bold text-stone-500 uppercase">{s.name} Outlook</span>
                   </div>
                   <p className="text-xs text-stone-300 leading-relaxed font-light">
                     {s.ai_summary}
@@ -121,7 +141,7 @@ export function StockMarket() {
             </div>
             
             <div className="mt-6 pt-4 border-t border-stone-800 flex justify-between items-center">
-              <p className="text-[10px] text-stone-500 italic">This analysis is generated by CERT AI based on multi-source market vectors.</p>
+              <p className="text-[10px] text-stone-500 italic">Analysis synchronized with latest Naver Finance vectors.</p>
               <div className="text-[10px] font-mono text-accent-600 font-bold">SECURITY CLEARANCE: LEVEL 4</div>
             </div>
           </div>

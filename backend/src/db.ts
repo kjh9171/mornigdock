@@ -36,7 +36,7 @@ export async function initDB() {
         author_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         author_name VARCHAR(100) NOT NULL,
         source VARCHAR(255),
-        source_url TEXT,
+        source_url TEXT UNIQUE,
         related_video_url TEXT,
         related_audio_url TEXT,
         pinned BOOLEAN DEFAULT false,
