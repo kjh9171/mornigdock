@@ -3,7 +3,7 @@ import pool from './db'
 export const fetchStockService = async () => {
   console.log('📈 CERT: Market Intelligence Scrutiny Operation - Stock Indices...')
   
-  // 🔥 [실전 증시 타격] 주요 지수 데이터 매칭 (네이버 증시 기준 시뮬레이션 및 데이터 구조화)
+  // 🔥 [증시 4대 전선 고착] 고정 심볼을 사용하여 프론트엔드와 완벽하게 합을 맞춤
   const stockItems = [
     {
       symbol: 'KOSPI',
@@ -58,5 +58,5 @@ export const fetchStockService = async () => {
     )
   }
   
-  console.log('✅ CERT: All market indices and AI summaries are now synchronized and analyzed.')
+  console.log('✅ CERT: 4 Major Market indices are now locked and loaded in the command vault.')
 }

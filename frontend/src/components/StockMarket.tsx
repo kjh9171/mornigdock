@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStocksAPI, StockInfo } from '../lib/api';
-import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink, Activity } from 'lucide-react';
 
 export function StockMarket() {
   const [stocks, setStocks] = useState<StockInfo[]>([]);
@@ -50,57 +50,66 @@ export function StockMarket() {
     }
   };
 
+  // 🔥 [4대 천왕 고정 작전] 무조건 4개의 카드를 보여주기 위한 정렬 및 매칭
+  const targetSymbols = ['KOSPI', 'KOSDAQ', 'DJI', 'NASDAQ'];
+  const displayStocks = targetSymbols.map(symbol => {
+    const found = stocks.find(s => s.symbol === symbol);
+    return found || { symbol, name: symbol, price: 0, change_val: 0, change_rate: 0, market_status: 'WAITING', ai_summary: '데이터 수신 대기 중...' };
+  });
+
   return (
-    <div className="w-full space-y-4 mb-8">
+    <div className="w-full space-y-4 mb-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex justify-between items-center px-2">
-        <h2 className="text-lg font-bold text-primary-800 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-accent-600" />
-          Real-time Market Intelligence
+        <h2 className="text-lg font-black text-primary-800 flex items-center gap-2 uppercase tracking-tighter">
+          <Activity className="w-5 h-5 text-accent-600" />
+          Global Strategic Market Monitor
         </h2>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-[10px] text-stone-400 font-mono">
+          <div className="flex items-center gap-1.5 text-[10px] text-stone-400 font-mono font-bold">
             <Clock className="w-3 h-3" />
-            SYNC: {lastUpdated || 'CONNECTING...'}
+            LIVE_SYNC: {lastUpdated || 'CONNECTING...'}
           </div>
-          <button onClick={fetchStocks} className="p-1 hover:bg-stone-100 rounded-full transition-colors">
-            <RefreshCw className={`w-3 h-3 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
+          <button onClick={fetchStocks} className="p-1.5 hover:bg-stone-100 rounded-full transition-all border border-stone-100">
+            <RefreshCw className={`w-3.5 h-3.5 text-stone-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Indices Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {stocks.map((stock) => (
+      {/* Indices Grid - Always 4 items */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {displayStocks.map((stock) => (
           <a 
             key={stock.symbol} 
             href={getNaverStockUrl(stock.symbol)}
             target="_blank"
             rel="noreferrer"
-            className="bg-white rounded-2xl p-5 border border-stone-100 shadow-soft hover:border-accent-400 hover:shadow-md transition-all group relative overflow-hidden"
+            className="bg-white rounded-[2rem] p-6 border border-stone-200 shadow-soft hover:border-accent-400 hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
           >
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <ExternalLink className="w-3 h-3 text-accent-600" />
+            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ExternalLink className="w-4 h-4 text-accent-600" />
             </div>
             
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-tighter">{stock.symbol}</span>
-                <h3 className="text-sm font-bold text-primary-800">{stock.name}</h3>
+                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{stock.symbol}</span>
+                <h3 className="text-base font-black text-primary-900">{stock.name}</h3>
               </div>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${stock.market_status === 'OPEN' ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${stock.market_status === 'OPEN' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-stone-50 text-stone-400 border-stone-100'}`}>
                 {stock.market_status}
               </span>
             </div>
             
             <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-xl font-bold text-primary-900 tracking-tight">{Number(stock.price).toLocaleString()}</span>
-              <div className={`flex items-center text-xs font-bold ${getChangeColor(stock.change_val)}`}>
+              <span className="text-2xl font-black text-primary-950 tracking-tighter">
+                {stock.price > 0 ? Number(stock.price).toLocaleString() : '---'}
+              </span>
+              <div className={`flex items-center text-xs font-black ${getChangeColor(stock.change_val)}`}>
                 {getTrendIcon(stock.change_val)}
-                {Math.abs(stock.change_val).toLocaleString()}
+                {stock.change_val !== 0 ? Math.abs(stock.change_val).toLocaleString() : ''}
               </div>
             </div>
-            <div className={`text-xs font-medium ${getChangeColor(stock.change_val)}`}>
+            <div className={`text-xs font-bold ${getChangeColor(stock.change_val)}`}>
               {stock.change_val > 0 ? '+' : ''}{stock.change_rate}%
             </div>
           </a>
@@ -109,40 +118,43 @@ export function StockMarket() {
 
       {/* AI Market Summary */}
       {stocks.length > 0 && (
-        <div className="bg-stone-900 rounded-2xl p-6 border border-stone-800 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-8 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700">
-            <Bot className="w-32 h-32" />
+        <div className="bg-stone-900 rounded-[2.5rem] p-8 border border-stone-800 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-10 opacity-5 -rotate-12 group-hover:rotate-0 transition-transform duration-700">
+            <Bot className="w-40 h-40 text-white" />
           </div>
           
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-accent-600 rounded-lg">
-                <Bot className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-accent-600 rounded-xl shadow-lg shadow-accent-600/20">
+                <Bot className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-widest">AI Market Strategist Briefing</h3>
-              <span className="ml-auto flex items-center gap-1.5 text-[10px] font-bold text-accent-500 animate-pulse">
+              <div>
+                <h3 className="text-sm font-black text-white uppercase tracking-widest">AI Market Strategist Briefing</h3>
+                <p className="text-[9px] text-stone-500 font-bold uppercase tracking-widest">Global Vector Intelligence Active</p>
+              </div>
+              <span className="ml-auto flex items-center gap-1.5 text-[10px] font-black text-accent-500 animate-pulse bg-accent-500/5 px-3 py-1 rounded-full border border-accent-500/20">
                 <AlertCircle className="w-3 h-3" />
-                INTELLIGENCE STREAM ACTIVE
+                INTELLIGENCE_STREAM_LOCKED
               </span>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {stocks.filter(s => s.symbol === 'KOSPI' || s.symbol === 'NASDAQ').map(s => (
-                <div key={s.symbol} className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {displayStocks.filter(s => s.symbol === 'KOSPI' || s.symbol === 'NASDAQ').map(s => (
+                <div key={s.symbol} className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-accent-500 rounded-full"></span>
-                    <span className="text-[10px] font-bold text-stone-500 uppercase">{s.name} Outlook</span>
+                    <span className="w-2 h-2 bg-accent-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                    <span className="text-[11px] font-black text-stone-400 uppercase tracking-tight">{s.name} Strategic Outlook</span>
                   </div>
-                  <p className="text-xs text-stone-300 leading-relaxed font-light">
-                    {s.ai_summary}
+                  <p className="text-sm text-stone-200 leading-relaxed font-medium italic">
+                    "{s.ai_summary}"
                   </p>
                 </div>
               ))}
             </div>
             
-            <div className="mt-6 pt-4 border-t border-stone-800 flex justify-between items-center">
-              <p className="text-[10px] text-stone-500 italic">Analysis synchronized with latest Naver Finance vectors.</p>
-              <div className="text-[10px] font-mono text-accent-600 font-bold">SECURITY CLEARANCE: LEVEL 4</div>
+            <div className="mt-8 pt-6 border-t border-stone-800/50 flex justify-between items-center">
+              <p className="text-[10px] text-stone-600 font-bold italic uppercase tracking-tighter">Analysis synchronized with latest HQ market vectors.</p>
+              <div className="text-[10px] font-mono text-accent-600 font-black tracking-widest bg-accent-600/5 px-3 py-1 rounded-md border border-accent-600/10">SECURITY CLEARANCE: LEVEL 4</div>
             </div>
           </div>
         </div>
