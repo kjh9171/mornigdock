@@ -7,10 +7,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 
 interface Props {
-  newsId: number;
+  newsId?: number;
+  postId?: number;
 }
 
-export default function CommentSection({ newsId }: Props) {
+export default function CommentSection({ newsId, postId }: Props) {
   const { user, isAuthenticated } = useAuthStore();
   const { t, i18n } = useTranslation();
   const [comments, setComments]   = useState<Comment[]>([]);
@@ -23,20 +24,19 @@ export default function CommentSection({ newsId }: Props) {
 
   const load = async () => {
     try {
-      const res = await api.get('/comments', { params: { newsId } });
+      const res = await api.get('/comments', { params: { newsId, postId } });
       setComments(res.data.data || []);
     } catch { setComments([]); } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [newsId]);
+  useEffect(() => { load(); }, [newsId, postId]);
 
   const submit = async (e: React.FormEvent, parentId: number | null = null) => {
     e.preventDefault();
-    const text = parentId ? content : content;
-    if (!text.trim()) return;
+    if (!content.trim()) return;
     setSending(true);
     try {
-      const res = await addCommentAPI(newsId, text.trim(), parentId);
+      const res = await addCommentAPI(newsId || null, postId || null, content.trim(), parentId);
       if (res.success) {
         setContent(''); setReplyTo(null);
         await load();
@@ -73,11 +73,11 @@ export default function CommentSection({ newsId }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-agora-gold uppercase">
-                {comment.author_name.charAt(0)}
+                {comment.author_name?.charAt(0) || 'U'}
               </div>
               <div className="flex flex-col">
-                <span className={`text-[11px] font-black uppercase tracking-tight ${comment.author_name.includes('Admin') ? 'text-agora-gold' : 'text-white'}`}>
-                  {comment.author_name} {comment.author_name.includes('Admin') && ' (HQ)'}
+                <span className={`text-[11px] font-black uppercase tracking-tight ${comment.author_name?.includes('Admin') ? 'text-agora-gold' : 'text-white'}`}>
+                  {comment.author_name || 'Anonymous'} {comment.author_name?.includes('Admin') && ' (HQ)'}
                 </span>
                 <span className="text-[9px] font-bold text-white/20 uppercase tracking-tighter">
                   {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: i18n.language === 'ko' ? ko : enUS })}
@@ -171,7 +171,6 @@ export default function CommentSection({ newsId }: Props) {
 
       {isAuthenticated && !replyTo && (
         <form onSubmit={(e) => submit(e)} className="relative mt-12 group">
-          <div className="absolute inset-0 bg-agora-gold/5 blur-2xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
           <textarea 
             className="relative w-full p-8 bg-white/5 border border-white/10 rounded-[2.5rem] text-sm font-bold text-white outline-none focus:bg-white/[0.08] focus:border-agora-gold/30 transition-all pr-24 shadow-2xl placeholder:text-white/10"
             placeholder={t('write_comment')}

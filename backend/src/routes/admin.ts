@@ -141,4 +141,16 @@ admin.put('/settings', adminOnly, async (c) => {
   return c.json({ success: true, message: '설정이 저장되었습니다.' });
 });
 
+// ─── GET /admin/news ──────────────────────────────────────────────────────────
+admin.get('/news', adminOnly, async (c) => {
+  const result = await query('SELECT * FROM news ORDER BY published_at DESC');
+  return c.json({ success: true, data: result.rows });
+});
+
+// ─── GET /admin/posts ─────────────────────────────────────────────────────────
+admin.get('/posts', adminOnly, async (c) => {
+  const result = await query('SELECT * FROM posts ORDER BY created_at DESC');
+  return c.json({ success: true, data: result.rows });
+});
+
 export default admin;

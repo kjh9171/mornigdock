@@ -61,7 +61,7 @@ export function NewsDetail() {
     const text = parentId ? replyText : commentText;
     if (!text.trim()) return;
 
-    const res = await addCommentAPI(newsItem.id, text, parentId);
+    const res = await addCommentAPI(newsItem.id, null, text, parentId);
     if (res.success) {
       setComments(prev => [...prev, res.comment]);
       if (parentId) {
