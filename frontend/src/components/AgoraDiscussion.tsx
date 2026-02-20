@@ -1,304 +1,228 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useActivityLog } from '../utils/activityLogger';
-import { useDiscussionStore } from '../store/useDiscussionStore';
-import { getPostsAPI, getPostAPI, createPostAPI, addCommentAPI, Post, Comment } from '../lib/api';
-import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon, ChevronRight, Eye } from 'lucide-react';
+import { useNavigationStore } from '../store/useNavigationStore';
+import { getPostsAPI, createPostAPI, Post } from '../lib/api';
+import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link as LinkIcon, ChevronRight, Eye, Search, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react';
+
+const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타', '뉴스 분석'];
 
 export function AgoraDiscussion() {
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
-  const { view: storeView, setView: setStoreView, draft, setDraft } = useDiscussionStore();
+  const { setView, setSelectedNewsId } = useNavigationStore();
   
-  const [view, setView] = useState<'list' | 'detail' | 'write'>('list');
+  const [internalView, setInternalView] = useState<'list' | 'write'>('list');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
+  const [category, setCategory] = useState('전체');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   // Form States
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [commentText, setCommentText] = useState('');
-
-  // Sync with Store for "Draft Mode"
-  useEffect(() => {
-    if (storeView === 'write' && draft) {
-      setView('write');
-      setTitle(draft.title);
-      setContent(draft.content);
-    }
-  }, [storeView, draft]);
 
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      const res = await getPostsAPI({ type: 'board', limit: 20 });
-      if (res.success) setPosts(res.posts);
+      const params: Record<string, string | number> = { page, limit: 15 };
+      
+      if (category === '뉴스 분석') {
+        params.type = 'news';
+      } else if (category === '전체') {
+        params.type = ''; 
+      } else {
+        params.type = 'board';
+        params.category = category;
+      }
+
+      const res = await getPostsAPI(params);
+      if (res.success) {
+        setPosts(res.posts);
+        setPagination(res.pagination);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('CERT BOARD FETCH ERROR:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (view === 'list') fetchPosts();
-  }, [view]);
+    if (internalView === 'list') fetchPosts();
+  }, [internalView, category, page]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      alert('요원 인증 정보가 없습니다. 다시 로그인해 주세요.');
-      return;
-    }
+    if (!user) return;
 
     try {
-      // @ts-ignore
-      const relatedId = (draft as any)?.related_post_id;
-      
       const res = await createPostAPI({ 
         title, 
         content, 
         type: 'board', 
-        category: '자유',
-        related_post_id: relatedId 
+        category: '자유'
       });
       
       if (res.success) {
         logActivity(`Create Agora Post: ${title}`);
         setTitle('');
         setContent('');
-        setView('list');
-        setDraft(null);
-        setStoreView('list');
+        setInternalView('list');
+        setPage(1);
         fetchPosts();
-      } else {
-        alert(res.message || '게시글 작성에 실패했습니다.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('서버 통신 중 오류가 발생했습니다.');
-    }
-  };
-
-  const handlePostClick = async (post: Post) => {
-    setSelectedPost(post);
-    setView('detail');
-    logActivity(`Read Agora Post: ${post.id}`);
-    
-    try {
-      const res = await getPostAPI(post.id);
-      if (res.success) {
-        setSelectedPost(res.post);
-        setComments(res.comments);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPost || !user || !commentText.trim()) return;
-
-    try {
-      const res = await addCommentAPI(selectedPost.id, commentText);
-      if (res.success) {
-        setComments(prev => [...prev, res.comment]);
-        setCommentText('');
-        logActivity(`Comment on Agora Post: ${selectedPost.id}`);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handlePostClick = (post: Post) => {
+    logActivity(`Enter Strategic Discussion: ${post.id}`);
+    setSelectedNewsId(post.id);
+    setView('news-detail'); 
   };
 
   return (
-    <div className="w-full max-w-full min-h-[600px] animate-in fade-in duration-500">
-      <div className="flex justify-between items-center mb-8 px-2">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-          <h2 className="text-2xl font-black text-primary-800 flex items-center gap-3 uppercase tracking-tighter">
-            <MessageSquare className="w-7 h-7 text-accent-600" />
-            Agora Discussion
+          <h2 className="text-3xl font-black text-primary-950 uppercase tracking-tighter flex items-center gap-3">
+            <MessageSquare className="w-8 h-8 text-amber-600" />
+            Agora Strategic Discussion
           </h2>
-          <p className="text-sm text-stone-400 font-bold mt-1 uppercase tracking-widest">Public Intelligence Sharing Forum</p>
+          <p className="text-sm text-stone-400 font-bold mt-1 uppercase tracking-widest">Unified Knowledge & Intelligence Exchange</p>
         </div>
-        {view === 'list' && (
+        
+        {internalView === 'list' && (
           <button 
-            onClick={() => setView('write')}
-            className="flex items-center gap-2 px-6 py-3 bg-stone-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl"
+            onClick={() => setInternalView('write')}
+            className="flex items-center gap-2 px-8 py-3.5 bg-stone-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl"
           >
             <PenSquare className="w-4 h-4" />
-            New Post
+            New Insight
           </button>
         )}
-        {view !== 'list' && (
+        {internalView !== 'list' && (
           <button 
-            onClick={() => {
-              setView('list');
-              setDraft(null);
-              setStoreView('list');
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-white text-stone-600 border-2 border-stone-100 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-stone-50 transition-all"
+            onClick={() => setInternalView('list')}
+            className="flex items-center gap-2 px-8 py-3.5 bg-white text-stone-600 border-2 border-stone-100 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-stone-50 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Archive
+            Back to Plaza
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-stone-100 overflow-hidden min-h-[500px]">
-        {/* List View */}
-        {view === 'list' && (
-          <div className="divide-y divide-stone-50">
-            {loading ? (
-              <div className="flex justify-center p-20"><Loader2 className="w-10 h-10 animate-spin text-accent-600" /></div>
-            ) : posts.length === 0 ? (
-              <div className="text-center p-32">
-                <MessageSquare className="w-16 h-16 text-stone-100 mx-auto mb-4" />
-                <p className="text-stone-400 font-black uppercase tracking-widest">No Active Intelligence Discussions</p>
-              </div>
-            ) : (
-              posts.map(post => (
-                <div 
-                  key={post.id} 
-                  onClick={() => handlePostClick(post)}
-                  className="p-8 hover:bg-stone-50/50 transition-all cursor-pointer group flex items-center justify-between"
+      <div className="bg-white rounded-[3rem] shadow-2xl border border-stone-100 overflow-hidden min-h-[600px]">
+        {internalView === 'list' && (
+          <>
+            <div className="flex border-b border-stone-50 bg-stone-50/30 overflow-x-auto no-scrollbar">
+              {BOARD_CATEGORIES.map(cat => (
+                <button 
+                  key={cat} 
+                  onClick={() => { setCategory(cat); setPage(1); }} 
+                  className={`px-8 py-5 text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b-4 whitespace-nowrap ${category === cat ? 'border-amber-600 text-amber-600 bg-white' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="px-2 py-0.5 bg-stone-100 text-stone-500 text-[10px] font-black rounded uppercase tracking-tighter">
-                        {post.category || '자유'}
-                      </span>
-                      {post.related_post_id && (
-                        <span className="flex items-center gap-1 text-[10px] font-black text-accent-600 bg-accent-50 px-2 py-0.5 rounded uppercase tracking-tighter">
-                          <LinkIcon className="w-3 h-3" /> INTEL_LINKED
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-black text-xl text-primary-900 group-hover:text-accent-600 transition-colors leading-tight mb-3 truncate">
-                      {post.title}
-                    </h3>
-                    <div className="flex items-center gap-6 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                      <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{post.author_name}</span>
-                      <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{new Date(post.created_at).toLocaleDateString()}</span>
-                      <span className="flex items-center gap-1.5 text-accent-600"><MessageSquare className="w-3.5 h-3.5" />{post.comment_count || 0} Comments</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-6 h-6 text-stone-200 group-hover:text-accent-600 group-hover:translate-x-1 transition-all ml-8" />
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="divide-y divide-stone-50">
+              {loading ? (
+                <div className="flex justify-center p-40"><Loader2 className="w-12 h-12 animate-spin text-amber-600" /></div>
+              ) : posts.length === 0 ? (
+                <div className="text-center p-40">
+                  <MessageSquare className="w-20 h-20 text-stone-100 mx-auto mb-6" />
+                  <p className="text-stone-400 font-black uppercase tracking-widest">The Plaza is currently silent. Awaiting your insight.</p>
                 </div>
-              ))
+              ) : (
+                posts.map(post => (
+                  <div 
+                    key={post.id} 
+                    onClick={() => handlePostClick(post)}
+                    className="p-8 hover:bg-stone-50/50 transition-all cursor-pointer group flex items-center justify-between"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${post.type === 'news' ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+                          {post.type === 'news' ? 'INTEL' : post.category}
+                        </span>
+                        <h3 className="font-black text-xl text-primary-900 group-hover:text-amber-600 transition-colors truncate">
+                          {post.title}
+                        </h3>
+                        {post.comment_count > 0 && (
+                          <span className="text-xs font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                            {post.comment_count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-8 text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                        <span className="flex items-center gap-2"><User className="w-4 h-4 text-stone-300" /> {post.author_name}</span>
+                        <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-stone-300" /> {new Date(post.created_at).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-2"><Eye className="w-4 h-4 text-stone-300" /> {post.view_count} Views</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-8 h-8 text-stone-200 group-hover:text-amber-600 group-hover:translate-x-2 transition-all ml-8" />
+                  </div>
+                ))
+              )}
+            </div>
+
+            {pagination.totalPages > 1 && (
+              <div className="p-8 bg-stone-50/30 border-t border-stone-50 flex justify-center items-center gap-4">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="p-3 rounded-xl bg-white border border-stone-200 text-stone-400 hover:text-amber-600 disabled:opacity-30 transition-all shadow-sm"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="text-xs font-black text-stone-500 uppercase tracking-widest">
+                  Page {page} of {pagination.totalPages}
+                </span>
+                <button 
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} 
+                  disabled={page === pagination.totalPages}
+                  className="p-3 rounded-xl bg-white border border-stone-200 text-stone-400 hover:text-amber-600 disabled:opacity-30 transition-all shadow-sm"
+                >
+                  <ChevronRightIcon className="w-5 h-5" />
+                </button>
+              </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Write View */}
-        {view === 'write' && (
-          <form onSubmit={handleCreatePost} className="p-12 space-y-8 animate-in slide-in-from-bottom-4">
-            {draft && (
-              <div className="p-4 bg-accent-50 text-accent-700 text-xs font-black rounded-2xl border-2 border-accent-100 flex items-center gap-3">
-                <LinkIcon className="w-4 h-4" />
-                INTELLIGENCE SOURCE DRAFT LOADED
-              </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] ml-1">Operational Topic</label>
+        {internalView === 'write' && (
+          <form onSubmit={handleCreatePost} className="p-12 space-y-10 animate-in slide-in-from-bottom-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Strategic Topic</label>
               <input 
-                type="text" 
-                required 
-                className="w-full p-5 bg-stone-50 border-2 border-transparent focus:border-accent-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-900 text-lg"
-                placeholder="What is the mission objective?"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
+                required
+                value={title} onChange={e => setTitle(e.target.value)}
+                className="w-full p-6 bg-stone-50 border-2 border-transparent focus:border-amber-600/20 rounded-[1.5rem] outline-none transition-all font-black text-primary-950 text-2xl"
+                placeholder="Define your mission objective..."
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] ml-1">Intelligence Content</label>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] ml-1">Intelligence Content</label>
               <textarea 
-                required 
-                rows={10}
-                className="w-full p-8 bg-stone-50 border-2 border-transparent focus:border-accent-600/20 rounded-[2rem] outline-none transition-all font-medium text-primary-800 leading-relaxed resize-none"
-                placeholder="Detail your strategic insights..."
-                value={content}
-                onChange={e => setContent(e.target.value)}
+                required
+                rows={12}
+                value={content} onChange={e => setContent(e.target.value)}
+                className="w-full p-10 bg-stone-50 border-2 border-transparent focus:border-amber-600/20 rounded-[2.5rem] outline-none transition-all font-medium text-primary-900 leading-relaxed text-lg resize-none"
+                placeholder="Share your detailed tactical analysis..."
               />
             </div>
             <button 
               type="submit" 
-              className="w-full py-5 bg-accent-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:bg-accent-700 transition-all shadow-2xl shadow-accent-600/20 text-sm"
+              className="w-full py-6 bg-amber-600 text-white rounded-[2rem] font-black uppercase tracking-widest hover:bg-amber-700 transition-all shadow-2xl shadow-amber-600/30 text-lg"
             >
-              Authorize & Publish to Agora
+              Publish Strategic Insight
             </button>
           </form>
-        )}
-
-        {/* Detail View */}
-        {view === 'detail' && selectedPost && (
-          <div className="animate-in fade-in duration-500">
-            <div className="p-12 border-b border-stone-50 bg-gradient-to-br from-stone-50/50 to-white">
-              {selectedPost.related_post_id && (
-                <div className="mb-6">
-                  <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border-2 border-accent-100 text-accent-700 text-[10px] font-black rounded-full uppercase tracking-widest shadow-sm">
-                    <LinkIcon className="w-3.5 h-3.5" />
-                    Linked Intel: {selectedPost.related_post_title || 'SECURE_SOURCE_' + selectedPost.related_post_id}
-                  </span>
-                </div>
-              )}
-              <h2 className="text-3xl font-black text-primary-950 leading-tight tracking-tighter mb-6">{selectedPost.title}</h2>
-              <div className="flex items-center gap-6 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                <span className="bg-stone-900 text-white px-3 py-1 rounded-md">{selectedPost.author_name}</span>
-                <span>{new Date(selectedPost.created_at).toLocaleString()}</span>
-                <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" />{selectedPost.view_count} Views</span>
-              </div>
-            </div>
-            
-            <div className="p-12 min-h-[250px] text-lg text-primary-900 leading-relaxed font-medium whitespace-pre-wrap">
-              {selectedPost.content}
-            </div>
-
-            {/* Comments Section */}
-            <div className="bg-stone-50/50 border-t border-stone-100 p-12">
-              <h4 className="text-sm font-black text-stone-900 mb-8 flex items-center gap-3 uppercase tracking-widest">
-                <MessageSquare className="w-5 h-5 text-accent-600" /> Operational Feedback ({comments.length})
-              </h4>
-              
-              <div className="space-y-6 mb-12">
-                {comments.length === 0 ? (
-                  <p className="text-center py-12 text-stone-300 font-bold italic uppercase tracking-widest">No Strategic Input Yet</p>
-                ) : (
-                  comments.map(comment => (
-                    <div key={comment.id} className="bg-white p-6 rounded-[1.5rem] border border-stone-100 shadow-sm hover:shadow-md transition-all">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${comment.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
-                          {comment.author_name} {comment.author_name.includes('Admin') && '(HQ)'}
-                        </span>
-                        <span className="text-[9px] text-stone-300 font-mono">{new Date(comment.created_at).toLocaleTimeString()}</span>
-                      </div>
-                      <p className="text-sm text-stone-700 font-bold leading-relaxed">{comment.content}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <form onSubmit={handleAddComment} className="flex gap-3">
-                <input 
-                  type="text" 
-                  className="flex-1 p-5 bg-white border-2 border-stone-100 rounded-[1.25rem] outline-none focus:border-accent-600/20 transition-all text-sm font-bold"
-                  placeholder="Share your strategic feedback..."
-                  value={commentText}
-                  onChange={e => setCommentText(e.target.value)}
-                />
-                <button 
-                  type="submit" 
-                  disabled={!commentText.trim()}
-                  className="p-5 bg-stone-900 text-white rounded-[1.25rem] hover:bg-black transition-all shadow-xl disabled:opacity-30"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </form>
-            </div>
-          </div>
         )}
       </div>
     </div>
