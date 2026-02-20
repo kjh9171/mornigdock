@@ -96,14 +96,14 @@ export default function NewsPage() {
       {/* ── 헤더 ── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">인텔리전스 피드</h1>
-          <p className="text-agora-muted text-sm mt-0.5">실시간 글로벌 정보 수집 센터</p>
+          <h1 className="text-xl font-bold">최신 뉴스</h1>
+          <p className="text-agora-muted text-sm mt-0.5">실시간으로 수집된 주요 뉴스 정보</p>
         </div>
         {canModerate && (
           <button onClick={handleFetch} disabled={fetching}
             className="btn-primary flex items-center gap-2 text-sm">
             {fetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-            최신 수집
+            뉴스 수집하기
           </button>
         )}
       </div>
@@ -198,9 +198,9 @@ export default function NewsPage() {
                   {/* 액션 바 */}
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-xs text-agora-muted">
-                      {item.published_at
+                      {item.published_at && !isNaN(new Date(item.published_at).getTime())
                         ? formatDistanceToNow(new Date(item.published_at), { addSuffix: true, locale: ko })
-                        : ''}
+                        : '최근'}
                     </span>
                     <button className="text-xs text-agora-muted hover:text-agora-text flex items-center gap-1 transition-colors"
                       onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>

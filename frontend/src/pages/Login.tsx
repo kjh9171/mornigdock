@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false);
   const [qrCode, setQrCode] = useState('');
 
-  // 이미 로그인된 경우 메인으로 튕겨냄
+  // 이미 로그인된 경우 메인으로 리다이렉트
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/news');
@@ -72,10 +72,10 @@ export default function LoginPage() {
             <ShieldCheck className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-3xl font-black text-stone-900 tracking-tighter uppercase">
-              {isSignup ? 'Initialize Unit' : 'Secure Access'}
+              {isSignup ? '계정 생성' : '로그인'}
           </h2>
           <p className="text-stone-400 mt-2 text-xs font-bold uppercase tracking-widest">
-              {isSignup ? 'Register for Intelligence Core' : 'Enter credentials for Agora V2'}
+              {isSignup ? '아고라 서비스 이용을 위한 계정 등록' : '서비스 이용을 위해 로그인해 주세요'}
           </p>
         </div>
 
@@ -84,13 +84,13 @@ export default function LoginPage() {
                onClick={() => { setIsSignup(false); setStep('info'); setError(''); }} 
                className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${!isSignup ? 'bg-white text-primary-900 shadow-lg' : 'text-stone-400 hover:text-stone-600'}`}
             >
-                Login
+                로그인
             </button>
             <button 
                onClick={() => { setIsSignup(true); setStep('info'); setError(''); }} 
                className={`flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${isSignup ? 'bg-white text-primary-900 shadow-lg' : 'text-stone-400 hover:text-stone-600'}`}
             >
-                Sign Up
+                회원가입
             </button>
         </div>
 
@@ -106,29 +106,29 @@ export default function LoginPage() {
             <>
               {isSignup && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Full Identity</label>
+                  <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">성함</label>
                   <input
                     type="text" required value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-5 py-4 bg-stone-50 border-2 border-transparent focus:border-primary-900/10 rounded-2xl outline-none transition-all font-bold text-stone-800"
-                    placeholder="HONG GIL DONG"
+                    placeholder="홍길동"
                   />
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Comm Link (Email)</label>
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">이메일 주소</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300" />
                   <input
                     type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-12 pr-5 py-4 bg-stone-50 border-2 border-transparent focus:border-primary-900/10 rounded-2xl outline-none transition-all font-bold text-stone-800"
-                    placeholder="agent@agora.com"
+                    placeholder="example@agora.com"
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Access Code (Password)</label>
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">비밀번호</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-300" />
                   <input
@@ -144,12 +144,12 @@ export default function LoginPage() {
             <div className="text-center space-y-6">
               {isSignup && qrCode && (
                 <div className="p-6 bg-white border border-stone-100 rounded-[2rem] shadow-xl inline-block">
-                  <p className="text-[10px] text-stone-400 mb-4 font-black uppercase tracking-widest">Scan Tactical QR</p>
+                  <p className="text-[10px] text-stone-400 mb-4 font-black uppercase tracking-widest">QR 코드 스캔</p>
                   <QRCodeSVG value={qrCode} size={180} />
                 </div>
               )}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Secondary Auth Code (OTP)</label>
+                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">2차 인증 코드 (OTP)</label>
                 <input
                   type="text" required maxLength={6} value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
@@ -166,7 +166,7 @@ export default function LoginPage() {
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
               <>
-                {step === 'info' ? (isSignup ? 'Initialize Unit' : 'Authorize Login') : 'Verify & Execute'}
+                {step === 'info' ? (isSignup ? '계정 생성' : '로그인') : '인증 및 로그인'}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-amber-500" />
               </>
             )}
@@ -174,7 +174,7 @@ export default function LoginPage() {
           
           {step === 'otp' && (
             <button type="button" onClick={() => setStep('info')} className="w-full text-[10px] font-black text-stone-400 uppercase tracking-widest hover:text-stone-600">
-              Back to Primary Auth
+              이전 단계로 돌아가기
             </button>
           )}
         </form>

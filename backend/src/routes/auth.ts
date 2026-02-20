@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import * as pkg from 'otplib';
-const { authenticator } = pkg;
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { authenticator } = require('otplib');
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import { query, transaction } from '../db/pool.js';

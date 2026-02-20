@@ -8,9 +8,9 @@ export default function Layout() {
   const navigate  = useNavigate();
 
   const nav = [
-    { path: '/news',  label: '인텔리전스', icon: Newspaper },
+    { path: '/news',  label: '뉴스 피드', icon: Newspaper },
     { path: '/media', label: '미디어 센터', icon: Tv },
-    ...(user?.role === 'admin' ? [{ path: '/admin', label: '관제실', icon: Shield }] : []),
+    ...(user?.role === 'admin' ? [{ path: '/admin', label: '관리자', icon: Shield }] : []),
   ];
 
   const handleLogout = async () => {
