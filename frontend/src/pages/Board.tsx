@@ -62,8 +62,7 @@ export default function Board() {
   const changeCategory = (cat: string) => { setCategory(cat); setPage(1) }
 
   const handlePostClick = (post: Post) => {
-    if (post.type === 'news') navigate(`/news/${post.id}`)
-    else navigate(`/board/${post.id}`)
+    navigate(`/board/${post.id}`)
   }
 
   return (
