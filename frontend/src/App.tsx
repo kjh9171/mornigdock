@@ -10,7 +10,7 @@ function App() {
   const { t } = useTranslation();
   const { toggleLanguage, language } = useLanguageStore();
   const { user, logout, isAuthenticated } = useAuth();
-  const { view, setView } = useNavigationStore();
+  const { view, setView, userTab, setUserTab } = useNavigationStore();
   const navigate = useNavigate();
   const location = useLocation();
 
