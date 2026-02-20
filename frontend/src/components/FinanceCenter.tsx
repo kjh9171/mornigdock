@@ -37,8 +37,8 @@ export function FinanceCenter() {
               <Activity className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">NPay Strategic Center</h1>
-              <p className="text-xs text-stone-500 font-bold uppercase tracking-widest mt-2">Real-time Market Intelligence Node</p>
+              <h1 className="text-4xl font-black tracking-tighter uppercase leading-none">NPay 증시 분석 센터</h1>
+              <p className="text-xs text-stone-500 font-bold uppercase tracking-widest mt-2">실시간 시장 데이터 통합 노드</p>
             </div>
           </div>
           <p className="text-stone-300 font-medium max-w-2xl leading-relaxed text-lg">

@@ -56,14 +56,14 @@ export function StockMarket() {
         <div>
           <h2 className="text-4xl font-black text-primary-950 uppercase tracking-tighter flex items-center gap-4">
             <Activity className="w-10 h-10 text-amber-600 animate-pulse" />
-            Strategic Market Command
+            증시 통합 관제소
           </h2>
-          <p className="text-sm text-stone-400 font-bold mt-2 uppercase tracking-[0.3em] ml-1">Real-time Intelligence Node & Research Feed</p>
+          <p className="text-sm text-stone-400 font-bold mt-2 uppercase tracking-[0.3em] ml-1">실시간 시장 분석 및 리서치 피드</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-[10px] text-stone-400 font-mono font-black bg-white px-5 py-2.5 rounded-2xl border border-stone-100 shadow-sm">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            SYNC_STATUS: {lastUpdated || 'FETCHING...'}
+            동기화 상태: {lastUpdated || '데이터 수신 중...'}
           </div>
           <button onClick={fetchData} className="p-3 bg-white hover:bg-stone-50 rounded-2xl transition-all border border-stone-100 shadow-sm active:scale-95 group">
             <RefreshCw className={`w-5 h-5 text-stone-400 group-hover:text-amber-600 ${loading ? 'animate-spin' : ''}`} />
@@ -107,7 +107,7 @@ export function StockMarket() {
       <div className="space-y-6">
         <div className="flex items-center gap-3 px-4">
           <FileText className="w-6 h-6 text-amber-600" />
-          <h3 className="text-xl font-black text-primary-950 uppercase tracking-widest">Intelligence Research Feed</h3>
+          <h3 className="text-xl font-black text-primary-950 uppercase tracking-widest">실시간 증시 리서치 뉴스</h3>
           <div className="flex-1 h-[2px] bg-gradient-to-r from-stone-100 to-transparent ml-4"></div>
         </div>
 
