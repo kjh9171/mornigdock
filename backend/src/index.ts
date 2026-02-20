@@ -19,7 +19,7 @@ app.use('*', logger())
 
 app.use('*', cors({
   origin: (origin) => {
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) return origin;
     return 'http://localhost:5173';
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

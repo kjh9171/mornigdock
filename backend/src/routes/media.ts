@@ -1,19 +1,9 @@
 import { Hono } from 'hono'
 import pool from '../db'
 import { authMiddleware, adminMiddleware } from '../middleware/auth'
+import { logActivity } from '../utils/logger'
 
 export const mediaRouter = new Hono()
-
-// 활동 로그 기록을 위한 헬퍼 (관리자 활동 추적용)
-async function logMediaAction(c: any, action: string) {
-  const user = c.get('user')
-  if (!user) return
-  const ip = c.req.header('x-forwarded-for') || '127.0.0.1'
-  await pool.query(
-    `INSERT INTO activity_logs (user_id, email, action, ip_address) VALUES ($1, $2, $3, $4)`,
-    [user.sub, user.email, `[MEDIA] ${action}`, ip]
-  )
-}
 
 // GET /api/media
 mediaRouter.get('/', async (c) => {
@@ -33,6 +23,7 @@ mediaRouter.get('/', async (c) => {
 // POST /api/media (관리자 전용 + 로그 기록)
 mediaRouter.post('/', authMiddleware, adminMiddleware, async (c) => {
   try {
+    const user = c.get('user') as any
     const body = await c.req.json()
     const { type, title, description, url, author, category, duration } = body
     const result = await pool.query(
@@ -40,7 +31,7 @@ mediaRouter.post('/', authMiddleware, adminMiddleware, async (c) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [type, title, description, url, author, category, duration]
     )
-    await logMediaAction(c, `Added media asset: ${title}`)
+    await logActivity(user.sub, user.email, `미디어 자산 추가: ${title}`, c.req.header('x-forwarded-for'))
     return c.json({ success: true, media: result.rows[0] }, 201)
   } catch (err) { return c.json({ success: false }, 500) }
 })
@@ -48,6 +39,7 @@ mediaRouter.post('/', authMiddleware, adminMiddleware, async (c) => {
 // PUT /api/media/:id (관리자 전용 + 로그 기록)
 mediaRouter.put('/:id', authMiddleware, adminMiddleware, async (c) => {
   try {
+    const user = c.get('user') as any
     const id = parseInt(c.req.param('id'))
     const body = await c.req.json()
     const { type, title, description, url, author, category, duration, is_active } = body
@@ -58,7 +50,7 @@ mediaRouter.put('/:id', authMiddleware, adminMiddleware, async (c) => {
        WHERE id=$9 RETURNING *`,
       [type, title, description, url, author, category, duration, is_active, id]
     )
-    await logMediaAction(c, `Modified media asset: ${title}`)
+    await logActivity(user.sub, user.email, `미디어 자산 수정: ${title}`, c.req.header('x-forwarded-for'))
     return c.json({ success: true, media: result.rows[0] })
   } catch (err) { return c.json({ success: false }, 500) }
 })
@@ -66,11 +58,12 @@ mediaRouter.put('/:id', authMiddleware, adminMiddleware, async (c) => {
 // DELETE /api/media/:id (관리자 전용 + 로그 기록)
 mediaRouter.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
   try {
+    const user = c.get('user') as any
     const id = parseInt(c.req.param('id'))
     const mediaRes = await pool.query('SELECT title FROM media WHERE id = $1', [id])
     if (mediaRes.rows.length === 0) return c.json({ success: false }, 404)
     await pool.query('DELETE FROM media WHERE id = $1', [id])
-    await logMediaAction(c, `Purged media asset: ${mediaRes.rows[0].title}`)
+    await logActivity(user.sub, user.email, `미디어 자산 폐기: ${mediaRes.rows[0].title}`, c.req.header('x-forwarded-for'))
     return c.json({ success: true })
   } catch (err) { return c.json({ success: false }, 500) }
 })
