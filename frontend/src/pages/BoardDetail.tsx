@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getPostAPI, addCommentAPI, deletePostAPI, Post, Comment } from '../lib/api'
-import { User, Clock, Eye, MessageSquare, CornerDownRight, Trash2, ArrowLeft, Send } from 'lucide-react'
+import { User, Clock, Eye, MessageSquare, CornerDownRight, Trash2, ArrowLeft, Send, ExternalLink } from 'lucide-react'
 
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr)
@@ -129,9 +129,17 @@ export default function BoardDetail() {
 
       <div className="bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="p-10 border-b border-stone-100">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-[10px] font-black px-2 py-0.5 rounded bg-stone-100 text-stone-500 uppercase">{post.category}</span>
-            {post.pinned && <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-700 uppercase">Pin</span>}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-stone-100 text-stone-500 uppercase">{post.category}</span>
+              {post.pinned && <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-700 uppercase">Pin</span>}
+            </div>
+            {post.source_url && (
+              <a href={post.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[10px] font-black text-amber-600 uppercase hover:underline">
+                <ExternalLink className="w-3 h-3" />
+                원문 링크
+              </a>
+            )}
           </div>
           <h1 className="text-3xl font-black text-stone-900 mb-8 leading-tight tracking-tighter uppercase">{post.title}</h1>
           <div className="flex items-center gap-4 text-[10px] font-black text-stone-400 uppercase tracking-widest">

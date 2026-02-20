@@ -73,7 +73,11 @@ ${postItem.content.substring(0, 150)}... (생략)
   };
 
   const handleBack = () => {
-    setView('news-detail');
+    if (selectedNewsId) {
+      navigate(`/board/${selectedNewsId}`);
+    } else {
+      setView('user');
+    }
   };
 
   if (loading) {

@@ -50,9 +50,10 @@ function App() {
 
           {/* 일반 메뉴 한글화 및 게시판 추가 */}
           <nav className="hidden lg:flex items-center gap-1 mr-4">
-             <Link to="/" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname === '/' || location.pathname.startsWith('/news') ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</Link>
-             <Link to="/board" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname.startsWith('/board') ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>아고라 토론</Link>
-             <Link to="/media" className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${location.pathname === '/media' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>미디어 센터</Link>
+             <button onClick={() => setUserTab('news')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'news' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>지능 보고서</button>
+             <button onClick={() => setUserTab('finance')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'finance' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>증시 지휘소</button>
+             <button onClick={() => setUserTab('discussion')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'discussion' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>아고라 토론</button>
+             <button onClick={() => setUserTab('media')} className={`text-[11px] font-black uppercase px-4 py-2 rounded-xl transition-all ${userTab === 'media' && view === 'user' ? 'text-amber-600 bg-amber-50' : 'text-stone-400 hover:text-stone-600'}`}>미디어 센터</button>
           </nav>
 
           <button onClick={toggleLanguage} className="px-3 py-1.5 text-[10px] font-black border border-stone-200 rounded-full bg-white hover:bg-stone-50 transition-colors uppercase tracking-widest">

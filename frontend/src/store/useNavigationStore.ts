@@ -6,12 +6,12 @@ import { persist } from 'zustand/middleware'; // 새로고침 시 상태 유지�
 // ─────────────────────────────────────────────
 interface NavigationState {
   view: 'user' | 'admin' | 'news-detail' | 'ai-analysis';
-  userTab: 'news' | 'discussion' | 'media';
+  userTab: 'news' | 'discussion' | 'media' | 'finance';
   selectedNewsId: number | null;
   
   // Actions
   setView: (view: 'user' | 'admin' | 'news-detail' | 'ai-analysis') => void;
-  setUserTab: (tab: 'news' | 'discussion' | 'media') => void;
+  setUserTab: (tab: 'news' | 'discussion' | 'media' | 'finance') => void;
   setSelectedNewsId: (id: number | null) => void;
   resetNavigation: () => void; // 로그아웃 등을 위한 초기화 함수 추가
 }
@@ -36,7 +36,7 @@ export const useNavigationStore = create<NavigationState>()(
         return { view, selectedNewsId };
       }),
 
-      setUserTab: (userTab) => set({ userTab }),
+      setUserTab: (userTab) => set({ userTab, view: 'user' }),
       
       setSelectedNewsId: (selectedNewsId) => set({ 
         selectedNewsId,

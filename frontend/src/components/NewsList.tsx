@@ -3,10 +3,12 @@ import { useActivityLog } from '../utils/activityLogger';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { getPostsAPI, Post } from '../lib/api';
 import { FileText, Loader2, Bot, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function NewsList() {
   const { logActivity } = useActivityLog();
   const { setView, setSelectedNewsId } = useNavigationStore();
+  const navigate = useNavigate();
   
   const [news, setNews] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,9 +26,8 @@ export function NewsList() {
   }, []);
 
   const handleItemClick = (item: Post) => {
-    setSelectedNewsId(item.id);
-    setView('news-detail');
     logActivity(`Inspect Intelligence: ${item.id}`);
+    navigate(`/board/${item.id}`);
   };
 
   const handleBatchAIAnalysis = () => {
