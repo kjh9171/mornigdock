@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
-import { Users, Newspaper, MessageSquare, Tv, Shield, RefreshCw, Loader2, Ban, CheckCircle, Crown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Users, Newspaper, MessageSquare, Tv, Shield, RefreshCw, Loader2, Ban, CheckCircle, Crown, Activity, Terminal, Settings } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { ko, enUS } from 'date-fns/locale';
+import { useLanguageStore } from '../store/useLanguageStore';
 
 interface DashData {
   stats: { totalUsers: number; totalNews: number; totalComments: number; totalMedia: number };
@@ -18,11 +20,15 @@ interface UserRow {
 type Tab = 'dashboard' | 'users' | 'settings';
 
 export default function AdminPage() {
+  const { t, i18n } = useTranslation();
+  const { language } = useLanguageStore();
   const [tab,      setTab]      = useState<Tab>('dashboard');
   const [dash,     setDash]     = useState<DashData | null>(null);
   const [users,    setUsers]    = useState<UserRow[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(true);
+
+  const currentLocale = language === 'ko' ? ko : enUS;
 
   useEffect(() => {
     if (tab === 'dashboard') loadDash();
@@ -66,115 +72,139 @@ export default function AdminPage() {
 
   const saveSettings = async () => {
     await api.put('/admin/settings', settings);
-    alert('설정이 저장되었습니다.');
+    alert(t('analysis_complete'));
   };
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: 'dashboard', label: '대시보드' },
-    { key: 'users',     label: '사용자 관리' },
-    { key: 'settings',  label: '시스템 설정' },
+  const TABS: { key: Tab; label: string; icon: any }[] = [
+    { key: 'dashboard', label: t('dashboard'), icon: Activity },
+    { key: 'users',     label: t('user_mgmt'), icon: Users },
+    { key: 'settings',  label: t('system_settings'), icon: Settings },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Shield size={22} className="text-agora-gold" />
+    <div className="space-y-10 max-w-7xl mx-auto">
+      {/* ── 헤더 ── */}
+      <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between border-b border-white/5 pb-8">
         <div>
-          <h1 className="text-xl font-bold">Admin 관제실</h1>
-          <p className="text-agora-muted text-sm">시스템 모니터링 및 관리</p>
+          <div className="flex items-center gap-2 text-agora-gold mb-2">
+            <Shield size={16} />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Command Protocol v2.4</span>
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white uppercase">{t('admin_panel')}</h1>
+          <p className="text-white/30 text-xs font-bold mt-2 uppercase tracking-wider">High-Level System Monitoring & Override</p>
         </div>
-      </div>
-
-      {/* 탭 */}
-      <div className="flex gap-1 bg-agora-surface border border-agora-border rounded-lg p-1 w-fit">
-        {TABS.map(({ key, label }) => (
-          <button key={key}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              tab === key ? 'bg-agora-gold text-black' : 'text-agora-muted hover:text-agora-text'
-            }`}
-            onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
+        
+        {/* 탭 디자인 개선 */}
+        <div className="flex gap-2 bg-white/5 p-1.5 rounded-[1.25rem] border border-white/5">
+            {TABS.map(({ key, label, icon: Icon }) => (
+            <button key={key}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+                tab === key ? 'bg-white text-agora-bg shadow-xl' : 'text-white/30 hover:text-white/60'
+                }`}
+                onClick={() => setTab(key)}>
+                <Icon size={14} />
+                {label}
+            </button>
+            ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-agora-muted">
-          <Loader2 size={24} className="animate-spin mr-2" /> 로딩 중...
+        <div className="flex flex-col items-center justify-center py-40 text-white/20 animate-pulse">
+            <Loader2 size={40} className="animate-spin mb-4 text-agora-gold" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em]">{t('loading')}</span>
         </div>
       ) : (
-        <>
+        <div className="space-y-10">
           {/* ── 대시보드 ── */}
           {tab === 'dashboard' && dash && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
               {/* 스탯 카드 */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { label: '총 사용자', value: dash.stats.totalUsers,    icon: Users,        color: 'text-blue-400' },
-                  { label: '총 뉴스',   value: dash.stats.totalNews,     icon: Newspaper,    color: 'text-green-400' },
-                  { label: '총 댓글',   value: dash.stats.totalComments, icon: MessageSquare, color: 'text-purple-400' },
-                  { label: '미디어',    value: dash.stats.totalMedia,    icon: Tv,           color: 'text-orange-400' },
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <div key={label} className="card">
-                    <Icon size={20} className={`${color} mb-2`} />
-                    <p className="text-2xl font-bold">{value.toLocaleString()}</p>
-                    <p className="text-agora-muted text-xs mt-1">{label}</p>
+                  { label: t('total_users'), value: dash.stats.totalUsers,    icon: Users,        color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                  { label: t('total_news'),   value: dash.stats.totalNews,     icon: Newspaper,    color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                  { label: t('total_comments'), value: dash.stats.totalComments, icon: MessageSquare, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+                  { label: t('media'),    value: dash.stats.totalMedia,    icon: Tv,           color: 'text-orange-400', bg: 'bg-orange-400/10' },
+                ].map(({ label, value, icon: Icon, color, bg }) => (
+                  <div key={label} className="glass-container p-8 rounded-[2rem] border border-white/5 hover:bg-white/[0.05] transition-all duration-300 group">
+                    <div className={`w-12 h-12 rounded-xl ${bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
+                        <Icon size={20} className={color} />
+                    </div>
+                    <p className="text-3xl font-black text-white tracking-tighter mb-1">{value.toLocaleString()}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20">{label}</p>
                   </div>
                 ))}
               </div>
 
-              {/* 시스템 상태 */}
-              <div className="card">
-                <h3 className="font-semibold mb-3 text-sm">시스템 상태</h3>
-                <div className="flex gap-6 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${dash.system.dbConnected ? 'bg-green-400' : 'bg-red-400'} animate-pulse-dot`} />
-                    <span className="text-agora-muted">DB</span>
-                    <span className={dash.system.dbConnected ? 'text-green-400' : 'text-red-400'}>
-                      {dash.system.dbConnected ? 'Connected' : 'Disconnected'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse-dot" />
-                    <span className="text-agora-muted">가동 시간</span>
-                    <span>{Math.floor(dash.system.uptime / 3600)}h {Math.floor((dash.system.uptime % 3600) / 60)}m</span>
-                  </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* 시스템 상태 */}
+                <div className="lg:col-span-1 glass-container p-8 rounded-[2rem] border border-white/5">
+                    <div className="flex items-center gap-3 mb-8">
+                        <Activity size={18} className="text-agora-gold" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-white">{t('system_status')}</h3>
+                    </div>
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-2 h-2 rounded-full ${dash.system.dbConnected ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
+                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('db_status')}</span>
+                            </div>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${dash.system.dbConnected ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {dash.system.dbConnected ? 'Operational' : 'Critical'}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-3">
+                                <Activity size={12} className="text-white/20" />
+                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('uptime')}</span>
+                            </div>
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                                {Math.floor(dash.system.uptime / 3600)}H {Math.floor((dash.system.uptime % 3600) / 60)}M
+                            </span>
+                        </div>
+                    </div>
                 </div>
-              </div>
 
-              {/* 최근 접속 로그 */}
-              <div className="card">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-sm">최근 접속 로그</h3>
-                  <button onClick={loadDash} className="text-agora-muted hover:text-agora-text">
-                    <RefreshCw size={14} />
-                  </button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-agora-muted border-b border-agora-border">
-                        <th className="text-left py-2 pr-4">사용자</th>
-                        <th className="text-left py-2 pr-4">IP</th>
-                        <th className="text-left py-2 pr-4">액션</th>
-                        <th className="text-left py-2">시간</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dash.recentLogs.map((log: any) => (
-                        <tr key={log.id} className="border-b border-agora-border/50 hover:bg-agora-border/20 transition-colors">
-                          <td className="py-2 pr-4">{log.user_name ?? log.email}</td>
-                          <td className="py-2 pr-4 font-mono text-agora-muted">{log.ip_address}</td>
-                          <td className="py-2 pr-4">
-                            <span className="badge bg-agora-accent/10 text-agora-accent">{log.action}</span>
-                          </td>
-                          <td className="py-2 text-agora-muted">
-                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: ko })}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* 최근 접속 로그 */}
+                <div className="lg:col-span-2 glass-container p-8 rounded-[2rem] border border-white/5">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <Terminal size={18} className="text-agora-gold" />
+                            <h3 className="text-xs font-black uppercase tracking-widest text-white">{t('recent_logs')}</h3>
+                        </div>
+                        <button onClick={loadDash} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-all flex items-center justify-center">
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="text-left border-b border-white/5">
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Agent</th>
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Identifier</th>
+                                    <th className="pb-4 text-[9px] font-black uppercase tracking-widest text-white/20">Protocol</th>
+                                    <th className="pb-4 text-right text-[9px] font-black uppercase tracking-widest text-white/20">Operational Time</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {dash.recentLogs.map((log: any) => (
+                                    <tr key={log.id} className="group hover:bg-white/[0.02] transition-colors">
+                                        <td className="py-4 text-[11px] font-bold text-white/80">{log.user_name ?? log.email}</td>
+                                        <td className="py-4 text-[10px] font-mono text-white/30">{log.ip_address}</td>
+                                        <td className="py-4">
+                                            <span className="px-2 py-1 rounded bg-agora-gold/10 text-agora-gold text-[9px] font-black uppercase tracking-tighter border border-agora-gold/20">
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 text-right text-[10px] font-bold text-white/20">
+                                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: currentLocale })}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
               </div>
             </div>
@@ -182,83 +212,97 @@ export default function AdminPage() {
 
           {/* ── 사용자 관리 ── */}
           {tab === 'users' && (
-            <div className="card animate-fade-in overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-agora-muted border-b border-agora-border text-xs">
-                    <th className="text-left py-3 pr-4">이름 / 이메일</th>
-                    <th className="text-left py-3 pr-4">역할</th>
-                    <th className="text-left py-3 pr-4">로그인 수</th>
-                    <th className="text-left py-3 pr-4">마지막 접속</th>
-                    <th className="text-left py-3">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} className="border-b border-agora-border/50 hover:bg-agora-border/20 transition-colors">
-                      <td className="py-3 pr-4">
-                        <p className="font-medium">{u.name}</p>
-                        <p className="text-agora-muted text-xs">{u.email}</p>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <select
-                          value={u.role}
-                          onChange={e => handleRole(u.id, e.target.value)}
-                          className="bg-agora-bg border border-agora-border rounded px-2 py-1 text-xs">
-                          <option value="user">user</option>
-                          <option value="editor">editor</option>
-                          <option value="admin">admin</option>
-                        </select>
-                      </td>
-                      <td className="py-3 pr-4 text-agora-muted">{Number(u.login_count).toLocaleString()}</td>
-                      <td className="py-3 pr-4 text-agora-muted text-xs">
-                        {u.last_login
-                          ? formatDistanceToNow(new Date(u.last_login), { addSuffix: true, locale: ko })
-                          : '-'}
-                      </td>
-                      <td className="py-3">
-                        <button
-                          onClick={() => handleBlock(u.id, u.is_blocked)}
-                          className={`flex items-center gap-1 text-xs transition-colors ${
-                            u.is_blocked
-                              ? 'text-green-400 hover:text-green-300'
-                              : 'text-agora-muted hover:text-red-400'
-                          }`}>
-                          {u.is_blocked
-                            ? <><CheckCircle size={13} /> 해제</>
-                            : <><Ban size={13} /> 차단</>}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="glass-container p-8 rounded-[2.5rem] border border-white/5 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="text-left border-b border-white/5">
+                                <th className="pb-6 text-[10px] font-black uppercase tracking-widest text-white/20">Agent Identity</th>
+                                <th className="pb-6 text-[10px] font-black uppercase tracking-widest text-white/20">{t('role')}</th>
+                                <th className="pb-6 text-[10px] font-black uppercase tracking-widest text-white/20">Deployment Count</th>
+                                <th className="pb-6 text-[10px] font-black uppercase tracking-widest text-white/20">{t('last_login')}</th>
+                                <th className="pb-6 text-right text-[10px] font-black uppercase tracking-widest text-white/20">{t('manage')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {users.map(u => (
+                                <tr key={u.id} className="group hover:bg-white/[0.02] transition-colors">
+                                    <td className="py-6">
+                                        <p className="text-[13px] font-black text-white uppercase tracking-tight">{u.name}</p>
+                                        <p className="text-[10px] font-bold text-white/20 mt-1">{u.email}</p>
+                                    </td>
+                                    <td className="py-6">
+                                        <select
+                                            value={u.role}
+                                            onChange={e => handleRole(u.id, e.target.value)}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-agora-gold/30 transition-all cursor-pointer">
+                                            <option value="user" className="bg-agora-bg">Agent</option>
+                                            <option value="editor" className="bg-agora-bg">Analyst</option>
+                                            <option value="admin" className="bg-agora-bg">Administrator</option>
+                                        </select>
+                                    </td>
+                                    <td className="py-6 text-[11px] font-black text-white/30 uppercase tracking-widest">{Number(u.login_count).toLocaleString()}</td>
+                                    <td className="py-6 text-[10px] font-bold text-white/20">
+                                        {u.last_login
+                                        ? formatDistanceToNow(new Date(u.last_login), { addSuffix: true, locale: currentLocale })
+                                        : '-'}
+                                    </td>
+                                    <td className="py-6 text-right">
+                                        <button
+                                        onClick={() => handleBlock(u.id, u.is_blocked)}
+                                        className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${
+                                            u.is_blocked
+                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                                            : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500 hover:text-white'
+                                        }`}>
+                                        {u.is_blocked ? t('unblock') : t('block')}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
           )}
 
           {/* ── 시스템 설정 ── */}
           {tab === 'settings' && (
-            <div className="card animate-fade-in max-w-lg space-y-4">
-              <h3 className="font-semibold mb-2">시스템 설정</h3>
-              {Object.entries(settings).map(([key, value]) => (
-                <div key={key}>
-                  <label className="text-xs text-agora-muted mb-1 block">{key}</label>
-                  {value === 'true' || value === 'false' ? (
-                    <select className="input text-sm" value={value}
-                      onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}>
-                      <option value="true">활성화</option>
-                      <option value="false">비활성화</option>
-                    </select>
-                  ) : (
-                    <input className="input text-sm" value={value}
-                      onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))} />
-                  )}
-                </div>
-              ))}
-              <button onClick={saveSettings} className="btn-primary w-full mt-2">설정 저장</button>
+            <div className="glass-container p-12 rounded-[2.5rem] border border-white/5 animate-in fade-in slide-in-from-bottom-5 duration-700 max-w-2xl">
+              <div className="flex items-center gap-4 mb-10">
+                 <div className="w-12 h-12 rounded-2xl bg-agora-gold/10 flex items-center justify-center text-agora-gold">
+                    <Settings size={22} />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">{t('system_settings')}</h3>
+                    <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mt-1">Core Protocol Calibration</p>
+                 </div>
+              </div>
+              <div className="space-y-8">
+                {Object.entries(settings).map(([key, value]) => (
+                    <div key={key} className="space-y-3 group">
+                        <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1 group-focus-within:text-agora-gold transition-colors">{key.replace(/_/g, ' ')}</label>
+                        {value === 'true' || value === 'false' ? (
+                            <select className="w-full px-6 py-4 bg-white/5 border border-white/10 focus:border-agora-gold/30 focus:bg-white/[0.08] rounded-2xl outline-none transition-all font-bold text-white appearance-none cursor-pointer" 
+                                value={value}
+                                onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))}>
+                                <option value="true" className="bg-agora-bg">Active Protocol</option>
+                                <option value="false" className="bg-agora-bg">Halted Protocol</option>
+                            </select>
+                        ) : (
+                            <input className="w-full px-6 py-4 bg-white/5 border border-white/10 focus:border-agora-gold/30 focus:bg-white/[0.08] rounded-2xl outline-none transition-all font-bold text-white placeholder:text-white/10" 
+                                value={value}
+                                onChange={e => setSettings(s => ({ ...s, [key]: e.target.value }))} />
+                        )}
+                    </div>
+                ))}
+                <button onClick={saveSettings} className="w-full py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-900/40 transform active:scale-95 duration-200 mt-4">
+                    {t('save_settings')}
+                </button>
+              </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

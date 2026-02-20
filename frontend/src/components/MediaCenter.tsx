@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../store/useAuthStore';
 import { getMediaAPI, createMediaAPI, deleteMediaAPI, MediaItem } from '../lib/api';
 import { Youtube, Mic, Music, Trash2, Plus, Play, Loader2, X, Save, AlertCircle, Film, Radio } from 'lucide-react';
 
@@ -11,7 +11,8 @@ const extractYoutubeId = (url: string) => {
 };
 
 export function MediaCenter() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,7 +55,7 @@ export function MediaCenter() {
       const res = await createMediaAPI({
         ...form,
         url: processedUrl,
-        author: user?.username || 'HQ',
+        author: user?.name || 'HQ',
         category: form.type === 'youtube' ? 'VIDEO' : 'AUDIO'
       });
 
@@ -97,7 +98,7 @@ export function MediaCenter() {
           <p className="text-sm text-stone-400 font-bold mt-1 uppercase tracking-widest">Global Audiovisual Asset Repository</p>
         </div>
         
-        {user?.isAdmin && (
+        {isAdmin && (
           <button 
             onClick={() => setShowAddForm(!showAddForm)} 
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl ${showAddForm ? 'bg-white text-stone-500 border-2 border-stone-100' : 'bg-stone-900 text-white hover:bg-black'}`}
@@ -232,7 +233,7 @@ export function MediaCenter() {
                       </div>
                     </div>
                     
-                    {user?.isAdmin && (
+                    {isAdmin && (
                       <button 
                         onClick={() => handlePurge(item.id)}
                         className="p-3 text-stone-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"

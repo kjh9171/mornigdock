@@ -1,8 +1,8 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../store/useAuthStore';
 import { User, Shield, Mail, Key, Bell, Globe, Database, ShieldAlert } from 'lucide-react';
 
 export function UserSettings() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -16,7 +16,7 @@ export function UserSettings() {
             <User className="w-12 h-12 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">{user?.username} 요원 설정</h1>
+            <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">{user?.name} 요원 설정</h1>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 bg-stone-800 text-stone-400 text-[10px] font-black rounded-full border border-stone-700 uppercase tracking-widest">
                 ID: {user?.id}

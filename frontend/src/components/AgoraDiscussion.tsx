@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { getPostsAPI, createPostAPI, Post } from '../lib/api';
@@ -8,7 +8,7 @@ import { Loader2, MessageSquare, PenSquare, ArrowLeft, Send, User, Clock, Link a
 const BOARD_CATEGORIES = ['전체', '자유', '정보', '질문', '유머', '기타', '뉴스 분석'];
 
 export function AgoraDiscussion() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const { logActivity } = useActivityLog();
   const { setView, setSelectedNewsId } = useNavigationStore();
   
