@@ -48,7 +48,8 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
+    <div className="bg-[#0a0a0b] min-h-screen -mt-6 -mx-4 lg:-mx-0 px-4 lg:px-10 py-10 text-white"> {/* 다크 테마 복구 */}
+      <div className="max-w-4xl mx-auto space-y-10">
       {/* ── 헤더 ── */}
       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between border-b border-white/5 pb-8">
         <div>
@@ -165,6 +166,7 @@ export default function ProfilePage() {
                 </div>
             )}
         </div>
+      </div>
       </div>
     </div>
   );

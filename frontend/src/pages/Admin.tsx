@@ -98,7 +98,8 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto pb-20">
+    <div className="bg-[#0a0a0b] min-h-screen -mt-6 -mx-4 lg:-mx-0 px-4 lg:px-10 py-10 text-white"> {/* 다크 배경 및 텍스트 색상 강제 지정 */}
+      <div className="space-y-10 max-w-7xl mx-auto pb-20">
       {/* ── 헤더 ── */}
       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between border-b border-white/5 pb-8">
         <div>
@@ -114,7 +115,7 @@ export default function AdminPage() {
             {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key}
                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
-                tab === key ? 'bg-white text-agora-bg shadow-xl' : 'text-white/30 hover:text-white/60'
+                tab === key ? 'bg-white text-primary-900 shadow-xl' : 'text-white/30 hover:text-white/60'
                 }`}
                 onClick={() => setTab(key)}>
                 <Icon size={14} />
@@ -234,8 +235,8 @@ export default function AdminPage() {
             <div className="space-y-8 animate-in fade-in duration-500">
                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                   <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
-                      <button onClick={() => setContentType('news')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'news' ? 'bg-white text-agora-bg' : 'text-white/30 hover:text-white/60'}`}>뉴스 분석 (Intel)</button>
-                      <button onClick={() => setContentType('posts')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'posts' ? 'bg-white text-agora-bg' : 'text-white/30 hover:text-white/60'}`}>커뮤니티 게시글</button>
+                      <button onClick={() => setContentType('news')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'news' ? 'bg-white text-primary-900' : 'text-white/30 hover:text-white/60'}`}>뉴스 분석 (Intel)</button>
+                      <button onClick={() => setContentType('posts')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'posts' ? 'bg-white text-primary-900' : 'text-white/30 hover:text-white/60'}`}>커뮤니티 게시글</button>
                   </div>
                   {contentType === 'news' && (
                       <button onClick={handleFetchNews} disabled={actionLoading} className="flex items-center gap-3 px-8 py-3 bg-agora-gold/10 hover:bg-agora-gold/20 border border-agora-gold/20 text-agora-gold rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
@@ -297,6 +298,7 @@ export default function AdminPage() {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
