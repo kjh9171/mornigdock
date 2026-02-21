@@ -153,4 +153,71 @@ admin.get('/posts', adminOnly, async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
+// ─── POST /admin/users (사용자 직접 추가) ────────────────────────────────────
+admin.post('/users', adminOnly, async (c) => {
+  const { email, password, name, role } = await c.req.json();
+  const bcrypt = await import('bcryptjs');
+  const hashed = await bcrypt.default.hash(password, 10);
+
+  try {
+    const result = await query(
+      `INSERT INTO users (email, password, name, role, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id, email, name, role`,
+      [email, hashed, name, role || 'user']
+    );
+    return c.json({ success: true, data: result.rows[0] });
+  } catch (err: any) {
+    if (err.code === '23505') return c.json({ success: false, message: '이미 존재하는 이메일입니다.' }, 400);
+    throw err;
+  }
+});
+
+// ─── DELETE /admin/users/:id ──────────────────────────────────────────────────
+admin.delete('/users/:id', adminOnly, async (c) => {
+  const id = Number(c.req.param('id'));
+  const self = c.get('user');
+  if (self.userId === id) return c.json({ success: false, message: '본인 계정은 삭제할 수 없습니다.' }, 400);
+
+  await query('DELETE FROM users WHERE id = $1', [id]);
+  return c.json({ success: true, message: '사용자가 삭제되었습니다.' });
+});
+
+// ─── DELETE /admin/news/:id ───────────────────────────────────────────────────
+admin.delete('/news/:id', editorOnly, async (c) => {
+  const id = Number(c.req.param('id'));
+  await query('DELETE FROM news WHERE id = $1', [id]);
+  return c.json({ success: true, message: '뉴스가 삭제되었습니다.' });
+});
+
+// ─── DELETE /admin/posts/:id ──────────────────────────────────────────────────
+admin.delete('/posts/:id', editorOnly, async (c) => {
+  const id = Number(c.req.param('id'));
+  await query('DELETE FROM posts WHERE id = $1', [id]);
+  return c.json({ success: true, message: '게시글이 삭제되었습니다.' });
+});
+
+// ─── DELETE /admin/media/:id ──────────────────────────────────────────────────
+admin.delete('/media/:id', editorOnly, async (c) => {
+  const id = Number(c.req.param('id'));
+  await query('DELETE FROM media WHERE id = $1', [id]);
+  return c.json({ success: true, message: '미디어가 삭제되었습니다.' });
+});
+
+// 미디어 관리 (추가/수정)
+admin.get('/media', adminOnly, async (c) => {
+  const result = await query('SELECT * FROM media ORDER BY created_at DESC');
+  return c.json({ success: true, data: result.rows });
+});
+
+admin.post('/media', adminOnly, async (c) => {
+  const { title, type, url, description, thumbnail } = await c.req.json();
+  const res = await query(
+    `INSERT INTO media (title, type, url, description, thumbnail, created_at)
+     VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
+    [title, type, url, description, thumbnail]
+  );
+  return c.json({ success: true, data: res.rows[0] });
+});
+
 export default admin;

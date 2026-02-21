@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getAdminNewsAPI, getAdminPostsAPI, deleteNewsAPI, deletePostAPI, fetchNewsAPI } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Users, Newspaper, MessageSquare, Tv, Shield, RefreshCw, Loader2, Ban, CheckCircle, Crown, Activity, Terminal, Settings, Trash2, Zap, FileText, Search, Pin } from 'lucide-react';
+import { Users, Newspaper, MessageSquare, Tv, Shield, RefreshCw, Loader2, Ban, CheckCircle, Crown, Activity, Terminal, Settings, Trash2, Zap, FileText, Search, Pin, Plus, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko, enUS } from 'date-fns/locale';
 import { useLanguageStore } from '../store/useLanguageStore';
@@ -26,10 +26,18 @@ export default function AdminPage() {
   const [dash,     setDash]     = useState<DashData | null>(null);
   const [users,    setUsers]    = useState<UserRow[]>([]);
   const [content,  setContent]  = useState<any[]>([]);
-  const [contentType, setContentType] = useState<'news' | 'posts'>('news');
+  const [contentType, setContentType] = useState<'news' | 'posts' | 'media'>('news');
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // 사용자 추가 모달 상태
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'user' });
+
+  // 미디어 추가 모달 상태
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [newMedia, setNewMedia] = useState({ title: '', type: 'youtube', url: '', description: '', thumbnail: '' });
 
   const currentLocale = language === 'ko' ? ko : enUS;
 
@@ -50,9 +58,12 @@ export default function AdminPage() {
         if (contentType === 'news') {
           const res = await getAdminNewsAPI();
           setContent(res.data);
-        } else {
+        } else if (contentType === 'posts') {
           const res = await getAdminPostsAPI();
           setContent(res.data);
+        } else {
+          const { data } = await api.get('/admin/media');
+          setContent(data.data);
         }
       } else if (tab === 'settings') {
         const { data } = await api.get('/admin/settings');
@@ -67,9 +78,44 @@ export default function AdminPage() {
     if (!confirm(t('confirm_delete') || '정말 삭제하시겠습니까?')) return;
     try {
       if (contentType === 'news') await deleteNewsAPI(id);
-      else await deletePostAPI(id);
+      else if (contentType === 'posts') await deletePostAPI(id);
+      else if (contentType === 'media') await api.delete(`/admin/media/${id}`);
       setContent(prev => prev.filter(item => item.id !== id));
+      alert('삭제 완료!');
+    } catch (err) { alert('삭제 실패: ' + (err as any).response?.data?.message); }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    const { deleteAdminUserAPI } = await import('../lib/api');
+    if (!confirm('해당 요원을 말소하시겠습니까?')) return;
+    try {
+      await deleteAdminUserAPI(id);
+      setUsers(prev => prev.filter(u => u.id !== id));
+      alert('말소 완료');
     } catch (err) { alert('삭제 실패'); }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { addAdminUserAPI } = await import('../lib/api');
+    setActionLoading(true);
+    try {
+      await addAdminUserAPI(newUser);
+      setShowUserModal(false);
+      setNewUser({ email: '', password: '', name: '', role: 'user' });
+      loadTabContent();
+    } catch (err) { alert('생성 실패'); } finally { setActionLoading(false); }
+  };
+
+  const handleCreateMedia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await api.post('/admin/media', newMedia);
+      setShowMediaModal(false);
+      setNewMedia({ title: '', type: 'youtube', url: '', description: '', thumbnail: '' });
+      loadTabContent();
+    } catch (err) { alert('생성 실패'); } finally { setActionLoading(false); }
   };
 
   const handleFetchNews = async () => {
@@ -98,9 +144,9 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="bg-[#0a0a0b] min-h-screen -mt-6 -mx-4 lg:-mx-0 px-4 lg:px-10 py-10 text-white"> {/* 다크 배경 및 텍스트 색상 강제 지정 */}
+    <div className="bg-[#0a0a0b] min-h-screen -mt-6 -mx-4 lg:-mx-0 px-4 lg:px-10 py-10 text-white">
       <div className="space-y-10 max-w-7xl mx-auto pb-20">
-      {/* ── 헤더 ── */}
+      
       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between border-b border-white/5 pb-8">
         <div>
           <div className="flex items-center gap-2 text-agora-gold mb-2">
@@ -194,7 +240,13 @@ export default function AdminPage() {
           )}
 
           {tab === 'users' && (
-            <div className="glass-container rounded-[2.5rem] border border-white/5 overflow-hidden animate-in fade-in duration-500">
+            <div className="space-y-6 animate-in fade-in duration-500">
+               <div className="flex justify-end">
+                  <button onClick={() => setShowUserModal(true)} className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">
+                    <Plus size={14} /> New Induction
+                  </button>
+               </div>
+               <div className="glass-container rounded-[2.5rem] border border-white/5 overflow-hidden">
                 <table className="w-full text-left">
                     <thead className="bg-white/5 border-b border-white/5">
                         <tr>
@@ -223,13 +275,17 @@ export default function AdminPage() {
                                         className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${u.is_blocked ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                         {u.is_blocked ? 'RESTORE' : 'BLOCK'}
                                     </button>
+                                    <button onClick={() => handleDeleteUser(u.id)} className="p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all ml-2">
+                                      <Trash2 size={14} />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-          )}
+          </div>
+        )}
 
           {tab === 'content' && (
             <div className="space-y-8 animate-in fade-in duration-500">
@@ -237,13 +293,21 @@ export default function AdminPage() {
                   <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/5">
                       <button onClick={() => setContentType('news')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'news' ? 'bg-white text-primary-900' : 'text-white/30 hover:text-white/60'}`}>뉴스 분석 (Intel)</button>
                       <button onClick={() => setContentType('posts')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'posts' ? 'bg-white text-primary-900' : 'text-white/30 hover:text-white/60'}`}>커뮤니티 게시글</button>
+                      <button onClick={() => setContentType('media')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${contentType === 'media' ? 'bg-white text-primary-900' : 'text-white/30 hover:text-white/60'}`}>미디어 센터 (Asset)</button>
                   </div>
-                  {contentType === 'news' && (
-                      <button onClick={handleFetchNews} disabled={actionLoading} className="flex items-center gap-3 px-8 py-3 bg-agora-gold/10 hover:bg-agora-gold/20 border border-agora-gold/20 text-agora-gold rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                          {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
-                          지능 데이터 즉시 수집
+                  <div className="flex gap-3">
+                    {contentType === 'news' && (
+                        <button onClick={handleFetchNews} disabled={actionLoading} className="flex items-center gap-3 px-8 py-3 bg-agora-gold/10 hover:bg-agora-gold/20 border border-agora-gold/20 text-agora-gold rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                            {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                            지능 데이터 즉시 수집
+                        </button>
+                    )}
+                    {contentType === 'media' && (
+                      <button onClick={() => setShowMediaModal(true)} className="flex items-center gap-3 px-8 py-3 bg-primary-600 hover:bg-primary-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                        <Plus size={16} /> New Asset
                       </button>
-                  )}
+                    )}
+                  </div>
                </div>
 
                <div className="glass-container rounded-[2.5rem] border border-white/5 overflow-hidden">
@@ -299,6 +363,86 @@ export default function AdminPage() {
         </div>
       )}
       </div>
+
+      {/* ── 사용자 추가 모달 ── */}
+      {showUserModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/60">
+          <div className="glass-container w-full max-w-md p-10 rounded-[2.5rem] border border-white/10 animate-in zoom-in-95 duration-300 shadow-2xl">
+             <div className="flex justify-between items-center mb-10">
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3"><Users className="text-primary-400" size={24} /> New Induction</h3>
+                <button onClick={() => setShowUserModal(false)} className="p-2 hover:bg-white/5 rounded-full text-white/50 hover:text-white"><X size={20} /></button>
+             </div>
+             <form onSubmit={handleCreateUser} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Agent Identity (Email)</label>
+                  <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-500/30 font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Access Key (Password)</label>
+                  <input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-500/30 font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Name</label>
+                  <input required type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-primary-500/30 font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Clearance Level</label>
+                  <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className="w-full px-6 py-4 bg-[#1a1a1c] border border-white/10 rounded-2xl text-[11px] font-black text-white uppercase tracking-widest outline-none">
+                    <option value="user">Agent</option>
+                    <option value="editor">Lead Analyst</option>
+                    <option value="admin">Director</option>
+                  </select>
+                </div>
+                <button type="submit" disabled={actionLoading} className="w-full py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95">
+                  {actionLoading ? 'Initializing...' : 'Authorize Access'}
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── 미디어 추가 모달 ── */}
+      {showMediaModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-black/60">
+           <div className="glass-container w-full max-w-lg p-10 rounded-[2.5rem] border border-white/10 animate-in zoom-in-95 duration-300 shadow-2xl">
+             <div className="flex justify-between items-center mb-10">
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3"><Tv className="text-orange-400" size={24} /> Catalog Asset</h3>
+                <button onClick={() => setShowMediaModal(false)} className="p-2 hover:bg-white/5 rounded-full text-white/50 hover:text-white"><X size={20} /></button>
+             </div>
+             <form onSubmit={handleCreateMedia} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Asset Title</label>
+                  <input required value={newMedia.title} onChange={e => setNewMedia({...newMedia, title: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none font-bold" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Type</label>
+                    <select value={newMedia.type} onChange={e => setNewMedia({...newMedia, type: e.target.value})} className="w-full px-6 py-4 bg-[#1a1a1c] border border-white/10 rounded-2xl text-[11px] font-black text-white uppercase outline-none">
+                      <option value="youtube">VOD (YouTube)</option>
+                      <option value="podcast">AUDIO (Podcast)</option>
+                      <option value="music">SND (Music)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Category</label>
+                    <input placeholder="Ex: Market" value={newMedia.thumbnail} onChange={e => setNewMedia({...newMedia, thumbnail: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none font-bold" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Source URL</label>
+                  <input required value={newMedia.url} onChange={e => setNewMedia({...newMedia, url: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1">Brief (Internal)</label>
+                  <textarea value={newMedia.description} onChange={e => setNewMedia({...newMedia, description: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none h-24 font-bold" />
+                </div>
+                <button type="submit" disabled={actionLoading} className="w-full py-5 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl">
+                  Catalog to DB
+                </button>
+             </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

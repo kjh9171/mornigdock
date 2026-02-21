@@ -80,13 +80,13 @@ export const getPostsAPI = (params?: any) => api.get('/posts', { params }).then(
 export const getPostAPI  = (id: string | number) => api.get(`/posts/${id}`).then(res => res.data);
 export const createPostAPI = (data: any) => api.post('/posts', data).then(res => res.data);
 export const updatePostAPI = (id: number | string, data: any) => api.put(`/posts/${id}`, data).then(res => res.data);
-export const deletePostAPI = (id: number) => api.delete(`/posts/${id}`).then(res => res.data);
+export const deletePostAPI = (id: number) => api.delete(`/admin/posts/${id}`).then(res => res.data);
 
 // ── 뉴스 (News) ──
 export const getNewsAPI  = (params?: any) => api.get('/news', { params }).then(res => res.data);
 export const getNewsDetailAPI = (id: string | number) => api.get(`/news/${id}`).then(res => res.data);
 export const fetchNewsAPI = () => api.post('/news/fetch').then(res => res.data);
-export const deleteNewsAPI = (id: number) => api.delete(`/news/${id}`).then(res => res.data);
+export const deleteNewsAPI = (id: number) => api.delete(`/admin/news/${id}`).then(res => res.data);
 export const updateNewsAPI = (id: number | string, data: any) => api.put(`/news/${id}`, data).then(res => res.data);
 
 // ── 관리자 (Admin) ──
@@ -95,6 +95,10 @@ export const getAdminUsersAPI = () => api.get('/admin/users').then(res => res.da
 export const getAdminNewsAPI  = () => api.get('/admin/news').then(res => res.data);
 export const getAdminPostsAPI = () => api.get('/admin/posts').then(res => res.data);
 export const getAdminLogsAPI  = (page = 1) => api.get('/admin/logs', { params: { page } }).then(res => res.data);
+export const addAdminUserAPI = (data: any) => api.post('/admin/users', data).then(res => res.data);
+export const deleteAdminUserAPI = (id: number) => api.delete(`/admin/users/${id}`).then(res => res.data);
+export const getAdminMediaAPI = () => api.get('/admin/media').then(res => res.data);
+export const addAdminMediaAPI = (data: any) => api.post('/admin/media', data).then(res => res.data);
 
 // ── 구식 호환용 에일리어스 ──
 export const adminDeletePostAPI = deleteNewsAPI;

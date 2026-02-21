@@ -69,6 +69,19 @@ export default function NewsPage() {
     }
   };
 
+  const handleAIReport = async (item: News) => {
+    try {
+      setLoading(true);
+      const { data } = await api.post(`/news/${item.id}/ai-report`);
+      setNews(prev => prev.map(n => n.id === item.id ? { ...n, ai_report: data.data } : n));
+      alert('AI 분석이 완료되었습니다!');
+    } catch (err: any) {
+      alert('분석 실패: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const canModerate = user?.role === 'admin' || user?.role === 'editor';
 
   return (
@@ -216,7 +229,9 @@ export default function NewsPage() {
                           <ExternalLink size={14} /> 원문 기사 보기
                         </a>
                       )}
-                      <button className="flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-blue-600">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleAIReport(item); }}
+                        className="flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-blue-600 transition-colors">
                         <Sparkles size={14} /> AI 분석 요청
                       </button>
                     </div>

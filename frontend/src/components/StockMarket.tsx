@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getStocksAPI, getPostsAPI, StockInfo, Post } from '../lib/api';
 import { TrendingUp, TrendingDown, Minus, Clock, Bot, RefreshCw, AlertCircle, ExternalLink, Activity, ShieldCheck, FileText, Newspaper, ChevronRight } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { useNavigationStore } from '../store/useNavigationStore';
 import { useActivityLog } from '../utils/activityLogger';
 
@@ -21,8 +23,8 @@ export function StockMarket() {
         setStocks(stockRes.stocks);
       }
 
-      // 2. 뉴스/리서치 데이터 (category: 리서치)
-      const newsRes = await getPostsAPI({ type: 'news', category: '리서치', limit: 20 });
+      // 2. 뉴스/리서치 데이터 (모든 뉴스 가져오기)
+      const newsRes = await getPostsAPI({ type: 'news', limit: 20 });
       if (newsRes.success) {
         setResearchNews(newsRes.posts);
       }
@@ -154,9 +156,9 @@ export function StockMarket() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">{news.source || 'REPORT'}</span>
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded">{news.source_name || news.source || 'INTEL'}</span>
                     <span className="w-1 h-1 bg-stone-200 rounded-full" />
-                    <span className="text-[9px] font-bold text-stone-300 font-mono uppercase">{new Date(news.created_at).toLocaleDateString()}</span>
+                    <span className="text-[10px] font-bold text-stone-400 font-mono uppercase">{formatDistanceToNow(new Date(news.created_at), { addSuffix: true, locale: ko })}</span>
                   </div>
                   <h4 className="text-base font-black text-primary-900 group-hover:text-amber-600 transition-colors line-clamp-2 leading-tight">
                     {news.title}

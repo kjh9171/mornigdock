@@ -85,17 +85,6 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* ── 서브 네비게이션 (클리앙 느낌) ── */}
-      <div className="bg-white border-b border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
-        <div className="max-w-[1100px] mx-auto px-4 lg:px-0 flex items-center h-10 gap-6">
-          <span className="text-[12px] font-bold text-blue-600 border-r border-slate-200 pr-4 mr-0">HOT</span>
-          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">모두의공원</span>
-          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">새소식</span>
-          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">알뜰구매</span>
-          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">직거래장터</span>
-        </div>
-      </div>
-
       {/* ── 메인 콘텐츠 ── */}
       <main className="flex-1 max-w-[1100px] mx-auto w-full px-4 lg:px-0 py-6 animate-fade-in">
         <Outlet />
