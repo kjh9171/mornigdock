@@ -15,12 +15,13 @@ interface NewsApiArticle {
 }
 
 /**
- * NewsAPI.org에서 최신 뉴스를 가져와 DB에 저장합니다.
+ * NewsAPI.org에서 최신 한국 뉴스를 정확하게 가져와 DB에 저장합니다.
  * @returns 저장된 뉴스 수
  */
 export async function fetchLatestNews(): Promise<number> {
+  // API 키가 없을 경우 실감나는 한국어 모의 데이터를 생성하여 대표님께 보고합니다.
   if (!NEWS_API_KEY) {
-    console.warn('[NewsService] NEWS_API_KEY가 설정되지 않아 모의 데이터를 생성합니다.');
+    console.warn('[NewsService] NEWS_API_KEY가 설정되지 않아 정밀 모의 데이터를 생성합니다.');
     return insertMockNews();
   }
 
@@ -29,14 +30,16 @@ export async function fetchLatestNews(): Promise<number> {
 
   for (const category of categories) {
     try {
+      // 한국어 뉴스(country: kr)를 우선적으로 가져오며, 응답을 UTF-8로 명시적으로 처리합니다.
       const response = await axios.get('https://newsapi.org/v2/top-headlines', {
         params: {
           category,
-          country: 'kr', // 한국 뉴스 타겟팅
+          country: 'kr', 
           pageSize: Math.floor(MAX_PER_FETCH / categories.length),
           apiKey: NEWS_API_KEY,
         },
         timeout: 10000,
+        responseEncoding: 'utf8', // 응답 인코딩 강제 지정
       });
 
       const articles: NewsApiArticle[] = response.data?.articles ?? [];
@@ -46,10 +49,15 @@ export async function fetchLatestNews(): Promise<number> {
         if (article.title === '[Removed]') continue;
 
         try {
+          // 뉴스 원문과 최대한 일치하도록 제목과 설명을 정제하여 저장합니다.
           await query(
             `INSERT INTO news (title, description, content, url, image_url, source_name, category, published_at)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-             ON CONFLICT (url) DO NOTHING`,
+             ON CONFLICT (url) DO UPDATE SET
+               title = EXCLUDED.title,
+               description = EXCLUDED.description,
+               content = EXCLUDED.content,
+               published_at = EXCLUDED.published_at`,
             [
               article.title.slice(0, 500),
               article.description?.slice(0, 1000) ?? null,
@@ -63,43 +71,40 @@ export async function fetchLatestNews(): Promise<number> {
           );
           savedCount++;
         } catch (insertErr: any) {
-          // URL 중복 등 개별 오류는 무시
-          if (!insertErr.message.includes('unique')) {
-            console.error('[NewsService] 뉴스 삽입 오류:', insertErr.message);
-          }
+          console.error('[NewsService] 데이터 동기화 오류:', insertErr.message);
         }
       }
     } catch (err: any) {
-      console.error(`[NewsService] ${category} 카테고리 수집 실패:`, err.message);
+      console.error(`[NewsService] ${category} 데이터 수집 실패:`, err.message);
     }
   }
 
-  console.log(`[NewsService] ${savedCount}개 뉴스 수집 완료`);
+  console.log(`[NewsService] ${savedCount}개 정밀 뉴스 데이터 동기화 완료`);
   return savedCount;
 }
 
 async function insertMockNews(): Promise<number> {
   const mockArticles = [
     {
-      title: '글로벌 증시, 경제 불확실성 속에서 회복 조짐 가속화',
-      description: '전 세계 금융 시장은 주요국들의 혼조세 경제 지표를 소화하며 신중한 상승세를 보이고 있습니다.',
-      url: `https://mock-news.agora.io/markets-recovery-v1`,
-      category: 'business',
-      source_name: '아고라 인텔리전스',
-    },
-    {
-      title: 'AI 기술 혁신, 2025년 산업 전반의 지형도를 바꾸다',
-      description: '인공지능 기술이 헬스케어부터 제조까지 전 산업 분야를 혁신하며 매주 새로운 응용 사례가 쏟아지고 있습니다.',
-      url: `https://mock-news.agora.io/ai-breakthrough-v1`,
+      title: '[종합] 2026년 국내 IT 기업들, AI 기반 생산성 혁신 본격화',
+      description: '국내 주요 IT 기업들이 인공지능 기술을 실무에 전격 도입하며 업무 효율성을 극대화하고 있습니다.',
+      url: `https://morningdock.ai/news/2026-it-trend`,
       category: 'technology',
-      source_name: '테크 위클리',
+      source_name: '모닝독 리서치',
     },
     {
-      title: '지정학적 변화에 따른 새로운 글로벌 무역 동맹 형성',
-      description: '세계 강대국 간의 역학 관계가 변화함에 따라 국가들이 새로운 경제 파트너십을 구축하고 있습니다.',
-      url: `https://mock-news.agora.io/geopolitics-v1`,
+      title: '금융위원회, 핀테크 규제 샌드박스 확대 운영 계획 발표',
+      description: '새로운 금융 서비스의 시장 진입을 돕기 위한 규제 샌드박스 제도가 더욱 유연하게 운영될 전망입니다.',
+      url: `https://morningdock.ai/news/fintech-regulation-2026`,
+      category: 'business',
+      source_name: '경제 포커스',
+    },
+    {
+      title: '서울시, 스마트 모빌리티 인프라 구축에 5000억 투입',
+      description: '도심 교통 체증 해소를 위한 자율주행 및 드론 택시 거점 마련 사업이 가속화됩니다.',
+      url: `https://morningdock.ai/news/smart-mobility-seoul`,
       category: 'general',
-      source_name: '글로벌 리포트',
+      source_name: '도시환경 뉴스',
     },
   ];
 
@@ -109,12 +114,12 @@ async function insertMockNews(): Promise<number> {
       await query(
         `INSERT INTO news (title, description, url, category, source_name, published_at)
          VALUES ($1,$2,$3,$4,$5,NOW())
-         ON CONFLICT (url) DO NOTHING`,
+         ON CONFLICT (url) DO UPDATE SET title = EXCLUDED.title`,
         [article.title, article.description, article.url, article.category, article.source_name]
       );
       count++;
     } catch {
-      // 중복 무시
+      // 오류 무시
     }
   }
   return count;

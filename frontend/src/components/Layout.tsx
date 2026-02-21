@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTranslation } from 'react-i18next';
-import { Newspaper, Tv, Shield, User, LogIn, LogOut, Columns2, Globe, MessageSquare, BarChart3 } from 'lucide-react';
+import { Newspaper, Tv, Shield, User, LogIn, LogOut, Globe, MessageSquare, BarChart3, Menu } from 'lucide-react';
 
 export default function Layout() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -12,11 +12,11 @@ export default function Layout() {
   const navigate  = useNavigate();
 
   const nav = [
-    { path: '/news',  label: t('news'), icon: Newspaper },
-    { path: '/finance', label: t('finance'), icon: BarChart3 },
-    { path: '/board', label: t('board'), icon: MessageSquare },
-    { path: '/media', label: t('media_center'), icon: Tv },
-    ...(user?.role === 'admin' ? [{ path: '/admin', label: t('admin'), icon: Shield }] : []),
+    { path: '/news',  label: '뉴스', icon: Newspaper },
+    { path: '/finance', label: '금융', icon: BarChart3 },
+    { path: '/board', label: '커뮤니티', icon: MessageSquare },
+    { path: '/media', label: '미디어', icon: Tv },
+    ...(user?.role === 'admin' ? [{ path: '/admin', label: '관리자', icon: Shield }] : []),
   ];
 
   const handleLogout = async () => {
@@ -25,120 +25,88 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-agora-bg text-agora-text font-sans">
-      {/* ── 헤더 ── */}
-      <header className="sticky top-0 z-50 bg-agora-bg/60 backdrop-blur-2xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
-          {/* 로고 */}
-          <Link to="/news" className="flex items-center gap-3 transition-transform hover:scale-105">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-900 flex items-center justify-center shadow-lg transform rotate-3">
-              <Columns2 className="text-white" size={20} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tighter uppercase leading-none text-white">Agora</span>
-              <span className="text-[8px] font-bold text-primary-400 tracking-widest uppercase mt-0.5">Business Intelligence</span>
-            </div>
-          </Link>
+    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-[#1e293b] font-sans">
+      {/* ── 클리앙 스타일 상단 헤더 ── */}
+      <header className="bg-[#1d4ed8] shadow-md sticky top-0 z-50">
+        <div className="max-w-[1100px] mx-auto flex items-center justify-between h-14 px-4 lg:px-0">
+          <div className="flex items-center gap-6">
+            <Link to="/news" className="flex items-center gap-2">
+              <span className="text-xl font-black tracking-tighter text-white">MORNINGDOCK</span>
+            </Link>
+            
+            <nav className="hidden md:flex items-center">
+              {nav.map(({ path, label }) => {
+                const isActive = location.pathname.startsWith(path);
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    className={`px-4 py-4 text-[14px] font-bold transition-all ${
+                      isActive
+                        ? 'text-white bg-black/10'
+                        : 'text-white/80 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
 
-          {/* 중앙 네비게이션 */}
-          <nav className="hidden md:flex items-center gap-2">
-            {nav.map(({ path, label, icon: Icon }) => {
-              const isActive = location.pathname.startsWith(path);
-              return (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`relative group flex items-center gap-3 px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
-                    isActive
-                      ? 'bg-white/5 text-white shadow-xl translate-y-[-1px]'
-                      : 'text-white/40 hover:text-white/80 hover:bg-white/[0.03]'
-                  }`}
-                >
-                  <Icon size={16} className={isActive ? 'text-agora-accent' : 'text-white/20 group-hover:text-white/40'} />
-                  {label}
-                  {isActive && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-agora-accent rounded-full mb-1"></div>}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* 우측 액션 */}
-          <div className="flex items-center gap-4">
-            {/* 언어 토글 */}
-            <button 
+          <div className="flex items-center gap-3">
+             <button 
               onClick={toggleLanguage}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[10px] font-black text-white/40 hover:text-white transition-all backdrop-blur-md"
+              className="px-2 py-1 text-[11px] font-bold text-white/70 border border-white/30 rounded hover:bg-white/10 transition-all"
             >
-              <Globe className="w-3.2 h-3.2 text-agora-gold" />
-              <span className="hidden lg:inline">{language === 'ko' ? 'EN' : 'KO'}</span>
+              {language === 'ko' ? 'EN' : 'KO'}
             </button>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-                <Link
-                  to="/profile"
-                  className="group flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/50 group-hover:text-agora-accent transition-colors">
-                    <User size={16} />
-                  </div>
-                  <div className="hidden lg:flex flex-col items-start leading-tight">
-                    <span className="text-[11px] font-black text-white">{user?.name}</span>
-                    <span className="text-[9px] font-bold text-white/30 uppercase tracking-tighter">{user?.role}</span>
-                  </div>
+              <div className="flex items-center gap-4">
+                <Link to="/profile" className="flex items-center gap-2 text-white/90 hover:text-white">
+                  <User size={16} />
+                  <span className="text-[13px] font-medium hidden sm:inline">{user?.name}님</span>
                 </Link>
-
                 <button 
                   onClick={handleLogout} 
-                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-all flex items-center justify-center border border-white/5"
-                  title={t('logout')}
+                  className="text-white/70 hover:text-white transition-all"
+                  title="로그아웃"
                 >
                   <LogOut size={16} />
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="flex items-center gap-3 px-6 py-2.5 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all shadow-xl shadow-primary-900/40">
-                <LogIn size={16} />
-                {t('login_tab')}
+              <Link to="/login" className="text-white font-bold text-[13px] px-4 py-1.5 bg-white/10 rounded hover:bg-white/20">
+                로그인
               </Link>
             )}
           </div>
         </div>
-
-        {/* 모바일 하단 네비게이션 */}
-        <div className="md:hidden flex border-t border-white/5 bg-agora-bg/60 backdrop-blur-2xl">
-          {nav.map(({ path, label, icon: Icon }) => {
-            const isActive = location.pathname.startsWith(path);
-            return (
-              <Link
-                key={path}
-                to={path}
-                className={`flex-1 flex flex-col items-center py-4 text-[9px] font-black uppercase tracking-widest transition-all ${
-                  isActive ? 'text-white' : 'text-white/30'
-                }`}
-              >
-                <Icon size={18} className={`mb-1.5 ${isActive ? 'text-agora-accent' : ''}`} />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
       </header>
 
+      {/* ── 서브 네비게이션 (클리앙 느낌) ── */}
+      <div className="bg-white border-b border-slate-200 shadow-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <div className="max-w-[1100px] mx-auto px-4 lg:px-0 flex items-center h-10 gap-6">
+          <span className="text-[12px] font-bold text-blue-600 border-r border-slate-200 pr-4 mr-0">HOT</span>
+          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">모두의공원</span>
+          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">새소식</span>
+          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">알뜰구매</span>
+          <span className="text-[12px] text-slate-500 hover:text-blue-600 cursor-pointer">직거래장터</span>
+        </div>
+      </div>
+
       {/* ── 메인 콘텐츠 ── */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 animate-fade-in">
+      <main className="flex-1 max-w-[1100px] mx-auto w-full px-4 lg:px-0 py-6 animate-fade-in">
         <Outlet />
       </main>
 
       {/* ── 푸터 ── */}
-      <footer className="mt-auto py-10 border-t border-white/5 text-center flex flex-col items-center gap-4">
-        <div className="flex items-center gap-2 opacity-30">
-          <Columns2 size={16} />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em]">Agora Platform</span>
+      <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-400 mt-10">
+        <div className="max-w-[1100px] mx-auto px-4">
+          <p className="text-[11px] mb-2 font-bold tracking-widest text-slate-300 uppercase">Morningdock Platform</p>
+          <p className="text-[10px]">© 2026 Morningdock. All rights reserved. CERT Division.</p>
         </div>
-        <p className="text-white/10 text-[9px] font-bold uppercase tracking-widest">
-          © 2025 · CERT Intelligence Unit · All Rights Reserved
-        </p>
       </footer>
     </div>
   );

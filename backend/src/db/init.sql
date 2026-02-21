@@ -1,7 +1,9 @@
 -- ══════════════════════════════════════════════════
 -- 🏛️ AGORA - Database Schema (v2.0)
--- 서버 재시작 시 데이터 유실 없음 (IF NOT EXISTS)
 -- ══════════════════════════════════════════════════
+
+-- 인코딩 명시 (한글 깨짐 방지)
+SET client_encoding = 'UTF8';
 
 -- 사용자 테이블
 CREATE TABLE IF NOT EXISTS users (
