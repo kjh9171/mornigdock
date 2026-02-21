@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { query } from '../db/pool.ts';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY ?? '';
@@ -15,8 +16,37 @@ interface NewsApiArticle {
 }
 
 /**
+ * 뉴스 URL로부터 본문 내용을 정밀하게 크롤링합니다.
+ * (네이버, 구글 뉴스 등 주요 매체의 본문 태그를 자동으로 탐색합니다.)
+ */
+export async function scrapeArticleContent(url: string): Promise<string> {
+  try {
+    const response = await axios.get(url, {
+      timeout: 5000,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+    });
+    const $ = cheerio.load(response.data);
+    
+    // 불필요한 태그 제거 (광고, 스크립트 등)
+    $('script, style, iframe, ins, .ads, #ads').remove();
+
+    // 주요 뉴스 매체 본문 태그 후보군 탐색
+    let content = $('#articleBodyContents, #articleBody, #newsct_article, .article_view, .article_body, .content, article').text().trim();
+    
+    // 만약 탐색에 실패하면 p 태그들을 모읍니다.
+    if (!content || content.length < 100) {
+      content = $('p').map((_, el) => $(el).text()).get().join('\n').trim();
+    }
+
+    return content.slice(0, 5000); // 분석에 필요한 적당량만 리턴
+  } catch (err) {
+    console.error(`[Scraper] 원문 수집 실패 (${url}):`, err);
+    return '';
+  }
+}
+
+/**
  * NewsAPI.org에서 최신 한국 뉴스를 정확하게 가져와 DB에 저장합니다.
- * @returns 저장된 뉴스 수
  */
 export async function fetchLatestNews(): Promise<number> {
   // API 키가 없을 경우 실감나는 한국어 모의 데이터를 생성하여 대표님께 보고합니다.

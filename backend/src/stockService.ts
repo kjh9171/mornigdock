@@ -103,7 +103,7 @@ export const fetchStockService = async () => {
     try {
       await pool.query(
         `INSERT INTO posts (user_id, category, type, title, content, source, source_url, created_at)
-         VALUES ($1, 'general', 'news', $2, $3, $4, $5, NOW())
+         VALUES ($1, '리서치', 'news', $2, $3, $4, $5, NOW())
          ON CONFLICT (source_url) DO UPDATE SET title = EXCLUDED.title`,
         [
           adminId,
