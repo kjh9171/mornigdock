@@ -31,7 +31,7 @@ export default function Layout() {
         <div className="max-w-[1100px] mx-auto flex items-center justify-between h-14 px-4 lg:px-0">
           <div className="flex items-center gap-6">
             <Link to="/news" className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tighter text-white">MORNINGDOCK</span>
+              <span className="text-xl font-black tracking-tighter text-white">AGORA</span>
             </Link>
             
             <nav className="hidden md:flex items-center">
@@ -104,8 +104,8 @@ export default function Layout() {
       {/* ── 푸터 ── */}
       <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-400 mt-10">
         <div className="max-w-[1100px] mx-auto px-4">
-          <p className="text-[11px] mb-2 font-bold tracking-widest text-slate-300 uppercase">Morningdock Platform</p>
-          <p className="text-[10px]">© 2026 Morningdock. All rights reserved. CERT Division.</p>
+          <p className="text-[11px] mb-2 font-bold tracking-widest text-slate-300 uppercase">Agora Platform</p>
+          <p className="text-[10px]">© 2026 Agora. All rights reserved. CERT Division.</p>
         </div>
       </footer>
     </div>
