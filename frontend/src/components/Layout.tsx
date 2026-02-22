@@ -41,7 +41,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen flex flex-col bg-slate-100/80 font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* ── 아고라 프리미엄 상단 헤더 ── */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between h-20 px-6">

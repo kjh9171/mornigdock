@@ -116,16 +116,16 @@ export default function Board() {
           <p className="text-slate-400 font-bold">아직 발제된 아젠다가 없습니다.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 px-4">
+        <div className="grid grid-cols-1 gap-6 px-4">
           {posts.map(post => (
             <div 
               key={post.id} 
               onClick={() => navigate(`/board/${post.id}`)}
-              className="group bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center gap-6 shadow-sm"
+              className="group bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-200 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-4px_rgba(59,130,246,0.1)] hover:border-blue-300 transition-all duration-300 cursor-pointer flex flex-col md:flex-row items-start md:items-center gap-6"
             >
-              <div className="hidden md:flex flex-col items-center justify-center w-16 h-16 bg-slate-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
-                <span className="text-xs font-black text-slate-400 group-hover:text-blue-600">Views</span>
-                <span className="text-lg font-black text-slate-700 group-hover:text-blue-700">{post.view_count}</span>
+              <div className="hidden md:flex flex-col items-center justify-center w-20 h-20 bg-slate-50 rounded-[1.5rem] group-hover:bg-blue-50 transition-colors border border-slate-100 group-hover:border-blue-100">
+                <span className="text-[10px] font-black text-slate-400 group-hover:text-blue-600 uppercase">Views</span>
+                <span className="text-xl font-black text-slate-700 group-hover:text-blue-700">{post.view_count}</span>
               </div>
 
               <div className="flex-1 min-w-0">

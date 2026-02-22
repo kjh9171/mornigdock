@@ -6,7 +6,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.ts';
 
 const newsRoutes = new Hono();
 
-// 뉴스 목록 조회
+// ─── 뉴스 목록 조회 ────────────────────────────────────────────────────────
 newsRoutes.get('/', optionalAuth(), async (c) => {
   const page = Math.max(1, Number(c.req.query('page') || 1));
   const limit = Math.min(50, Math.max(1, Number(c.req.query('limit') || 20)));
@@ -34,12 +34,12 @@ newsRoutes.get('/', optionalAuth(), async (c) => {
     const total = Number(totalRes.rows[0].count);
 
     const dataRes = await query(
-      `SELECT *, 
-        (SELECT COUNT(*) FROM comments WHERE news_id = news.id) as comment_count,
-        (SELECT row_to_json(r) FROM ai_reports r WHERE r.news_id = news.id LIMIT 1) as ai_report
-       FROM news 
+      `SELECT n.*, 
+        (SELECT COUNT(*) FROM comments WHERE news_id = n.id) as comment_count,
+        (SELECT row_to_json(r) FROM ai_reports r WHERE r.news_id = n.id LIMIT 1) as ai_report
+       FROM news n
        WHERE ${whereClause} 
-       ORDER BY is_pinned DESC, published_at DESC 
+       ORDER BY n.is_pinned DESC, n.published_at DESC 
        LIMIT $${pIdx++} OFFSET $${pIdx++}`,
       [...params, limit, offset]
     );
@@ -56,16 +56,16 @@ newsRoutes.get('/', optionalAuth(), async (c) => {
   }
 });
 
-// 뉴스 상세 정보 및 AI 분석 결과 조회
+// ─── 뉴스 상세 및 AI 분석 결과 조회 ──────────────────────────────────────────
 newsRoutes.get('/:id', optionalAuth(), async (c) => {
   const id = parseInt(c.req.param('id'));
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
 
   try {
     const res = await query(
-      `SELECT *, 
-        (SELECT row_to_json(r) FROM ai_reports r WHERE r.news_id = news.id LIMIT 1) as ai_report
-       FROM news WHERE id = $1`, 
+      `SELECT n.*, 
+        (SELECT row_to_json(r) FROM ai_reports r WHERE r.news_id = n.id LIMIT 1) as ai_report
+       FROM news n WHERE n.id = $1`, 
       [id]
     );
     if (res.rows.length === 0) return c.json({ success: false, message: 'News not found' }, 404);
@@ -75,22 +75,26 @@ newsRoutes.get('/:id', optionalAuth(), async (c) => {
   }
 });
 
-// AI 분석 요청
+// ─── AI 분석 요청 (진짜 정밀 분석) ──────────────────────────────────────────
 newsRoutes.post('/:id/ai-report', requireAuth(), async (c) => {
   const id = parseInt(c.req.param('id'));
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
   
   try {
+    // 1. 이미 분석된 리포트가 있으면 즉시 반환
     const checkRes = await query('SELECT * FROM ai_reports WHERE news_id = $1', [id]);
     if (checkRes.rows.length > 0) return c.json({ success: true, data: checkRes.rows[0] });
 
-    const newsRes = await query('SELECT title, url, category FROM news WHERE id = $1', [id]);
+    // 2. 뉴스 데이터 로드
+    const newsRes = await query('SELECT title, url, description FROM news WHERE id = $1', [id]);
     if (newsRes.rows.length === 0) return c.json({ success: false, message: 'News not found' }, 404);
-    const news = newsRes.rows[0];
+    const n = newsRes.rows[0];
 
-    const fullContent = await scrapeArticleContent(news.url);
-    const analysis = await analyzeNewsWithGemini(news.title, fullContent || news.description || '');
+    // 3. 본문 크롤링 및 Gemini 분석 실행
+    const fullContent = await scrapeArticleContent(n.url);
+    const analysis = await analyzeNewsWithGemini(n.title, fullContent || n.description || '');
 
+    // 4. DB 저장
     const insertRes = await query(
       `INSERT INTO ai_reports (news_id, summary, impact, advice)
        VALUES ($1, $2, $3, $4)
@@ -100,21 +104,25 @@ newsRoutes.post('/:id/ai-report', requireAuth(), async (c) => {
 
     return c.json({ success: true, data: insertRes.rows[0] });
   } catch (err: any) {
-    return c.json({ success: false, message: 'AI Analysis Failed' }, 500);
+    console.error('[AI Analysis Error]', err);
+    return c.json({ success: false, message: 'AI Analysis Operation Failed' }, 500);
   }
 });
 
-// 좋아요/싫어요 반응 처리 (숫자 ID 처리 보강)
+// ─── 좋아요/싫어요 반응 (정밀 처리) ──────────────────────────────────────────
 newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
   const id = parseInt(c.req.param('id'));
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
 
   const user = c.get('user'); 
-  const { reaction } = await c.req.json(); 
+  const { reaction } = await c.req.json().catch(() => ({})); 
 
-  if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400);
+  if (!['like', 'dislike'].includes(reaction)) {
+    return c.json({ success: false, message: 'Invalid reaction type' }, 400);
+  }
 
   try {
+    // 1. 반응 데이터 기록 (UPSERT)
     await query(
       `INSERT INTO reactions (user_id, target_type, target_id, reaction)
        VALUES ($1, 'news', $2, $3)
@@ -123,6 +131,7 @@ newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
       [user.userId, id, reaction]
     );
 
+    // 2. 뉴스 테이블 통계 강제 갱신
     await query(`
       UPDATE news SET 
         likes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'news' AND target_id = $1 AND reaction = 'like'),
@@ -130,21 +139,12 @@ newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
       WHERE id = $1
     `, [id]);
 
+    // 3. 최신 숫자 반환
     const updated = await query('SELECT likes_count, dislikes_count FROM news WHERE id = $1', [id]);
     return c.json({ success: true, data: updated.rows[0] });
   } catch (err: any) {
-    return c.json({ success: false, message: err.message }, 500);
-  }
-});
-
-// 뉴스 수집 트리거
-newsRoutes.post('/fetch', requireAuth(['admin']), async (c) => {
-  try {
-    const { fetchLatestNews } = await import('../services/newsService.ts');
-    const count = await fetchLatestNews();
-    return c.json({ success: true, count, message: `${count}개의 뉴스를 수집했습니다.` });
-  } catch (err: any) {
-    return c.json({ success: false, message: err.message }, 500);
+    console.error('[Reaction Error]', err);
+    return c.json({ success: false, message: 'Reaction processing failed' }, 500);
   }
 });
 

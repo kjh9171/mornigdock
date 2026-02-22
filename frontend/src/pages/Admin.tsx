@@ -5,7 +5,8 @@ import {
   RefreshCw, Loader2, Ban, CheckCircle, Activity, 
   Terminal, Settings, Trash2, Zap, FileText, 
   Search, Plus, X, LayoutDashboard, BarChart3,
-  Clock, Database, Globe, Inbox
+  Clock, Database, Globe, Inbox, FlaskConical,
+  Play, Check, AlertCircle, Cpu
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -26,7 +27,7 @@ interface InquiryRow {
   type: string; title: string; content: string; status: string; created_at: string;
 }
 
-type Tab = 'dashboard' | 'users' | 'inquiries' | 'content' | 'settings';
+type Tab = 'dashboard' | 'users' | 'inquiries' | 'content' | 'settings' | 'lab';
 
 export default function AdminPage() {
   const [tab,      setTab]      = useState<Tab>('dashboard');
@@ -38,6 +39,9 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // API 테스트 결과 상태
+  const [testResults, setTestResults] = useState<Record<string, any>>({});
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ email: '', password: '', name: '', role: 'user' });
@@ -80,6 +84,16 @@ export default function AdminPage() {
     }
   };
 
+  const runApiTest = async (key: string, endpoint: string, method: 'get' | 'post' = 'post', body?: any) => {
+    setTestResults(prev => ({ ...prev, [key]: { loading: true } }));
+    try {
+      const res = method === 'get' ? await api.get(endpoint) : await api.post(endpoint, body);
+      setTestResults(prev => ({ ...prev, [key]: { loading: false, success: true, data: res.data } }));
+    } catch (err: any) {
+      setTestResults(prev => ({ ...prev, [key]: { loading: false, success: false, error: err.response?.data?.message || err.message } }));
+    }
+  };
+
   const handleAction = async (action: () => Promise<any>, successMsg: string) => {
     setActionLoading(true);
     try {
@@ -99,6 +113,7 @@ export default function AdminPage() {
     { key: 'inquiries', label: '문의 관리',   icon: Inbox },
     { key: 'content',   label: '자산 관리',    icon: FileText },
     { key: 'settings',  label: '시스템 설정', icon: Settings },
+    { key: 'lab',       label: 'API 연구소',  icon: FlaskConical },
   ];
 
   return (
@@ -114,7 +129,7 @@ export default function AdminPage() {
           <p className="text-slate-500 mt-2 font-medium">AGORA 플랫폼의 모든 지능 데이터와 요원을 제어합니다.</p>
         </div>
         
-        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] overflow-x-auto">
+        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] overflow-x-auto max-w-full">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key}
               onClick={() => setTab(key)}
@@ -332,6 +347,71 @@ export default function AdminPage() {
             </div>
           )}
 
+          {tab === 'lab' && (
+            <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+              <div className="flex items-center gap-3 px-4">
+                <FlaskConical className="text-purple-600" size={28} />
+                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">API 연구소 (Lab)</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* 뉴스 수집 테스트 */}
+                <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600"><Newspaper size={20} /></div>
+                    <h4 className="text-lg font-black text-slate-800">지능 데이터 수집 테스트</h4>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">네이버/구글 API를 호출하여 최신 뉴스를 강제로 수집합니다.</p>
+                  <button 
+                    onClick={() => runApiTest('news_fetch', '/news/fetch')}
+                    disabled={testResults['news_fetch']?.loading}
+                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-blue-200"
+                  >
+                    {testResults['news_fetch']?.loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
+                    수집 프로토콜 실행
+                  </button>
+                  {testResults['news_fetch'] && <ApiTestResult result={testResults['news_fetch']} />}
+                </div>
+
+                {/* AI 분석 테스트 */}
+                <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600"><Cpu size={20} /></div>
+                    <h4 className="text-lg font-black text-slate-800">AI 전략 분석 테스트</h4>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">가장 최근 수집된 뉴스(ID: 1)에 대해 Gemini AI 분석을 강제 실행합니다.</p>
+                  <button 
+                    onClick={() => runApiTest('ai_test', '/news/1/ai-report')}
+                    disabled={testResults['ai_test']?.loading}
+                    className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-purple-200"
+                  >
+                    {testResults['ai_test']?.loading ? <Loader2 size={18} className="animate-spin" /> : <Zap size={18} fill="currentColor" />}
+                    분석 엔진 가동
+                  </button>
+                  {testResults['ai_test'] && <ApiTestResult result={testResults['ai_test']} />}
+                </div>
+
+                {/* 헬스 체크 */}
+                <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><Activity size={20} /></div>
+                    <h4 className="text-lg font-black text-slate-800">시스템 헬스 체크</h4>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium leading-relaxed">서버 및 데이터베이스의 연결 상태를 실시간으로 점검합니다.</p>
+                  <button 
+                    onClick={() => runApiTest('health', '/health', 'get')}
+                    disabled={testResults['health']?.loading}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-emerald-200"
+                  >
+                    {testResults['health']?.loading ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                    자가 진단 실행
+                  </button>
+                  {testResults['health'] && <ApiTestResult result={testResults['health']} />}
+                </div>
+              </div>
+            </div>
+          )}
+
           {tab === 'content' && (
             <div className="space-y-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm">
@@ -352,19 +432,6 @@ export default function AdminPage() {
                       {type.label}
                     </button>
                   ))}
-                </div>
-                
-                <div className="flex gap-3">
-                  {contentType === 'news' && (
-                    <button 
-                      onClick={() => handleAction(() => fetchNewsAPI(), '뉴스 동기화 완료')} 
-                      disabled={actionLoading}
-                      className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-200"
-                    >
-                      {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                      즉시 수집 프로토콜
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -476,6 +543,20 @@ export default function AdminPage() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── API 테스트 결과 컴포넌트 ──
+function ApiTestResult({ result }: { result: any }) {
+  if (result.loading) return null;
+  return (
+    <div className={`mt-4 p-5 rounded-2xl border text-[11px] font-mono whitespace-pre-wrap overflow-auto max-h-40 ${result.success ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+      <div className="flex items-center gap-2 mb-2 font-black uppercase">
+        {result.success ? <Check size={14} /> : <AlertCircle size={14} />}
+        {result.success ? 'Success' : 'Failed'}
+      </div>
+      {result.success ? JSON.stringify(result.data, null, 2) : result.error}
     </div>
   );
 }
