@@ -58,7 +58,9 @@ newsRoutes.get('/', optionalAuth(), async (c) => {
 
 // 뉴스 상세 정보 및 AI 분석 결과 조회
 newsRoutes.get('/:id', optionalAuth(), async (c) => {
-  const id = c.req.param('id');
+  const id = parseInt(c.req.param('id'));
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
+
   try {
     const res = await query(
       `SELECT *, 
@@ -73,28 +75,22 @@ newsRoutes.get('/:id', optionalAuth(), async (c) => {
   }
 });
 
-// AI 분석 요청 (진짜 Gemini AI 분석 수행)
+// AI 분석 요청
 newsRoutes.post('/:id/ai-report', requireAuth(), async (c) => {
-  const id = c.req.param('id');
+  const id = parseInt(c.req.param('id'));
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
   
   try {
-    // 1. 이미 분석된 내용이 있는지 확인
     const checkRes = await query('SELECT * FROM ai_reports WHERE news_id = $1', [id]);
     if (checkRes.rows.length > 0) return c.json({ success: true, data: checkRes.rows[0] });
 
-    // 2. 뉴스 기본 정보 및 원문 URL 조회
     const newsRes = await query('SELECT title, url, category FROM news WHERE id = $1', [id]);
     if (newsRes.rows.length === 0) return c.json({ success: false, message: 'News not found' }, 404);
     const news = newsRes.rows[0];
 
-    // 3. 원문 크롤링 수행
-    console.log(`[AI Analysis] Scrutinizing source content from: ${news.url}`);
     const fullContent = await scrapeArticleContent(news.url);
-    
-    // 4. Gemini AI를 활용한 정밀 분석
     const analysis = await analyzeNewsWithGemini(news.title, fullContent || news.description || '');
 
-    // 5. DB 저장 및 반환
     const insertRes = await query(
       `INSERT INTO ai_reports (news_id, summary, impact, advice)
        VALUES ($1, $2, $3, $4)
@@ -103,24 +99,22 @@ newsRoutes.post('/:id/ai-report', requireAuth(), async (c) => {
     );
 
     return c.json({ success: true, data: insertRes.rows[0] });
-
   } catch (err: any) {
-    console.error('[AI Analysis Error]', err);
-    return c.json({ success: false, message: 'AI Analysis Operation Failed' }, 500);
+    return c.json({ success: false, message: 'AI Analysis Failed' }, 500);
   }
 });
 
-// 좋아요/싫어요 반응 처리
+// 좋아요/싫어요 반응 처리 (숫자 ID 처리 보강)
 newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
-  const id = c.req.param('id');
-  const user = c.get('user'); // JwtPayload { userId, ... }
-  const { reaction } = await c.req.json(); // 'like' or 'dislike'
+  const id = parseInt(c.req.param('id'));
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400);
 
-  if (!user) return c.json({ success: false, message: '인증이 필요합니다.' }, 401);
+  const user = c.get('user'); 
+  const { reaction } = await c.req.json(); 
+
   if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400);
 
   try {
-    // 기존 반응 확인 및 업데이트 (UPSERT)
     await query(
       `INSERT INTO reactions (user_id, target_type, target_id, reaction)
        VALUES ($1, 'news', $2, $3)
@@ -129,7 +123,6 @@ newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
       [user.userId, id, reaction]
     );
 
-    // 통계 업데이트
     await query(`
       UPDATE news SET 
         likes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'news' AND target_id = $1 AND reaction = 'like'),

@@ -1,11 +1,11 @@
 import axios from 'axios';
+import { getSystemSetting } from '../utils/settings.ts';
 
 /**
  * Gemini API 연동 서비스
  * 뉴스 본문을 분석하여 요약 및 결론을 도출합니다.
  */
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = 'gemini-1.5-flash'; // 가성비와 성능이 뛰어난 모델 사용
+const GEMINI_MODEL = 'gemini-1.5-flash'; 
 
 interface GeminiAnalysisResult {
   summary: string;
@@ -17,12 +17,15 @@ interface GeminiAnalysisResult {
  * 뉴스 제목과 본문을 바탕으로 AI 분석을 수행합니다.
  */
 export async function analyzeNewsWithGemini(title: string, content: string): Promise<GeminiAnalysisResult> {
-  if (!GEMINI_API_KEY) {
+  // 시스템 설정에서 최신 API 키 확보 (DB 우선)
+  const apiKey = await getSystemSetting('gemini_api_key');
+
+  if (!apiKey) {
     console.warn('[GeminiService] API 키가 설정되지 않아 기본 분석 결과를 반환합니다.');
     return {
       summary: 'API 키가 설정되지 않아 AI 분석을 수행할 수 없습니다.',
-      impact: '환경 변수(GEMINI_API_KEY)를 확인해 주세요.',
-      advice: '관리자에게 문의하시기 바랍니다.'
+      impact: '관리자 설정에서 Gemini API 키를 등록해 주세요.',
+      advice: '환경 변수 혹은 시스템 설정을 확인하시기 바랍니다.'
     };
   }
 
@@ -50,7 +53,7 @@ export async function analyzeNewsWithGemini(title: string, content: string): Pro
     `;
 
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {

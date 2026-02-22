@@ -365,6 +365,9 @@ export default function AdminPage() {
 
                 <div className="space-y-6 relative z-10">
                   {[
+                    { key: 'naver_client_id', label: 'Naver API Client ID', desc: '네이버 뉴스 검색 API 사용을 위한 Client ID입니다.', type: 'input' },
+                    { key: 'naver_client_secret', label: 'Naver API Client Secret', desc: '네이버 뉴스 검색 API 사용을 위한 Client Secret입니다.', type: 'input' },
+                    { key: 'gemini_api_key', label: 'Gemini API Key', desc: '뉴스 본문 분석 및 요약을 위한 Google Gemini API 키입니다.', type: 'input' },
                     { key: 'ai_analysis_enabled', label: 'AI 분석 엔진 가동', desc: '뉴스 수집 시 Gemini AI 분석 리포트를 자동으로 생성합니다.', type: 'toggle' },
                     { key: 'auto_fetch_enabled', label: '실시간 자동 수집', desc: '외부 소스에서 실시간 지능 데이터를 자동으로 가져옵니다.', type: 'toggle' },
                     { key: 'maintenance_mode', label: '점검 모드 (접근 통제)', desc: '관리자를 제외한 일반 요원의 접속을 차단합니다.', type: 'toggle' },
@@ -386,11 +389,12 @@ export default function AdminPage() {
                         ) : (
                           <div className="flex items-center gap-3">
                             <input 
-                              className="w-20 px-4 py-2 bg-white border border-slate-200 rounded-xl text-center text-xs font-black text-slate-800 outline-none focus:border-blue-500"
-                              value={settings[item.key]} 
+                              className={`px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-800 outline-none focus:border-blue-500 ${item.key.includes('key') || item.key.includes('secret') ? 'w-64' : 'w-20 text-center'}`}
+                              value={settings[item.key] || ''} 
                               onChange={e => setSettings(s => ({...s, [item.key]: e.target.value}))}
+                              type={item.key.includes('secret') || item.key.includes('key') ? 'password' : 'text'}
                             />
-                            <span className="text-[10px] font-black text-slate-400 uppercase">{item.unit}</span>
+                            {item.unit && <span className="text-[10px] font-black text-slate-400 uppercase">{item.unit}</span>}
                           </div>
                         )}
                       </div>

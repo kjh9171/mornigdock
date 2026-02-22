@@ -4,7 +4,7 @@ import { requireAuth, optionalAuth } from '../middleware/auth.js'
 
 export const postsRouter = new Hono()
 
-// ─── GET /api/posts ───
+// ─── GET /api/posts (검색 및 필터링 보강) ───
 postsRouter.get('/', optionalAuth(), async (c) => {
   try {
     const type = c.req.query('type')
@@ -57,15 +57,16 @@ postsRouter.get('/', optionalAuth(), async (c) => {
       pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     })
   } catch (err) {
-    console.error('Board Fetch Error:', err)
     return c.json({ success: false }, 500)
   }
 })
 
-// ─── GET /api/posts/:id ───
+// ─── GET /api/posts/:id (ID 파싱 보강) ───
 postsRouter.get('/:id', optionalAuth(), async (c) => {
+  const id = parseInt(c.req.param('id'))
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+
   try {
-    const id = parseInt(c.req.param('id'))
     await query('UPDATE posts SET view_count = view_count + 1 WHERE id = $1', [id])
     const result = await query(
       `SELECT p.*, u.name as author_name, p.user_id as author_id 
@@ -92,13 +93,15 @@ postsRouter.get('/:id', optionalAuth(), async (c) => {
 
 // ─── POST /api/posts/:id/reaction (좋아요/싫어요) ───
 postsRouter.post('/:id/reaction', requireAuth(), async (c) => {
+  const id = parseInt(c.req.param('id'))
+  if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
+
+  const user = c.get('user') as any
+  const { reaction } = await c.req.json()
+
+  if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400)
+
   try {
-    const id = parseInt(c.req.param('id'))
-    const user = c.get('user') as any
-    const { reaction } = await c.req.json()
-
-    if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400)
-
     await query(
       `INSERT INTO reactions (user_id, target_type, target_id, reaction)
        VALUES ($1, 'post', $2, $3)
@@ -133,55 +136,6 @@ postsRouter.post('/', requireAuth(), async (c) => {
       [type, category || 'general', title, content, user.userId]
     )
     return c.json({ success: true, post: { ...result.rows[0], author_name: user.name, author_id: user.userId } }, 201)
-  } catch (err) { 
-    console.error('Post Create Error:', err)
-    return c.json({ success: false }, 500) 
-  }
-})
-
-// ─── PUT /api/posts/:id ───
-postsRouter.put('/:id', requireAuth(), async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'))
-    const user = c.get('user') as any
-    const body = await c.req.json()
-    const { title, content, category } = body
-
-    const postRes = await query('SELECT user_id FROM posts WHERE id = $1', [id])
-    if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
-
-    // 본인 혹은 관리자만 수정 가능
-    if (user.role !== 'admin' && postRes.rows[0].user_id !== user.userId) {
-      return c.json({ success: false, message: 'Unauthorized - You do not have permission to edit this post' }, 403)
-    }
-
-    await query(
-      `UPDATE posts SET title = $1, content = $2, category = $3, updated_at = NOW() WHERE id = $4`,
-      [title, content, category || 'general', id]
-    )
-    return c.json({ success: true, message: 'Post updated successfully' })
-  } catch (err) {
-    console.error('Post Update Error:', err)
-    return c.json({ success: false }, 500)
-  }
-})
-
-// ─── DELETE /api/posts/:id ───
-postsRouter.delete('/:id', requireAuth(), async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'))
-    const user = c.get('user') as any
-    
-    const postRes = await query('SELECT user_id FROM posts WHERE id = $1', [id])
-    if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
-    
-    // 본인 혹은 관리자만 삭제 가능
-    if (user.role !== 'admin' && postRes.rows[0].user_id !== user.userId) {
-      return c.json({ success: false, message: 'Unauthorized - You do not have permission to delete this post' }, 403)
-    }
-
-    await query('DELETE FROM posts WHERE id = $1', [id])
-    return c.json({ success: true })
   } catch (err) { 
     return c.json({ success: false }, 500) 
   }
