@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { query } from '../db/pool.ts';
 import { scrapeArticleContent } from '../services/newsService.ts';
 import { analyzeNewsWithGemini } from '../services/geminiService.ts';
+import { requireAuth, optionalAuth } from '../middleware/auth.ts';
 
 const newsRoutes = new Hono();
 
 // 뉴스 목록 조회
-newsRoutes.get('/', async (c) => {
+newsRoutes.get('/', optionalAuth(), async (c) => {
   const page = Math.max(1, Number(c.req.query('page') || 1));
   const limit = Math.min(50, Math.max(1, Number(c.req.query('limit') || 20)));
   const category = c.req.query('category') || 'all';
@@ -56,7 +57,7 @@ newsRoutes.get('/', async (c) => {
 });
 
 // 뉴스 상세 정보 및 AI 분석 결과 조회
-newsRoutes.get('/:id', async (c) => {
+newsRoutes.get('/:id', optionalAuth(), async (c) => {
   const id = c.req.param('id');
   try {
     const res = await query(
@@ -73,7 +74,7 @@ newsRoutes.get('/:id', async (c) => {
 });
 
 // AI 분석 요청 (진짜 Gemini AI 분석 수행)
-newsRoutes.post('/:id/ai-report', async (c) => {
+newsRoutes.post('/:id/ai-report', requireAuth(), async (c) => {
   const id = c.req.param('id');
   
   try {
@@ -110,9 +111,9 @@ newsRoutes.post('/:id/ai-report', async (c) => {
 });
 
 // 좋아요/싫어요 반응 처리
-newsRoutes.post('/:id/reaction', async (c) => {
+newsRoutes.post('/:id/reaction', requireAuth(), async (c) => {
   const id = c.req.param('id');
-  const user = c.get('user'); // 미들웨어에서 설정된 유저 정보
+  const user = c.get('user'); // JwtPayload { userId, ... }
   const { reaction } = await c.req.json(); // 'like' or 'dislike'
 
   if (!user) return c.json({ success: false, message: '인증이 필요합니다.' }, 401);
@@ -125,7 +126,7 @@ newsRoutes.post('/:id/reaction', async (c) => {
        VALUES ($1, 'news', $2, $3)
        ON CONFLICT (user_id, target_type, target_id) 
        DO UPDATE SET reaction = EXCLUDED.reaction`,
-      [user.id, id, reaction]
+      [user.userId, id, reaction]
     );
 
     // 통계 업데이트
@@ -144,8 +145,9 @@ newsRoutes.post('/:id/reaction', async (c) => {
 });
 
 // 뉴스 수집 트리거
-newsRoutes.post('/fetch', async (c) => {
+newsRoutes.post('/fetch', requireAuth(['admin']), async (c) => {
   try {
+    const { fetchLatestNews } = await import('../services/newsService.ts');
     const count = await fetchLatestNews();
     return c.json({ success: true, count, message: `${count}개의 뉴스를 수집했습니다.` });
   } catch (err: any) {

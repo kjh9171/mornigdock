@@ -62,7 +62,7 @@ media.post('/', requireAuth(['admin', 'editor']), async (c) => {
 
 // ─── POST /media/request (일반 유저용: 음악 신청) ───────────────────────────────
 media.post('/request', requireAuth(['user', 'admin', 'editor']), async (c) => {
-  const user = c.get('user');
+  const user = c.get('user'); // JwtPayload { userId, ... }
   const schema = z.object({
     title: z.string().min(1).max(200),
     url:   z.string().url(),
@@ -78,7 +78,7 @@ media.post('/request', requireAuth(['user', 'admin', 'editor']), async (c) => {
   const result = await query(
     `INSERT INTO media (title, url, type, requester_id, is_active)
      VALUES ($1, $2, $3, $4, false) RETURNING *`,
-    [title, url, type, user.id]
+    [title, url, type, user.userId]
   );
 
   return c.json({ success: true, message: '음악 신청이 완료되었습니다. 관리자 승인 후 리스트에 추가됩니다.', data: result.rows[0] });

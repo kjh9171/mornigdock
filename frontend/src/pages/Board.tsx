@@ -1,29 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { useTranslation } from 'react-i18next';
 import { getPostsAPI, Post } from '../lib/api';
-import { MessageSquare, Search, PenSquare, ChevronLeft, ChevronRight, Eye, ThumbsUp } from 'lucide-react';
+import { 
+  MessageSquare, Search, PenSquare, 
+  ChevronLeft, ChevronRight, Eye, 
+  ThumbsUp, Users, Filter, Clock
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 
-const BOARD_CATEGORIES = ['all', 'tech', 'economy', 'environment', 'general', 'news_analysis'];
-
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  if (diff < 60000) return '방금';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
-  
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  if (d.getFullYear() === now.getFullYear()) return `${mm}.${dd}`;
-  return `${d.getFullYear()}.${mm}.${dd}`;
-}
+const BOARD_CATEGORIES = [
+  { id: 'all', label: '전체' },
+  { id: 'general', label: '자유토론' },
+  { id: 'news_analysis', label: '뉴스분석' },
+  { id: 'economy', label: '경제/금융' },
+  { id: 'tech', label: '기술/IT' }
+];
 
 export default function Board() {
   const { user } = useAuthStore();
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
@@ -35,16 +31,12 @@ export default function Board() {
 
   useEffect(() => {
     setIsLoading(true);
-    const params: Record<string, string | number> = { page, limit: 20 };
-    
-    if (category === 'news_analysis') {
-      params.type = 'news';
-    } else if (category === 'all') {
-      params.type = ''; 
-    } else {
-      params.type = 'board';
-      params.category = category;
+    const params: any = { page, limit: 15 };
+    if (category !== 'all') {
+      if (category === 'news_analysis') params.type = 'news';
+      else params.category = category;
     }
+    if (searchQuery) params.search = searchQuery;
 
     getPostsAPI(params).then(res => {
       if (res.success) {
@@ -52,150 +44,149 @@ export default function Board() {
         setPagination(res.pagination);
       }
     }).finally(() => setIsLoading(false));
-  }, [category, page]);
-
-  const filteredPosts = searchQuery
-    ? posts.filter(p => p.title.includes(searchQuery) || (p.author_name ?? '').includes(searchQuery))
-    : posts;
+  }, [category, page, searchQuery]);
 
   const changePage = (p: number) => { setPage(p); window.scrollTo(0, 0); };
-  const changeCategory = (cat: string) => { setCategory(cat); setPage(1); };
-
-  const handlePostClick = (post: Post) => {
-    navigate(`/board/${post.id}`);
-  };
 
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-slate-200 overflow-hidden">
-      {/* ── 상단 헤더 ── */}
-      <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-bold text-slate-800">커뮤니티</h2>
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {BOARD_CATEGORIES.map(cat => (
-              <button 
-                key={cat} 
-                onClick={() => changeCategory(cat)} 
-                className={`px-3 py-1 text-[12px] font-medium rounded-full transition-all whitespace-nowrap ${
-                  category === cat 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-slate-500 hover:bg-slate-200'
-                }`}
-              >
-                {t(cat)}
-              </button>
-            ))}
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500 min-h-screen">
+      {/* ── 헤더 섹션 ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-100">
+        <div>
+          <div className="flex items-center gap-3 text-blue-600 mb-2">
+            <Users size={28} className="stroke-[2.5]" />
+            <span className="text-sm font-black uppercase tracking-widest">Agora Community</span>
           </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">아고라 광장</h1>
+          <p className="text-slate-500 mt-2 font-medium">요원들의 자유로운 지능 공유 및 끝장 토론의 장</p>
         </div>
-        <button onClick={() => navigate('/board/write')} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[12px] font-bold transition-all shadow-sm">
-          <PenSquare size={14} /> 글쓰기
+        
+        <button 
+          onClick={() => navigate('/board/write')} 
+          className="flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-[1.5rem] font-black text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+        >
+          <PenSquare size={18} />
+          새로운 아젠다 발제
         </button>
       </div>
 
-      {/* ── 검색바 ── */}
-      <div className="p-3 border-b border-slate-100 flex justify-end bg-white">
-        <form onSubmit={e => { e.preventDefault(); setSearchQuery(searchInput); }} className="flex gap-1">
-          <div className="relative">
+      {/* ── 필터 및 검색 ── */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-10 items-center px-4">
+        <div className="flex overflow-x-auto gap-2 p-1.5 bg-slate-200/50 rounded-2xl shrink-0 w-full lg:w-auto">
+          {BOARD_CATEGORIES.map(cat => (
+            <button key={cat.id}
+              onClick={() => { setCategory(cat.id); setPage(1); }}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                category === cat.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="relative w-full flex gap-3">
+          <div className="relative flex-1">
             <input 
-              value={searchInput} 
-              onChange={e => setSearchInput(e.target.value)} 
-              placeholder="검색어 입력" 
-              className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded text-[13px] outline-none focus:border-blue-400 w-64" 
+              className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm" 
+              placeholder="토론 주제 또는 요원 이름을 검색하세요..." 
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && setSearchQuery(searchInput)}
             />
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           </div>
-          <button type="submit" className="px-4 bg-slate-600 text-white rounded text-[12px] font-bold hover:bg-slate-700 transition-all">검색</button>
-        </form>
+          <button 
+            onClick={() => setSearchQuery(searchInput)}
+            className="px-8 bg-slate-800 text-white rounded-2xl font-black text-sm hover:bg-slate-900 transition-all shadow-lg"
+          >
+            검색
+          </button>
+        </div>
       </div>
 
-      {/* ── 게시판 리스트 ── */}
-      <div className="min-h-[500px]">
-        {/* 헤더 행 */}
-        <div className="hidden md:flex bg-slate-50 text-[11px] font-bold text-slate-500 py-2 border-b border-slate-200 px-4">
-          <div className="w-16 text-center">번호</div>
-          <div className="w-20 text-center">분류</div>
-          <div className="flex-1 text-center">제목</div>
-          <div className="w-24 text-center">작성자</div>
-          <div className="w-20 text-center">날짜</div>
-          <div className="w-16 text-center">조회</div>
-          <div className="w-12 text-center">공감</div>
+      {/* ── 게시글 리스트 (카드 그리드) ── */}
+      {isLoading ? (
+        <div className="py-40 text-center">
+          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Agora Decrypting...</p>
         </div>
+      ) : posts.length === 0 ? (
+        <div className="py-40 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 mx-4">
+          <p className="text-slate-400 font-bold">아직 발제된 아젠다가 없습니다.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 px-4">
+          {posts.map(post => (
+            <div 
+              key={post.id} 
+              onClick={() => navigate(`/board/${post.id}`)}
+              className="group bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center gap-6 shadow-sm"
+            >
+              <div className="hidden md:flex flex-col items-center justify-center w-16 h-16 bg-slate-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
+                <span className="text-xs font-black text-slate-400 group-hover:text-blue-600">Views</span>
+                <span className="text-lg font-black text-slate-700 group-hover:text-blue-700">{post.view_count}</span>
+              </div>
 
-        {isLoading ? (
-          <div className="py-40 text-center text-slate-400 text-[13px]">데이터를 불러오는 중입니다...</div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="py-40 text-center text-slate-400 text-[13px]">등록된 게시글이 없습니다.</div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {filteredPosts.map((post, idx) => (
-              <div 
-                key={post.id} 
-                onClick={() => handlePostClick(post)}
-                className="group flex flex-col md:flex-row items-start md:items-center px-4 py-3 hover:bg-blue-50/30 cursor-pointer transition-colors"
-              >
-                {/* 번호 (모바일 숨김) */}
-                <div className="hidden md:block w-16 text-center text-[11px] text-slate-400">
-                  {pagination.total - ((page - 1) * 20) - idx}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-[10px] font-black rounded-lg uppercase tracking-wider group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                    {post.category || 'GENERAL'}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-slate-300 text-[11px] font-bold">
+                    <Clock size={12} />
+                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko })}
+                  </div>
                 </div>
-
-                {/* 분류 */}
-                <div className="hidden md:block w-20 text-center">
-                  <span className="text-[11px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{t(post.category ?? 'general')}</span>
-                </div>
-
-                {/* 제목 */}
-                <div className="flex-1 min-w-0 pr-4 w-full">
-                  <div className="flex items-center gap-1.5">
-                    {/* 모바일 분류 표시 */}
-                    <span className="md:hidden text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mr-1">{t(post.category ?? 'general')}</span>
-                    
-                    <h3 className="text-[14px] font-medium text-slate-800 truncate group-hover:text-blue-600 group-hover:underline">
-                      {post.title}
-                    </h3>
-                    {(post.comment_count ?? 0) > 0 && (
-                      <span className="text-[11px] font-bold text-orange-500 flex items-center gap-0.5">
-                        <MessageSquare size={10} fill="currentColor" /> {post.comment_count}
-                      </span>
-                    )}
-                    {post.type === 'news' && <span className="text-[10px] text-blue-600 border border-blue-200 px-1 rounded">NEWS</span>}
-                    {/* 모바일 작성자/날짜 */}
-                    <div className="md:hidden ml-auto text-[11px] text-slate-400 flex gap-2">
-                       <span>{post.author_name}</span>
-                       <span>{formatDate(post.created_at)}</span>
+                
+                <h3 className="text-xl font-black text-slate-800 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">
+                  {post.title}
+                </h3>
+                
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500">
+                      {post.author_name?.[0].toUpperCase()}
+                    </div>
+                    <span className="text-xs font-bold text-slate-500">{post.author_name}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-slate-300 ml-auto md:ml-0">
+                    <div className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+                      <MessageSquare size={16} />
+                      <span className="text-xs font-black">{post.comment_count || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
+                      <ThumbsUp size={16} />
+                      <span className="text-xs font-black">0</span>
                     </div>
                   </div>
                 </div>
-
-                {/* 데스크톱 정보 */}
-                <div className="hidden md:block w-24 text-center text-[12px] text-slate-600 truncate px-2">{post.author_name}</div>
-                <div className="hidden md:block w-20 text-center text-[11px] text-slate-400">{formatDate(post.created_at)}</div>
-                <div className="hidden md:block w-16 text-center text-[11px] text-slate-400">{post.view_count ?? 0}</div>
-                <div className="hidden md:block w-12 text-center text-[11px] text-slate-400">0</div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div className="hidden md:block">
+                <ChevronRight size={24} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── 페이지네이션 ── */}
       {pagination.totalPages > 1 && (
-        <div className="flex justify-center items-center gap-1 py-8 bg-white border-t border-slate-100">
+        <div className="flex justify-center items-center gap-3 mt-16 mb-12">
           <button 
             onClick={() => changePage(page - 1)} 
-            disabled={page === 1} 
-            className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"
+            disabled={page === 1}
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 disabled:opacity-20"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={20} />
           </button>
           
           {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => (
-            <button 
-              key={p} 
+            <button key={p}
               onClick={() => changePage(p)}
-              className={`min-w-[32px] h-8 px-2 rounded text-[12px] font-medium border transition-all ${
-                page === p 
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
-                  : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600'
+              className={`w-12 h-12 rounded-2xl text-sm font-black transition-all ${
+                page === p ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110' : 'bg-white border border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600'
               }`}
             >
               {p}
@@ -204,10 +195,10 @@ export default function Board() {
 
           <button 
             onClick={() => changePage(page + 1)} 
-            disabled={page === pagination.totalPages} 
-            className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30"
+            disabled={page === pagination.totalPages}
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 disabled:opacity-20"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={20} />
           </button>
         </div>
       )}

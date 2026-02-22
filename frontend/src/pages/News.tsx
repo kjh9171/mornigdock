@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { 
@@ -8,6 +8,7 @@ import {
   ChevronRight, Brain, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { NewsDetail } from '../components/NewsDetail';
 
 interface News {
   id: number;
@@ -33,6 +34,7 @@ const CATEGORIES = [
 ];
 
 export default function NewsPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [news, setNews] = useState<News[]>([]);
@@ -56,7 +58,11 @@ export default function NewsPage() {
     }
   }, [category, search]);
 
-  useEffect(() => { loadNews(1, category, search); }, [category, loadNews, search]);
+  useEffect(() => { 
+    if (!id) {
+      loadNews(1, category, search); 
+    }
+  }, [id, category, loadNews, search]);
 
   const handleFetch = async () => {
     setFetching(true);
@@ -80,6 +86,11 @@ export default function NewsPage() {
       console.error('반응 처리 실패:', err);
     }
   };
+
+  // 상세 보기 모드인 경우
+  if (id) {
+    return <NewsDetail />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500 min-h-screen bg-slate-50/30 rounded-[3rem]">
