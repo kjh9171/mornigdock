@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import Layout    from './components/Layout';
-import LoginPage from './pages/Login';
+// import { Login } from './components/Login'; // Login.tsx is no longer a separate component
 import NewsPage  from './pages/News';
 import MediaPage from './pages/Media';
 import AdminPage from './pages/Admin';
@@ -27,7 +27,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        {/* 임시 Login Placeholder */}
+        <Route path="/login" element={<div className="min-h-screen flex items-center justify-center bg-slate-100/80"><h1>Login Placeholder</h1></div>} />
         <Route path="/" element={<Layout />}>
           <Route index                element={<Navigate to="/news" replace />} />
           <Route path="news"          element={<NewsPage />} />
