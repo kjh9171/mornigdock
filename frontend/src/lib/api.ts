@@ -18,6 +18,8 @@ export interface Post {
   author_name?: string;
   view_count?: number;
   comment_count?: number;
+  likes_count?: number;
+  dislikes_count?: number;
   is_pinned?: boolean;
   published_at?: string;
   created_at: string;

@@ -206,16 +206,21 @@ admin.delete('/media/:id', editorOnly, async (c) => {
 
 // 미디어 관리 (추가/수정)
 admin.get('/media', adminOnly, async (c) => {
-  const result = await query('SELECT * FROM media ORDER BY created_at DESC');
+  const result = await query(
+    `SELECT m.*, u.name as requester_name 
+     FROM media m 
+     LEFT JOIN users u ON m.requester_id = u.id 
+     ORDER BY m.created_at DESC`
+  );
   return c.json({ success: true, data: result.rows });
 });
 
 admin.post('/media', adminOnly, async (c) => {
-  const { title, type, url, description, thumbnail } = await c.req.json();
+  const { title, type, url, description, thumbnail, is_featured } = await c.req.json();
   const res = await query(
-    `INSERT INTO media (title, type, url, description, thumbnail, created_at)
-     VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
-    [title, type, url, description, thumbnail]
+    `INSERT INTO media (title, type, url, description, thumbnail, is_featured, is_active, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, true, NOW()) RETURNING *`,
+    [title, type, url, description, thumbnail, is_featured || false]
   );
   return c.json({ success: true, data: res.rows[0] });
 });

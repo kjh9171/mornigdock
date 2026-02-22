@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { getPostAPI, deletePostAPI, Post } from '../lib/api';
+import api, { getPostAPI, deletePostAPI, Post } from '../lib/api';
 import { 
   User, Clock, Eye, Trash2, ArrowLeft, 
   ShieldCheck, Loader2, ThumbsUp, ThumbsDown,
@@ -38,8 +38,18 @@ export default function BoardDetail() {
 
   const handleReaction = async (reaction: 'like' | 'dislike') => {
     if (!user) return alert('로그인이 필요합니다.');
-    // 게시글 반응 API 구현 시 연동 (현재는 UI만)
-    alert('준비 중인 기능입니다.');
+    if (!post) return;
+
+    try {
+      // 🔥 [핵심] 게시글 반응 API 연동 (숫자 실시간 업데이트)
+      const { data } = await api.post(`/posts/${post.id}/reaction`, { reaction });
+      if (data.success) {
+        // 서버에서 반환한 최신 likes_count, dislikes_count로 상태 업데이트
+        setPost({ ...post, ...data.data }); 
+      }
+    } catch (err) {
+      console.error('반응 처리 실패:', err);
+    }
   };
 
   if (isLoading) return (
@@ -118,17 +128,25 @@ export default function BoardDetail() {
           <div className="mt-16 flex justify-center gap-4">
             <button 
               onClick={() => handleReaction('like')}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
+              className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black transition-all border ${
+                (post.likes_count || 0) > 0 
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200' 
+                  : 'bg-slate-50 text-slate-500 border-transparent hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100'
+              }`}
             >
-              <ThumbsUp size={20} />
-              공감 0
+              <ThumbsUp size={20} fill={(post.likes_count || 0) > 0 ? 'currentColor' : 'none'} />
+              공감 {post.likes_count || 0}
             </button>
             <button 
               onClick={() => handleReaction('dislike')}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-50 text-slate-500 rounded-2xl font-black hover:bg-red-50 hover:text-red-500 transition-all border border-transparent hover:border-red-100"
+              className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black transition-all border ${
+                (post.dislikes_count || 0) > 0 
+                  ? 'bg-red-500 text-white border-red-500 shadow-lg shadow-red-200' 
+                  : 'bg-slate-50 text-slate-500 border-transparent hover:bg-red-50 hover:text-red-500 hover:border-red-100'
+              }`}
             >
-              <ThumbsDown size={20} />
-              반대 0
+              <ThumbsDown size={20} fill={(post.dislikes_count || 0) > 0 ? 'currentColor' : 'none'} />
+              반대 {post.dislikes_count || 0}
             </button>
           </div>
         </div>

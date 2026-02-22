@@ -156,8 +156,8 @@ export default function Board() {
                       <span className="text-xs font-black">{post.comment_count || 0}</span>
                     </div>
                     <div className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
-                      <ThumbsUp size={16} />
-                      <span className="text-xs font-black">0</span>
+                      <ThumbsUp size={16} className={(post.likes_count || 0) > 0 ? 'text-red-500 fill-red-500' : ''} />
+                      <span className="text-xs font-black">{post.likes_count || 0}</span>
                     </div>
                   </div>
                 </div>

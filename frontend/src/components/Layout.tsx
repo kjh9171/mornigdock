@@ -7,7 +7,7 @@ import {
   MessageSquare, BarChart3, Bell, Search, 
   Menu, X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export default function Layout() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -17,13 +17,23 @@ export default function Layout() {
   const navigate  = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const nav = [
-    { path: '/news',  label: '뉴스지능', icon: Newspaper },
-    { path: '/finance', label: '금융분석', icon: BarChart3 },
-    { path: '/board', label: '아고라광장', icon: MessageSquare },
-    { path: '/media', label: '미디어', icon: Tv },
-    ...(user?.role === 'admin' ? [{ path: '/admin', label: '관제실', icon: Shield }] : []),
-  ];
+  // ── 메뉴 목록 고정 (마술 방지 프로토콜) ──
+  // 유저 정보 로딩 상태와 상관없이 금융분석 등 기본 메뉴는 항상 노출되도록 useMemo로 고정합니다.
+  const navItems = useMemo(() => {
+    const baseNav = [
+      { path: '/news',    label: '뉴스지능', icon: Newspaper },
+      { path: '/finance', label: '금융분석', icon: BarChart3 },
+      { path: '/board',   label: '아고라광장', icon: MessageSquare },
+      { path: '/media',   label: '미디어', icon: Tv },
+    ];
+
+    // 관리자 메뉴는 조건부 추가 (하지만 기본 메뉴들의 위치는 변하지 않음)
+    if (user?.role === 'admin') {
+      baseNav.push({ path: '/admin', label: '관제실', icon: Shield });
+    }
+
+    return baseNav;
+  }, [user?.role]);
 
   const handleLogout = async () => {
     await logout();
@@ -44,7 +54,7 @@ export default function Layout() {
             </Link>
             
             <nav className="hidden lg:flex items-center gap-1">
-              {nav.map(({ path, label, icon: Icon }) => {
+              {navItems.map(({ path, label, icon: Icon }) => {
                 const isActive = location.pathname.startsWith(path);
                 return (
                   <Link
@@ -65,7 +75,6 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* 검색 & 알림 (UI 전용) */}
             <div className="hidden md:flex items-center gap-2 mr-4">
               <button className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all">
                 <Search size={20} />
@@ -105,7 +114,6 @@ export default function Layout() {
               </Link>
             )}
 
-            {/* 모바일 메뉴 버튼 */}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-3 text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
@@ -119,7 +127,7 @@ export default function Layout() {
         {isMobileMenuOpen && (
           <div className="lg:hidden bg-white border-t border-slate-100 p-6 animate-in slide-in-from-top-4 duration-300 shadow-xl">
             <nav className="flex flex-col gap-2">
-              {nav.map(({ path, label, icon: Icon }) => (
+              {navItems.map(({ path, label, icon: Icon }) => (
                 <Link
                   key={path}
                   to={path}
