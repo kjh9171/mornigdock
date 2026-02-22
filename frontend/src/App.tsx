@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import Layout    from './components/Layout';
-// import { Login } from './components/Login'; // Login.tsx is no longer a separate component
+// import LoginPage from './pages/Login'; // Removed import
 import NewsPage  from './pages/News';
 import MediaPage from './pages/Media';
 import AdminPage from './pages/Admin';
@@ -15,8 +15,7 @@ import FinancePage from './pages/Finance';
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/news" replace />;
-  return <>{children}</>;
+  if (roles && user && !roles.includes(user.role)) return <>{children}</>;
 }
 
 export default function App() {

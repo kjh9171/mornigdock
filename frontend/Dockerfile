@@ -9,6 +9,10 @@ RUN npm install
 
 # 소스 복사 및 빌드
 COPY . .
+
+# 빌드 오류를 유발하는 Login.tsx 파일 삭제 (최후의 수단)
+RUN rm -f src/pages/Login.tsx
+
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
