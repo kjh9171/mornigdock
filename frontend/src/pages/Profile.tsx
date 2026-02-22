@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
-import { Shield, Key, User, Loader2, CheckCircle, Fingerprint, Lock, Mail, Calendar, Edit3 } from 'lucide-react';
+import { 
+  Shield, Key, User, Loader2, CheckCircle, 
+  Fingerprint, Lock, Mail, Calendar, Edit3,
+  ShieldCheck, AlertCircle, RefreshCw
+} from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -17,8 +22,9 @@ export default function ProfilePage() {
   const handlePwChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwError('');
+    setPwSuccess(false);
     if (pwForm.newPassword !== pwForm.confirm) {
-      setPwError(t('password_mismatch') || '비밀번호가 일치하지 않습니다.');
+      setPwError('새 비밀번호가 일치하지 않습니다.');
       return;
     }
     setSaving(true);
@@ -30,8 +36,10 @@ export default function ProfilePage() {
       setPwSuccess(true);
       setPwForm({ currentPassword: '', newPassword: '', confirm: '' });
     } catch (err: any) {
-      setPwError(err.response?.data?.message ?? '변경 실패');
-    } finally { setSaving(false); }
+      setPwError(err.response?.data?.message ?? '비밀번호 변경 실패');
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleOtpEnable = async (e: React.FormEvent) => {
@@ -41,132 +49,145 @@ export default function ProfilePage() {
       await api.post('/auth/otp/enable', { code: otpCode });
       setOtpCode('');
       if (user) setUser({ ...user, otp_enabled: true });
-      alert('OTP Profile Activated');
+      alert('OTP 보안 인증이 활성화되었습니다.');
     } catch (err: any) {
-      alert(err.response?.data?.message ?? 'OTP Activation Failed');
-    } finally { setOtpSaving(false); }
+      alert(err.response?.data?.message ?? 'OTP 활성화 실패');
+    } finally { 
+      setOtpSaving(false); 
+    }
   };
 
   return (
-    <div className="bg-[#0a0a0b] min-h-screen -mt-6 -mx-4 lg:-mx-0 px-4 lg:px-10 py-10 text-white"> {/* 다크 테마 복구 */}
-      <div className="max-w-4xl mx-auto space-y-10">
-      {/* ── 헤더 ── */}
-      <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between border-b border-white/5 pb-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500 min-h-screen">
+      {/* ── 헤더 섹션 ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-100">
         <div>
-          <div className="flex items-center gap-2 text-agora-gold mb-2">
-            <Fingerprint size={16} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Identity Protocol v4.0</span>
+          <div className="flex items-center gap-3 text-blue-600 mb-2">
+            <Fingerprint size={28} className="stroke-[2.5]" />
+            <span className="text-sm font-black uppercase tracking-widest">Identity Management</span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white uppercase">{t('profile')}</h1>
-          <p className="text-white/30 text-xs font-bold mt-2 uppercase tracking-wider">Operational Identity & Authentication Configuration</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">요원 프로필</h1>
+          <p className="text-slate-500 mt-2 font-medium">기지 접속 권한 및 보안 인증 프로토콜 관리</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-        {/* 계정 정보 카드 */}
-        <div className="lg:col-span-2 space-y-8">
-           <div className="glass-container p-10 rounded-[2.5rem] border border-white/10 relative overflow-hidden group">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-agora-gold/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-agora-gold/10 transition-all duration-700"></div>
-             
-             <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-agora-gold/20 to-transparent border border-white/10 flex items-center justify-center text-3xl font-black text-white shadow-2xl mb-6 transform group-hover:scale-110 transition-transform duration-500">
-                    {user?.name.charAt(0).toUpperCase()}
-                </div>
-                <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-1">{user?.name}</h2>
-                <div className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-agora-gold mb-8">
-                    {user?.role === 'admin' ? 'Strategic Administrator' : user?.role === 'editor' ? 'Lead Analyst' : 'Intelligence Agent'}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* 요원 정보 카드 */}
+        <div className="space-y-8">
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col items-center text-center group transition-all hover:shadow-xl">
+            <div className="w-28 h-28 rounded-[2.5rem] bg-blue-50 border border-blue-100 flex items-center justify-center text-4xl font-black text-blue-600 shadow-inner mb-6 group-hover:scale-105 transition-transform duration-500">
+              {user?.name?.[0].toUpperCase()}
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-1">{user?.name} 요원</h2>
+            <span className="px-4 py-1.5 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-full mb-10">
+              {user?.role === 'admin' ? 'Strategic Director' : user?.role === 'editor' ? 'Lead Analyst' : 'Active Agent'}
+            </span>
 
-                <div className="w-full space-y-4 text-left">
-                    <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <Mail size={14} className="text-white/20" />
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-white/20">{t('email_text')}</span>
-                            <span className="text-[11px] font-bold text-white/70">{user?.email}</span>
-                        </div>
-                    </div>
-                   <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                             <Shield size={14} className={user?.otp_enabled ? 'text-emerald-400' : 'text-white/20'} />
-                             <div className="flex flex-col">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Security State</span>
-                                <span className={`text-[11px] font-bold ${user?.otp_enabled ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {user?.otp_enabled ? 'Active Encryption' : 'Risk Detected'}
-                                </span>
-                             </div>
-                        </div>
-                        <div className={`w-2 h-2 rounded-full ${user?.otp_enabled ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
-                    </div>
+            <div className="w-full space-y-4">
+              <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-left">
+                <Mail size={18} className="text-slate-300" />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Identity</span>
+                  <span className="text-sm font-bold text-slate-700 truncate">{user?.email}</span>
                 </div>
-             </div>
-           </div>
+              </div>
+              <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-left">
+                <div className="flex items-center gap-4">
+                  <ShieldCheck size={18} className={user?.otp_enabled ? 'text-emerald-500' : 'text-slate-300'} />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Link</span>
+                    <span className={`text-sm font-bold ${user?.otp_enabled ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {user?.otp_enabled ? 'Active Secure' : 'Low Security'}
+                    </span>
+                  </div>
+                </div>
+                <div className={`w-2 h-2 rounded-full ${user?.otp_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* 설정 폼 영역 */}
-        <div className="lg:col-span-3 space-y-10">
-            {/* 비밀번호 변경 */}
-            <div className="glass-container p-10 rounded-[2.5rem] border border-white/5">
-                <div className="flex items-center gap-3 mb-10">
-                    <Lock size={18} className="text-agora-gold" />
-                    <h3 className="text-xs font-black uppercase tracking-widest text-white">Neural Key Recalibration</h3>
-                </div>
-                <form onSubmit={handlePwChange} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6">
-                        {[
-                            { id: 'currentPassword', label: 'Current Authentication Key' },
-                            { id: 'newPassword', label: 'New Neural Signature' },
-                            { id: 'confirm', label: 'Confirm New Signature' }
-                        ].map((field) => (
-                            <div key={field.id} className="space-y-3 group">
-                                <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1 group-focus-within:text-agora-gold transition-colors">{field.label}</label>
-                                <input className="w-full px-6 py-4 bg-white/5 border border-white/10 focus:border-agora-gold/30 focus:bg-white/[0.08] rounded-2xl outline-none transition-all font-bold text-white focus:ring-1 ring-agora-gold/20" 
-                                    type="password" required
-                                    value={pwForm[field.id as keyof typeof pwForm]}
-                                    onChange={e => setPwForm(f => ({ ...f, [field.id]: e.target.value }))} />
-                            </div>
-                        ))}
-                    </div>
-                    
-                    {pwError && <p className="text-[10px] font-bold text-red-400 bg-red-400/10 px-4 py-3 rounded-xl border border-red-400/20">{pwError}</p>}
-                    {pwSuccess && (
-                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3">
-                            <CheckCircle size={16} className="text-emerald-400" />
-                            <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest leading-relaxed">System updated. Please re-authenticate neural link.</p>
-                        </div>
-                    )}
-                    
-                    <button type="submit" className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95 duration-200" disabled={saving}>
-                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Edit3 size={16} className="text-agora-gold" />}
-                        {t('save_settings')}
-                    </button>
-                </form>
+        {/* 설정 영역 */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* 비밀번호 변경 */}
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                <Lock size={20} />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">비밀번호 재설정</h3>
             </div>
 
-            {/* OTP 활성화 */}
-            {!user?.otp_enabled && (
-                <div className="glass-container p-10 rounded-[2.5rem] border border-white/5 animate-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-center gap-3 mb-6">
-                        <Shield size={18} className="text-agora-gold" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-white">2-Factor Neural Link</h3>
-                    </div>
-                    <p className="text-[11px] font-bold text-white/30 uppercase tracking-wider mb-8 leading-relaxed">
-                        Scan the protocol QR issued at induction. Enter the 6-digit cryptographic token below.
-                    </p>
-                    <form onSubmit={handleOtpEnable} className="flex flex-col sm:flex-row gap-4">
-                        <input className="flex-1 px-8 py-5 bg-white/5 border border-white/10 focus:border-agora-gold/40 rounded-2xl outline-none font-black text-white text-2xl tracking-[0.5em] text-center placeholder:text-white/10" 
-                            type="text"
-                            inputMode="numeric" maxLength={6} pattern="\d{6}"
-                            value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                            placeholder="000000" required />
-                        <button type="submit" className="sm:w-48 py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-900/40 flex items-center justify-center gap-3 active:scale-95" disabled={otpSaving}>
-                            {otpSaving ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
-                            Activate Protocol
-                        </button>
-                    </form>
+            <form onSubmit={handlePwChange} className="space-y-6">
+              {[
+                { id: 'currentPassword', label: '현재 비밀번호' },
+                { id: 'newPassword', label: '새 비밀번호' },
+                { id: 'confirm', label: '새 비밀번호 확인' }
+              ].map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">{field.label}</label>
+                  <input 
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:bg-white focus:border-blue-500 transition-all font-bold text-slate-800" 
+                    type="password" required
+                    value={pwForm[field.id as keyof typeof pwForm]}
+                    onChange={e => setPwForm(f => ({ ...f, [field.id]: e.target.value }))}
+                  />
                 </div>
-            )}
+              ))}
+
+              {pwError && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold">
+                  <AlertCircle size={16} /> {pwError}
+                </div>
+              )}
+              {pwSuccess && (
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-600 text-xs font-bold">
+                  <CheckCircle size={16} /> 비밀번호가 안전하게 변경되었습니다.
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={saving}
+                className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] text-sm font-black uppercase tracking-widest transition-all shadow-xl hover:bg-slate-800 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-3"
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                변경 사항 저장
+              </button>
+            </form>
+          </div>
+
+          {/* OTP 활성화 */}
+          {!user?.otp_enabled && (
+            <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm animate-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                  <Shield size={20} />
+                </div>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">2단계 보안 설정</h3>
+              </div>
+              <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8">
+                기지 보안 강화를 위해 OTP 인증을 활성화하십시오. 발급된 QR 코드를 스캔한 후 6자리 번호를 입력하세요.
+              </p>
+              <form onSubmit={handleOtpEnable} className="flex flex-col sm:flex-row gap-4">
+                <input 
+                  className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-black text-slate-800 text-2xl tracking-[0.5em] text-center placeholder:text-slate-200" 
+                  type="text" inputMode="numeric" maxLength={6}
+                  value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000" required 
+                />
+                <button 
+                  type="submit" 
+                  disabled={otpSaving}
+                  className="sm:w-48 py-5 bg-blue-600 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-200 active:scale-95 disabled:opacity-20 flex items-center justify-center gap-2"
+                >
+                  {otpSaving ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                  보안 링크 활성화
+                </button>
+              </form>
+            </div>
+          )}
         </div>
-      </div>
       </div>
     </div>
   );

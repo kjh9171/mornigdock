@@ -9,13 +9,32 @@ interface User {
   otp_enabled: boolean;
 }
 
+interface LoginResponse {
+  success: boolean;
+  requireOtp?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  user?: User;
+  message?: string;
+}
+
+interface RegisterResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    user: User;
+    qrCode: string;
+    otpSecret: string;
+  }
+}
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 
-  login:    (email: string, password: string, otpCode?: string) => Promise<{ requireOtp?: boolean }>;
-  register: (email: string, password: string, name: string) => Promise<any>;
+  login:    (email: string, password: string, otpCode?: string) => Promise<LoginResponse>;
+  register: (email: string, password: string, name: string) => Promise<RegisterResponse>;
   logout:   () => Promise<void>;
   fetchMe:  () => Promise<void>;
   setUser:  (user: User) => void;
@@ -32,22 +51,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await api.post('/auth/login', { email, password, otpCode });
       if (data.data?.requireOtp || data.requireOtp) {
         set({ isLoading: false });
-        return { requireOtp: true };
+        return { success: data.success ?? false, requireOtp: true, message: data.message };
       }
       const { accessToken, refreshToken, user } = data.data;
       localStorage.setItem('accessToken',  accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       set({ user, isAuthenticated: true, isLoading: false });
-      return {};
+      return { success: true, accessToken, refreshToken, user };
     } catch (err: any) {
       set({ isLoading: false });
-      throw new Error(err.response?.data?.message ?? '로그인 실패');
+      return { success: false, message: err.response?.data?.message ?? '로그인 실패' };
     }
   },
 
   register: async (email, password, name) => {
-    const { data } = await api.post('/auth/register', { email, password, name });
-    return data;
+    try {
+      const { data } = await api.post('/auth/register', { email, password, name });
+      return { success: data.success, message: data.message, data: data.data };
+    } catch (err: any) {
+      return { success: false, message: err.response?.data?.message ?? '회원가입 실패' };
+    }
   },
 
   logout: async () => {

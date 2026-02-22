@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useActivityLog } from '../utils/activityLogger';
-import { ShieldCheck, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { ShieldCheck, Mail, Lock, Loader2, ArrowRight, User } from 'lucide-react';
 
 export function Login() {
   const { login, register } = useAuthStore();
@@ -17,7 +16,7 @@ export function Login() {
   const [error, setError] = useState('');
   
   const [isSignup, setIsSignup] = useState(false);
-  const [qrCode, setQrCode] = useState('');
+  const [qrCodeData, setQrCodeData] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,122 +27,132 @@ export function Login() {
       if (isSignup) {
         if (step === 'info') {
           const res = await register(email, password, name);
-          if (res.success) {
-            setQrCode(res.data.qrCode);
+          if (res.success && res.data) { // 'res.data'가 undefined일 수 있으므로 체크
+            setQrCodeData(res.data.qrCode);
             setStep('otp');
+          } else if (!res.success && res.message) { // 회원가입 실패 시 에러 메시지
+            setError(res.message);
           }
-        } else {
-          // 회원가입 후 바로 로그인 시도 (OTP 검증 포함)
+        } else { // 회원가입 후 OTP 단계에서 로그인 실행
           const res = await login(email, password, otpCode);
-          if (!res.requireOtp) {
+          if (res.success) {
             logActivity('User Signup & Login');
+          } else if (!res.success && res.message) {
+            setError(res.message);
           }
         }
-      } else {
+      } else { // 일반 로그인
         const res = await login(email, password, otpCode);
-        if (res.requireOtp) {
+        if (res.requireOtp) { // OTP 필요한 경우
           setStep('otp');
-        } else {
+        } else if (res.success) { // 로그인 성공
           logActivity('User Login');
+        } else if (!res.success && res.message) { // 로그인 실패
+          setError(res.message);
         }
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || '인증에 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border-[0.5px] border-stone-200 animate-in fade-in zoom-in duration-300">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-stone-50 mb-4 border border-stone-100">
-          <ShieldCheck className="w-8 h-8 text-primary-800" />
+    <div className="w-full max-w-md p-10 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-500">
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-50 mb-6 group">
+          <ShieldCheck className="w-10 h-10 text-blue-600 group-hover:scale-110 transition-transform" />
         </div>
-        <h2 className="text-2xl font-bold text-primary-800 tracking-tight">
-            {isSignup ? 'Create Account' : 'Welcome Back'}
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+            {isSignup ? '요원 등록' : '기지 접속'}
         </h2>
-        <p className="text-stone-500 mt-2 text-sm">
-            {isSignup ? 'Secure your account with Google OTP' : 'Please enter your credentials to access Agora'}
+        <p className="text-slate-400 mt-2 text-sm font-medium uppercase tracking-widest">
+            {isSignup ? 'Secure Authentication Protocol' : 'Authorized Personnel Only'}
         </p>
       </div>
 
-      <div className="flex bg-stone-100 p-1 rounded-lg mb-6">
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
           <button 
+             type="button"
              onClick={() => { setIsSignup(false); setStep('info'); setError(''); }} 
-             className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${!isSignup ? 'bg-white text-primary-800 shadow-sm' : 'text-stone-500'}`}
+             className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all ${!isSignup ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >
-              Login
+              LOGIN
           </button>
           <button 
+             type="button"
              onClick={() => { setIsSignup(true); setStep('info'); setError(''); }} 
-             className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${isSignup ? 'bg-white text-primary-800 shadow-sm' : 'text-stone-500'}`}
+             className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all ${isSignup ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >
-              Sign Up
+              SIGNUP
           </button>
       </div>
 
       {error && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex items-center gap-2 animate-in slide-in-from-top-2">
-          <ShieldCheck className="w-4 h-4" />
+        <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-xs text-red-600 font-bold flex items-center gap-3 animate-in slide-in-from-top-2">
+          <ShieldCheck size={16} />
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {step === 'info' ? (
           <>
             {isSignup && (
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">Full Name</label>
-                <input
-                  type="text" required value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
-                  placeholder="Hong Gil Dong"
-                />
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Agent Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                  <input
+                    type="text" required value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold text-slate-800"
+                    placeholder="성함을 입력하세요"
+                  />
+                </div>
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Email Address</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Identity</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <input
                   type="email" required value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
-                  placeholder="name@company.com"
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold text-slate-800"
+                  placeholder="email@agora.com"
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Key</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                 <input
                   type="password" required value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold text-slate-800"
                   placeholder="••••••••"
                 />
               </div>
             </div>
           </>
         ) : (
-          <div className="text-center space-y-4">
-            {isSignup && qrCode && (
-              <div className="p-4 bg-white border border-stone-100 rounded-xl shadow-sm inline-block">
-                <p className="text-xs text-stone-500 mb-2 font-bold">Scan with Google Authenticator</p>
-                <QRCodeSVG value={qrCode} size={160} />
+          <div className="text-center space-y-6">
+            {isSignup && qrCodeData && (
+              <div className="p-6 bg-white border border-slate-100 rounded-[2rem] shadow-inner inline-block animate-in zoom-in-90 duration-700">
+                <p className="text-[10px] text-slate-400 mb-4 font-black uppercase tracking-widest">Google OTP Protocol</p>
+                <img src={qrCodeData} alt="OTP QR Code" className="w-48 h-48 mx-auto" />
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Google Authenticator Code</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block"> Cryptographic Token (6-Digits)</label>
               <input
                 type="text" required maxLength={6} value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full py-3 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none text-center text-xl tracking-widest font-mono"
-                placeholder="000 000"
+                className="w-full py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500 outline-none text-center text-3xl tracking-[0.5em] font-black text-blue-600 shadow-inner"
+                placeholder="000000"
               />
             </div>
           </div>
@@ -151,18 +160,22 @@ export function Login() {
 
         <button
           type="submit" disabled={loading}
-          className="w-full py-3 bg-primary-800 text-white rounded-xl font-bold text-sm hover:bg-stone-900 transition-all flex items-center justify-center gap-2 group disabled:opacity-70"
+          className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
             <>
-              {step === 'info' ? (isSignup ? 'Create Account' : 'Next Step') : 'Verify & Login'}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {step === 'info' ? (isSignup ? 'CREATE ACCOUNT' : 'NEXT STEP') : 'VERIFY & AUTHORIZE'}
+              <ArrowRight className="w-5 h-5" />
             </>
           )}
         </button>
         
         {step === 'otp' && (
-          <button type="button" onClick={() => setStep('info')} className="w-full text-xs text-stone-400 hover:text-stone-600">
+          <button 
+            type="button" 
+            onClick={() => setStep('info')} 
+            className="w-full text-[10px] font-black text-slate-300 hover:text-blue-600 uppercase tracking-widest transition-colors"
+          >
             Back to Credentials
           </button>
         )}

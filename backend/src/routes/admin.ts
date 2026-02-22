@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { query } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
 import { checkDbConnection } from '../db/pool.js';
+import { getSystemSettings } from '../utils/settings.js';
 
 const admin = new Hono();
 const adminOnly  = requireAuth(['admin']);
@@ -80,7 +81,9 @@ admin.put('/users/:id/block', adminOnly, async (c) => {
   const blocked = Boolean(body.blocked);
 
   const self = c.get('user');
-  if (self.userId === id) return c.json({ success: false, message: '본인 계정을 차단할 수 없습니다.' }, 400);
+  if (self.userId === id) {
+    return c.json({ success: false, message: '본인 계정을 차단할 수 없습니다.' }, 400);
+  }
 
   await query('UPDATE users SET is_blocked = $1 WHERE id = $2', [blocked, id]);
   if (blocked) await query('DELETE FROM refresh_tokens WHERE user_id = $1', [id]);
@@ -89,14 +92,22 @@ admin.put('/users/:id/block', adminOnly, async (c) => {
 
 // ─── GET /admin/settings ──────────────────────────────────────────────────────
 admin.get('/settings', adminOnly, async (c) => {
-  const result = await query('SELECT key, value FROM system_settings ORDER BY key');
-  const settings = Object.fromEntries(result.rows.map(r => [r.key, r.value]));
+  // 환경 변수 기반 설정값도 함께 전달
+  const settings = await getSystemSettings([
+    'naver_client_id', 'naver_client_secret', 'gemini_api_key',
+    'ai_analysis_enabled', 'auto_fetch_enabled', 'maintenance_mode',
+    'max_news_per_fetch', 'news_fetch_interval'
+  ]);
   return c.json({ success: true, data: settings });
 });
 
 // ─── PUT /admin/settings ──────────────────────────────────────────────────────
 admin.put('/settings', adminOnly, async (c) => {
   const body = await c.req.json().catch(() => null);
+  if (!body || typeof body !== 'object') {
+    return c.json({ success: false, message: '설정값이 필요합니다.' }, 400);
+  }
+
   const entries = Object.entries(body);
   await Promise.all(
     entries.map(([key, value]) =>
