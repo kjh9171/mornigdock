@@ -5,13 +5,13 @@ import {
   RefreshCw, Loader2, Ban, CheckCircle, Activity, 
   Terminal, Settings, Trash2, Zap, FileText, 
   Search, Plus, X, LayoutDashboard, BarChart3,
-  Clock, Database, Globe
+  Clock, Database, Globe, Inbox
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
 interface DashData {
-  stats: { totalUsers: number; totalNews: number; totalComments: number; totalMedia: number };
+  stats: { totalUsers: number; totalNews: number; totalComments: number; totalMedia: number; pendingInquiries: number };
   recentLogs: any[];
   system: { dbConnected: boolean; uptime: number };
 }
@@ -21,12 +21,18 @@ interface UserRow {
   is_blocked: boolean; last_login: string; login_count: number;
 }
 
-type Tab = 'dashboard' | 'users' | 'content' | 'settings';
+interface InquiryRow {
+  id: number; user_id: number; user_name: string; user_email: string;
+  type: string; title: string; content: string; status: string; created_at: string;
+}
+
+type Tab = 'dashboard' | 'users' | 'inquiries' | 'content' | 'settings';
 
 export default function AdminPage() {
   const [tab,      setTab]      = useState<Tab>('dashboard');
   const [dash,     setDash]     = useState<DashData | null>(null);
   const [users,    setUsers]    = useState<UserRow[]>([]);
+  const [inquiries, setInquiries] = useState<InquiryRow[]>([]);
   const [content,  setContent]  = useState<any[]>([]);
   const [contentType, setContentType] = useState<'news' | 'posts' | 'media'>('news');
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -49,6 +55,9 @@ export default function AdminPage() {
       } else if (tab === 'users') {
         const { data } = await api.get('/admin/users');
         setUsers(data.data);
+      } else if (tab === 'inquiries') {
+        const { data } = await api.get('/admin/inquiries');
+        setInquiries(data.data);
       } else if (tab === 'content') {
         if (contentType === 'news') {
           const res = await getAdminNewsAPI();
@@ -87,6 +96,7 @@ export default function AdminPage() {
   const TABS: { key: Tab; label: string; icon: any }[] = [
     { key: 'dashboard', label: '대시보드', icon: LayoutDashboard },
     { key: 'users',     label: '요원 관리',   icon: Users },
+    { key: 'inquiries', label: '문의 관리',   icon: Inbox },
     { key: 'content',   label: '자산 관리',    icon: FileText },
     { key: 'settings',  label: '시스템 설정', icon: Settings },
   ];
@@ -104,11 +114,11 @@ export default function AdminPage() {
           <p className="text-slate-500 mt-2 font-medium">AGORA 플랫폼의 모든 지능 데이터와 요원을 제어합니다.</p>
         </div>
         
-        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem]">
+        <div className="flex gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] overflow-x-auto">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key}
               onClick={() => setTab(key)}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                 tab === key ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -129,19 +139,20 @@ export default function AdminPage() {
           {tab === 'dashboard' && dash && (
             <div className="space-y-8">
               {/* 통계 카드 */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 {[
                   { label: '전체 요원', value: dash.stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-                  { label: '뉴스 데이터', value: dash.stats.totalNews, icon: Newspaper, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                  { label: '뉴스 지능', value: dash.stats.totalNews, icon: Newspaper, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                   { label: '토론 기록', value: dash.stats.totalComments, icon: MessageSquare, color: 'text-purple-600', bg: 'bg-purple-50' },
                   { label: '미디어 자산', value: dash.stats.totalMedia, icon: Tv, color: 'text-orange-600', bg: 'bg-orange-50' },
+                  { label: '미처리 문의', value: dash.stats.pendingInquiries, icon: Inbox, color: 'text-red-600', bg: 'bg-red-50' },
                 ].map(({ label, value, icon: Icon, color, bg }) => (
-                  <div key={label} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-                    <div className={`w-14 h-14 rounded-2xl ${bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                      <Icon size={24} className={color} />
+                  <div key={label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
+                    <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                      <Icon size={20} className={color} />
                     </div>
-                    <p className="text-3xl font-black text-slate-900 tracking-tighter mb-1">{value.toLocaleString()}</p>
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
+                    <p className="text-2xl font-black text-slate-900 tracking-tighter mb-1">{value.toLocaleString()}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
                   </div>
                 ))}
               </div>
@@ -261,6 +272,56 @@ export default function AdminPage() {
                             }`}
                           >
                             {u.is_blocked ? 'Access Restore' : 'Kill Switch'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {tab === 'inquiries' && (
+            <div className="space-y-6">
+              <h3 className="text-xl font-black text-slate-900 uppercase px-4">요원 문의 및 신청 현황</h3>
+              <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">요원 정보</th>
+                      <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">문의 내용</th>
+                      <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">상태</th>
+                      <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">처리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {inquiries.length === 0 ? (
+                      <tr><td colSpan={4} className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs italic">기록된 문의가 없습니다.</td></tr>
+                    ) : inquiries.map(iq => (
+                      <tr key={iq.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-10 py-8">
+                          <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{iq.user_name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{iq.user_email}</p>
+                        </td>
+                        <td className="px-10 py-8">
+                          <p className="text-xs font-black text-blue-600 uppercase mb-1">{iq.type}</p>
+                          <p className="text-sm font-black text-slate-800 mb-1">{iq.title}</p>
+                          <p className="text-xs text-slate-500 font-medium whitespace-pre-line">{iq.content}</p>
+                        </td>
+                        <td className="px-10 py-8 text-center">
+                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                            iq.status === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                          }`}>
+                            {iq.status === 'pending' ? 'Wait' : 'Done'}
+                          </span>
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                          <button 
+                            onClick={() => handleAction(() => api.put(`/admin/inquiries/${iq.id}`, { status: 'processed' }), '처리 완료되었습니다.')}
+                            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800"
+                          >
+                            Mark Processed
                           </button>
                         </td>
                       </tr>
