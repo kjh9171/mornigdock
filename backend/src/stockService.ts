@@ -1,18 +1,17 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { pool } from './db/pool.ts';
+import { analyzeNewsWithGemini } from './services/geminiService.ts';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
 
 export const fetchStockService = async () => {
-  console.log('📈 CERT: Market Intelligence Scrutiny Operation - Real-time Data Scraping...');
+  console.log('📈 CERT: Market Intelligence Scrutiny Operation - Finance News & Index Sync...');
   
   const stockItems: any[] = [];
-  let summaryText = '';
 
-  // 1. 국내/해외 지수 API 수집
+  // 1. 국내/해외 지수 실시간 수집
   try {
-    // 네이버 증권 모바일 API 활용 (더 안정적)
     const domesticRes = await axios.get('https://m.stock.naver.com/api/index/KOSPI/basic', { headers: { 'User-Agent': USER_AGENT } });
     const kospi = domesticRes.data;
     stockItems.push({
@@ -21,7 +20,7 @@ export const fetchStockService = async () => {
       change_val: parseFloat(kospi.compareToPreviousClosePrice.replace(/,/g, '')),
       change_rate: parseFloat(kospi.fluctuationsRatio),
       market_status: 'OPEN',
-      ai_summary: '외국인과 기관의 수급 공방 속에서 코스피는 방향성을 탐색하고 있습니다.'
+      ai_summary: '코스피 지수가 글로벌 경제 지표를 주시하며 변동성을 보이고 있습니다.'
     });
 
     const kosdaqRes = await axios.get('https://m.stock.naver.com/api/index/KOSDAQ/basic', { headers: { 'User-Agent': USER_AGENT } });
@@ -32,46 +31,67 @@ export const fetchStockService = async () => {
       change_val: parseFloat(kosdaq.compareToPreviousClosePrice.replace(/,/g, '')),
       change_rate: parseFloat(kosdaq.fluctuationsRatio),
       market_status: 'OPEN',
-      ai_summary: '코스닥 시장은 개별 종목 장세가 이어지며 등락을 거듭하고 있습니다.'
+      ai_summary: '코스닥 시장은 개별 테마주 중심의 순환매 장세가 이어지고 있습니다.'
     });
-    
-    // 해외 지수는 Mock 데이터로 대체 (API 접근성 이슈 방지)
-    stockItems.push(
-      { symbol: 'DJI', name: '다우존스', price: 39131.53, change_val: 62.42, change_rate: 0.16, market_status: 'CLOSED', ai_summary: '미국 증시는 AI 랠리 지속 여부에 주목하며 상승 마감했습니다.' },
-      { symbol: 'NASDAQ', name: '나스닥', price: 16250.90, change_val: -20.50, change_rate: -0.13, market_status: 'CLOSED', ai_summary: '기술주 중심의 차익 실현 매물이 출회되며 소폭 조정을 받았습니다.' }
-    );
-
   } catch (err) {
     console.error('❌ CERT STOCK API ERROR:', err);
-    // 실패 시 Mock 데이터
-    stockItems.push(
-      { symbol: 'KOSPI', name: '코스피', price: 2640.50, change_val: 10.20, change_rate: 0.39, market_status: 'OPEN', ai_summary: '기관 매수세 유입으로 상승 흐름을 유지하고 있습니다.' },
-      { symbol: 'KOSDAQ', name: '코스닥', price: 860.10, change_val: -5.30, change_rate: -0.61, market_status: 'OPEN', ai_summary: '외국인 매도세로 인해 약보합세를 보이고 있습니다.' }
-    );
   }
 
-  // 2. 증시 요약
+  // 2. 🔥 네이버 금융 뉴스 정밀 수집 및 AI 분석
   try {
-    const mainResponse = await axios.get('https://finance.naver.com/', { headers: { 'User-Agent': USER_AGENT }, responseEncoding: 'binary' });
-    const decoder = new TextDecoder('euc-kr'); // 네이버 증권은 EUC-KR 사용
-    const html = decoder.decode(mainResponse.data);
+    console.log('[FinanceService] 네이버 금융 주요 뉴스 수집 중...');
+    const newsResponse = await axios.get('https://finance.naver.com/news/mainnews.naver', { 
+      headers: { 'User-Agent': USER_AGENT },
+      responseEncoding: 'binary' 
+    });
+    const decoder = new TextDecoder('euc-kr');
+    const html = decoder.decode(newsResponse.data);
     const $ = cheerio.load(html);
     
-    summaryText = $('.section_strategy .strategy_area').first().text().trim() || '현재 시장은 관망세가 짙어지고 있습니다.';
-    // 한글 깨짐 방지를 위해 인코딩 확인이 중요함.
-  } catch (err) {
-    summaryText = '글로벌 경제 불확실성이 지속되는 가운데, 투자자들은 주요 경제 지표 발표를 주시하고 있습니다.';
-  }
+    const newsItems = $('.main_news .block_sub li, .main_news .main_article').toArray().slice(0, 5);
 
-  stockItems.push({
-    symbol: 'MARKET_SUMMARY',
-    name: `이시각 증시요약 (${new Date().getHours()}시 기준)`,
-    price: 0,
-    change_val: 0,
-    change_rate: 0,
-    market_status: 'INFO',
-    ai_summary: summaryText.substring(0, 200) // 길이 제한
-  });
+    for (const el of newsItems) {
+      const title = $(el).find('a').text().trim();
+      const link = 'https://finance.naver.com' + $(el).find('a').attr('href');
+      
+      if (!title || !link) continue;
+
+      // 이미 수집된 뉴스인지 확인
+      const check = await pool.query('SELECT id FROM news WHERE url = $1', [link]);
+      if (check.rows.length === 0) {
+        // Gemini AI 분석 (제목과 링크만으로도 분석 가능하도록 설계)
+        const analysis = await analyzeNewsWithGemini(title, '네이버 금융 주요 뉴스입니다.');
+        
+        await pool.query(
+          `INSERT INTO news (title, description, url, source_name, category, published_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())
+           RETURNING id`,
+          [title, analysis.summary, link, '네이버 금융', 'finance']
+        );
+
+        // 상세 분석 결과 저장
+        const lastNewsId = await pool.query('SELECT id FROM news WHERE url = $1', [link]);
+        await pool.query(
+          `INSERT INTO ai_reports (news_id, summary, impact, advice)
+           VALUES ($1, $2, $3, $4)`,
+          [lastNewsId.rows[0].id, analysis.summary, analysis.impact, analysis.advice]
+        );
+      }
+    }
+
+    // 종합 시황 분석 결과 업데이트 (지수 요약용)
+    const marketSummary = await analyzeNewsWithGemini("오늘의 증시 상황 요약", "코스피와 코스닥 지수의 현재 흐름을 분석해 주세요.");
+    stockItems.push({
+      symbol: 'MARKET_SUMMARY',
+      name: `이시각 증시요약 (${new Date().getHours()}시 기준)`,
+      price: 0, change_val: 0, change_rate: 0,
+      market_status: 'INFO',
+      ai_summary: marketSummary.summary
+    });
+
+  } catch (err) {
+    console.error('❌ Finance News Scraping Error:', err);
+  }
 
   // 3. DB 저장
   for (const item of stockItems) {
@@ -87,34 +107,5 @@ export const fetchStockService = async () => {
     } catch (e) { console.error('DB Insert Error:', e); }
   }
 
-  // 4. 리서치 리포트 (Mock + Crawling)
-  // posts 테이블의 category 컬럼 길이나 제약조건 확인 필요. 여기서는 '리서치'로 통일.
-  const researchData = [
-    { title: '[시황] 외국인, 반도체 집중 매수... 코스피 2,700선 탈환 시도', source: '아고라 리서치' },
-    { title: '[전략] 저PBR 종목 옥석 가리기: 밸류업 프로그램 수혜주 분석', source: 'CERT 전략팀' },
-    { title: '[산업] AI 데이터센터 전력 수요 급증... 전력기기 슈퍼사이클', source: '산업분석실' },
-    { title: '[기업] 현대차, 주주환원 정책 강화 기대감에 신고가 경신', source: '기업분석팀' }
-  ];
-
-  const adminUser = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
-  const adminId = adminUser.rows[0]?.id || 1; // Fallback to 1 if not found
-
-  for (const r of researchData) {
-    try {
-      await pool.query(
-        `INSERT INTO posts (user_id, category, type, title, content, source, source_url, created_at)
-         VALUES ($1, '리서치', 'news', $2, $3, $4, $5, NOW())
-         ON CONFLICT (source_url) DO UPDATE SET title = EXCLUDED.title`,
-        [
-          adminId,
-          r.title,
-          `${r.source}에서 제공하는 최신 리포트입니다. 시장의 핵심 이슈를 심도 있게 분석하였습니다.`,
-          r.source,
-          `https://agora.io/research/${Buffer.from(r.title).toString('base64').slice(0, 10)}`
-        ]
-      );
-    } catch (e) { console.error('Research Insert Error:', e); }
-  }
-  
-  console.log(`✅ CERT: Market Data Sync Complete.`);
+  console.log(`✅ CERT: Finance Intelligence Sync Complete.`);
 };

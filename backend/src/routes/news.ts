@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { query } from '../db/pool.ts';
 import { scrapeArticleContent } from '../services/newsService.ts';
+import { analyzeNewsWithGemini } from '../services/geminiService.ts';
 
 const newsRoutes = new Hono();
 
@@ -54,7 +55,24 @@ newsRoutes.get('/', async (c) => {
   }
 });
 
-// AI 분석 요청 (실제 원문 크롤링 기반 지능형 분석)
+// 뉴스 상세 정보 및 AI 분석 결과 조회
+newsRoutes.get('/:id', async (c) => {
+  const id = c.req.param('id');
+  try {
+    const res = await query(
+      `SELECT *, 
+        (SELECT row_to_json(r) FROM ai_reports r WHERE r.news_id = news.id LIMIT 1) as ai_report
+       FROM news WHERE id = $1`, 
+      [id]
+    );
+    if (res.rows.length === 0) return c.json({ success: false, message: 'News not found' }, 404);
+    return c.json({ success: true, data: res.rows[0] });
+  } catch (err: any) {
+    return c.json({ success: false, message: err.message }, 500);
+  }
+});
+
+// AI 분석 요청 (진짜 Gemini AI 분석 수행)
 newsRoutes.post('/:id/ai-report', async (c) => {
   const id = c.req.param('id');
   
@@ -68,35 +86,19 @@ newsRoutes.post('/:id/ai-report', async (c) => {
     if (newsRes.rows.length === 0) return c.json({ success: false, message: 'News not found' }, 404);
     const news = newsRes.rows[0];
 
-    // 3. 🔥 [진짜 분석] 원문 크롤링 수행
+    // 3. 원문 크롤링 수행
     console.log(`[AI Analysis] Scrutinizing source content from: ${news.url}`);
     const fullContent = await scrapeArticleContent(news.url);
     
-    // 4. 수집된 본문을 기반으로 지능형 리포트 생성
-    // (AI API가 없을 경우를 대비하여, 본문 텍스트를 가공한 정밀 분석 로직 작동)
-    let summary = '';
-    let impact = '';
-    let advice = '';
-
-    if (fullContent && fullContent.length > 100) {
-      // 본문이 수집된 경우: 본문 텍스트 기반 동적 분석
-      const words = fullContent.split(/\s+/).slice(0, 100).join(' '); // 주요 키워드 추출용
-      summary = `[원문 기반 분석] '${news.title}'에 대한 상세 분석 결과, ${fullContent.slice(0, 150)}... 와 같은 핵심 내용을 확인했습니다.`;
-      impact = `이 이슈는 ${news.category} 분야의 공급망 및 시장 심리에 직접적인 변화를 야기할 것으로 관측됩니다.`;
-      advice = `수집된 지능에 따르면, 해당 섹터의 변동성에 대비한 리스크 관리와 함께 관련 지표의 추이를 면밀히 모니터링할 것을 권고합니다.`;
-    } else {
-      // 본문 수집 실패 시: 제목 및 메타데이터 기반 추론 분석
-      summary = `'${news.title}' 이슈는 현재 시장의 주요 관심사로 부상하고 있으며, 관련 매체들의 집중적인 보도가 이어지고 있습니다.`;
-      impact = `해당 사건은 ${news.category} 섹터 내 기업들의 실적 전망 및 투자자들의 심리적 저지선에 영향을 줄 것으로 보입니다.`;
-      advice = `불확실성이 높은 국면이므로 추가적인 첩보 수집 전까지는 보수적인 포지션을 유지하며 대응 전략을 수립하십시오.`;
-    }
+    // 4. Gemini AI를 활용한 정밀 분석
+    const analysis = await analyzeNewsWithGemini(news.title, fullContent || news.description || '');
 
     // 5. DB 저장 및 반환
     const insertRes = await query(
       `INSERT INTO ai_reports (news_id, summary, impact, advice)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [id, summary, impact, advice]
+      [id, analysis.summary, analysis.impact, analysis.advice]
     );
 
     return c.json({ success: true, data: insertRes.rows[0] });
@@ -107,10 +109,43 @@ newsRoutes.post('/:id/ai-report', async (c) => {
   }
 });
 
+// 좋아요/싫어요 반응 처리
+newsRoutes.post('/:id/reaction', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user'); // 미들웨어에서 설정된 유저 정보
+  const { reaction } = await c.req.json(); // 'like' or 'dislike'
+
+  if (!user) return c.json({ success: false, message: '인증이 필요합니다.' }, 401);
+  if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400);
+
+  try {
+    // 기존 반응 확인 및 업데이트 (UPSERT)
+    await query(
+      `INSERT INTO reactions (user_id, target_type, target_id, reaction)
+       VALUES ($1, 'news', $2, $3)
+       ON CONFLICT (user_id, target_type, target_id) 
+       DO UPDATE SET reaction = EXCLUDED.reaction`,
+      [user.id, id, reaction]
+    );
+
+    // 통계 업데이트
+    await query(`
+      UPDATE news SET 
+        likes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'news' AND target_id = $1 AND reaction = 'like'),
+        dislikes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'news' AND target_id = $1 AND reaction = 'dislike')
+      WHERE id = $1
+    `, [id]);
+
+    const updated = await query('SELECT likes_count, dislikes_count FROM news WHERE id = $1', [id]);
+    return c.json({ success: true, data: updated.rows[0] });
+  } catch (err: any) {
+    return c.json({ success: false, message: err.message }, 500);
+  }
+});
+
 // 뉴스 수집 트리거
 newsRoutes.post('/fetch', async (c) => {
   try {
-    const { fetchLatestNews } = await import('../services/newsService.ts');
     const count = await fetchLatestNews();
     return c.json({ success: true, count, message: `${count}개의 뉴스를 수집했습니다.` });
   } catch (err: any) {

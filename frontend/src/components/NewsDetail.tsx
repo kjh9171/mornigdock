@@ -1,50 +1,44 @@
 import { useEffect, useState } from 'react';
-import { useActivityLog } from '../utils/activityLogger';
-import { useNavigationStore } from '../store/useNavigationStore';
+import { useNavigate, useParams } from 'react-router-dom';
+import api, { getNewsDetailAPI, addCommentAPI, Comment } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
-import { useDiscussionStore } from '../store/useDiscussionStore';
-import { getPostAPI, deletePostAPI, addCommentAPI, updatePostAPI, Post, Comment } from '../lib/api';
-import { ArrowLeft, ExternalLink, Bot, MessageSquarePlus, Edit, Trash2, Save, X, Loader2, Send, MessageSquare, CornerDownRight, FileText, Sparkles } from 'lucide-react';
+import { 
+  ArrowLeft, ExternalLink, Clock, Brain, 
+  Sparkles, Send, MessageSquare, 
+  MessageSquarePlus, CornerDownRight, 
+  ShieldCheck, Loader2, ThumbsUp, ThumbsDown
+} from 'lucide-react';
+import { format } from 'date-fns';
 
 export function NewsDetail() {
-  const { logActivity } = useActivityLog();
-  const { selectedNewsId, setView, setUserTab } = useNavigationStore();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   
-  const [newsItem, setNewsItem] = useState<Post | null>(null);
+  const [newsItem, setNewsItem] = useState<any | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
-  
-  const [editForm, setEditForm] = useState({
-    title: '',
-    content: '',
-    source_url: ''
-  });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const loadData = async () => {
-    if (!selectedNewsId) return;
+    if (!id) return;
     setLoading(true);
     try {
-      const res = await getPostAPI(selectedNewsId);
-      if (res.success && res.post) {
-        setNewsItem(res.post);
-        setComments(res.comments || []);
-        setEditForm({
-          title: res.post.title,
-          content: res.post.content,
-          source_url: res.post.source_url || ''
-        });
-        logActivity(`View Integrated Intelligence: ${res.post.id}`);
+      const res = await getNewsDetailAPI(id);
+      if (res.success) {
+        setNewsItem(res.data);
+        // 댓글 로드는 별도 API가 필요할 수 있으나 여기서는 res.data에 포함된 것으로 가정하거나 별도 호출
+        const commentRes = await api.get(`/comments?newsId=${id}`);
+        setComments(commentRes.data.data || []);
       } else {
-        setView('user');
+        navigate('/news');
       }
     } catch (err) {
       console.error(err);
-      setView('user');
+      navigate('/news');
     } finally {
       setLoading(false);
     }
@@ -52,242 +46,282 @@ export function NewsDetail() {
 
   useEffect(() => {
     loadData();
-  }, [selectedNewsId]);
+  }, [id]);
 
   const handleAddComment = async (e: React.FormEvent, parentId?: number) => {
     e.preventDefault();
-    if (!newsItem || !user) return;
+    if (!newsItem || !user) return alert('로그인이 필요합니다.');
     
     const text = parentId ? replyText : commentText;
     if (!text.trim()) return;
 
-    const res = await addCommentAPI(newsItem.id, null, text, parentId);
-    if (res.success) {
-      setComments(prev => [...prev, res.comment]);
-      if (parentId) {
-        setReplyTo(null);
-        setReplyText('');
-      } else {
-        setCommentText('');
+    try {
+      const res = await addCommentAPI(newsItem.id, null, text, parentId);
+      if (res.success) {
+        setComments(prev => [...prev, res.data]);
+        if (parentId) {
+          setReplyTo(null);
+          setReplyText('');
+        } else {
+          setCommentText('');
+        }
       }
-      logActivity(`Agora Discussion Contribution: ${newsItem.id}`);
+    } catch (err) {
+      alert('댓글 등록 실패');
     }
   };
 
-  const handleBack = () => {
-    setView('user');
-    setUserTab('news');
-  };
-
-  const handleAIAnalysis = () => {
-    setView('ai-analysis');
-  };
-
-  const handleSave = async () => {
+  const handleAIAnalysis = async () => {
     if (!newsItem) return;
-    const res = await updatePostAPI(newsItem.id, editForm);
-    if (res.success) {
-      setNewsItem({ ...newsItem, ...editForm });
-      setIsEditing(false);
-      logActivity(`Intelligence Correction: ${newsItem.id}`);
+    setIsAnalyzing(true);
+    try {
+      const { data } = await api.post(`/news/${newsItem.id}/ai-report`);
+      if (data.success) {
+        setNewsItem({ ...newsItem, ai_report: data.data });
+      }
+    } catch (err) {
+      alert('AI 분석 실패');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!newsItem) return;
-    if (!confirm('정말 이 지능 자산을 폐기하시겠습니까?')) return;
-    const res = await deletePostAPI(newsItem.id);
-    if (res.success) {
-      handleBack();
+  const handleReaction = async (reaction: 'like' | 'dislike') => {
+    if (!user) return alert('로그인이 필요합니다.');
+    try {
+      const { data } = await api.post(`/news/${newsItem.id}/reaction`, { reaction });
+      setNewsItem({ ...newsItem, ...data.data });
+    } catch (err) {
+      console.error('반응 실패');
     }
   };
 
-  // 🌳 [계층형 트리 작전] 평면 댓글 데이터를 트리 구조로 변환
   const rootComments = comments.filter(c => !c.parent_id);
   const getReplies = (parentId: number) => comments.filter(c => c.parent_id === parentId);
 
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="w-8 h-8 animate-spin text-stone-300" /></div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center p-40">
+      <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4 opacity-20" />
+      <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Decrypting...</span>
+    </div>
+  );
+
   if (!newsItem) return null;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Top Controls */}
-      <div className="flex justify-between items-center">
-        <button onClick={handleBack} className="flex items-center gap-2 text-stone-500 hover:text-stone-700 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">지능물 목록으로 복귀</span>
+    <div className="w-full max-w-5xl mx-auto pb-40 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4">
+      {/* ── 상단 네비게이션 ── */}
+      <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={() => navigate('/news')} 
+          className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-blue-600 hover:border-blue-100 hover:shadow-sm transition-all"
+        >
+          <ArrowLeft size={20} />
         </button>
-        
-        <div className="flex gap-2">
-          {user?.role === 'admin' && !isEditing && (
-            <>
-              <button onClick={() => setIsEditing(true)} className="p-2 text-stone-400 hover:text-accent-600 transition-colors"><Edit className="w-5 h-5" /></button>
-              <button onClick={handleDelete} className="p-2 text-stone-400 hover:text-red-600 transition-colors"><Trash2 className="w-5 h-5" /></button>
-            </>
-          )}
-        </div>
+        <div className="text-sm font-bold text-slate-400">Integrated Intelligence Hub</div>
       </div>
 
-      {/* Main Intelligence Card */}
-      <div className="bg-white rounded-3xl border border-stone-200 shadow-xl overflow-hidden">
-        <div className="p-8 md:p-12">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black tracking-widest rounded-full uppercase">
-                {newsItem.source || 'INTEL'}
-              </span>
-              <span className="text-[10px] font-bold text-stone-400">
-                {new Date(newsItem.created_at).toLocaleString()}
-              </span>
+      {/* ── 메인 리포트 카드 ── */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-blue-500/5 overflow-hidden">
+        <div className="p-8 md:p-16">
+          <div className="flex flex-wrap items-center gap-3 mb-8">
+            <span className="px-4 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black tracking-widest rounded-xl uppercase">
+              {newsItem.source_name || 'Global News'}
+            </span>
+            <div className="flex items-center gap-2 text-slate-300 text-xs font-bold">
+              <Clock size={14} />
+              {format(new Date(newsItem.published_at || newsItem.created_at), 'yyyy.MM.dd HH:mm')}
+            </div>
+          </div>
+
+          <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight mb-12">
+            {newsItem.title}
+          </h1>
+
+          <div className="bg-slate-50/50 rounded-[2.5rem] p-8 md:p-12 mb-12 border border-slate-100 relative group">
+            <p className="text-lg md:text-xl text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
+              {newsItem.content || newsItem.description}
+            </p>
+          </div>
+
+          {/* 원문 링크 & 반응 버튼 */}
+          <div className="flex flex-wrap items-center justify-between gap-6 border-b border-slate-100 pb-12">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => handleReaction('like')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${
+                  newsItem.likes_count > 0 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                <ThumbsUp size={18} fill={newsItem.likes_count > 0 ? 'currentColor' : 'none'} />
+                <span>유익함 {newsItem.likes_count || 0}</span>
+              </button>
+              <button 
+                onClick={() => handleReaction('dislike')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all ${
+                  newsItem.dislikes_count > 0 ? 'bg-red-500 text-white shadow-lg shadow-red-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                <ThumbsDown size={18} fill={newsItem.dislikes_count > 0 ? 'currentColor' : 'none'} />
+                <span>글쎄요 {newsItem.dislikes_count || 0}</span>
+              </button>
             </div>
             
-            {newsItem.source_url && (
-              <a href={newsItem.source_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-stone-50 text-stone-600 rounded-xl text-xs font-bold hover:bg-stone-100 transition-all border border-stone-200">
-                <ExternalLink className="w-4 h-4 text-accent-600" />
-                원문 기사(네이버) 확인
-              </a>
-            )}
+            <a 
+              href={newsItem.url} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="flex items-center gap-2 text-blue-600 font-black text-sm hover:underline"
+            >
+              <ExternalLink size={18} />
+              공식 뉴스 원문 보기
+            </a>
           </div>
 
-          {isEditing ? (
-            <div className="space-y-4">
-              <input 
-                value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
-                className="w-full text-3xl font-black text-stone-900 outline-none border-b-2 border-accent-600 pb-2"
-              />
-              <textarea 
-                value={editForm.content} onChange={e => setEditForm({...editForm, content: e.target.value})}
-                rows={10} className="w-full text-lg text-stone-700 outline-none bg-stone-50 p-4 rounded-2xl"
-              />
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setIsEditing(false)} className="px-6 py-2 font-bold text-stone-400">Cancel</button>
-                <button onClick={handleSave} className="px-8 py-2 bg-accent-600 text-white rounded-xl font-bold shadow-lg">Authorize Correction</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-3xl md:text-4xl font-black text-stone-900 leading-tight tracking-tighter mb-8">
-                {newsItem.title}
-              </h1>
-              
-              <div className="prose prose-stone max-w-none mb-12">
-                <div className="bg-stone-50 p-8 rounded-3xl border border-stone-100 mb-8">
-                  <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> 원문 기사 첩보 내용
-                  </h4>
-                  <p className="text-lg text-stone-700 leading-relaxed whitespace-pre-wrap font-medium">
-                    {newsItem.content}
-                  </p>
-                </div>
-
-                {newsItem.ai_analysis && (
-                  <div className="bg-amber-50/30 p-8 md:p-12 rounded-[2.5rem] border-2 border-amber-100 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12"><Bot className="w-32 h-32 text-amber-600" /></div>
-                    <div className="flex items-center gap-3 mb-6 text-amber-700 relative z-10">
-                      <Sparkles className="w-6 h-6 animate-pulse" />
-                      <h3 className="text-xl font-black tracking-tight uppercase">사령부 정밀 지능 분석 보고서</h3>
-                    </div>
-                    <pre className="text-sm md:text-base text-stone-800 whitespace-pre-wrap font-sans leading-relaxed relative z-10 italic bg-white/60 p-8 rounded-2xl border border-white shadow-sm">
-                      {newsItem.ai_analysis}
-                    </pre>
+          {/* AI 분석 리포트 섹션 */}
+          <div className="mt-16">
+            {newsItem.ai_report ? (
+              <div className="space-y-8">
+                <div className="flex items-center gap-3 text-purple-600">
+                  <div className="w-10 h-10 bg-purple-100 rounded-2xl flex items-center justify-center">
+                    <Brain size={24} className="animate-pulse" />
                   </div>
-                )}
-              </div>
-
-              {!newsItem.ai_analysis && (
-                <div className="flex justify-center pt-8 border-t border-stone-100">
-                  <button 
-                    onClick={handleAIAnalysis}
-                    className="w-full flex items-center justify-center gap-3 py-5 bg-stone-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl hover:shadow-accent-600/20"
-                  >
-                    <Bot className="w-6 h-6 text-accent-400" />
-                    사령부 AI 지능 분석 보고서 생성 및 열람
-                  </button>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight">Gemini AI 정밀 분석 리포트</h3>
+                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Neural Intelligence Report v1.5</p>
+                  </div>
                 </div>
-              )}
-            </>
-          )}
+
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="p-8 bg-purple-50/50 rounded-[2rem] border border-purple-100 shadow-sm">
+                    <div className="flex items-center gap-2 text-purple-600 mb-3 font-black text-xs uppercase tracking-widest">
+                      <Sparkles size={14} /> 핵심 요약
+                    </div>
+                    <p className="text-slate-700 font-bold leading-relaxed">{newsItem.ai_report.summary}</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="p-8 bg-blue-50/50 rounded-[2rem] border border-blue-100">
+                      <div className="flex items-center gap-2 text-blue-600 mb-3 font-black text-xs uppercase tracking-widest">
+                        <ShieldCheck size={14} /> 사회/경제적 파급력
+                      </div>
+                      <p className="text-slate-700 text-sm font-medium leading-relaxed">{newsItem.ai_report.impact}</p>
+                    </div>
+                    <div className="p-8 bg-emerald-50/50 rounded-[2rem] border border-emerald-100">
+                      <div className="flex items-center gap-2 text-emerald-600 mb-3 font-black text-xs uppercase tracking-widest">
+                        <Sparkles size={14} /> 전문가 제언
+                      </div>
+                      <p className="text-slate-700 text-sm font-medium leading-relaxed">{newsItem.ai_report.advice}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button 
+                onClick={handleAIAnalysis}
+                disabled={isAnalyzing}
+                className="w-full group relative overflow-hidden p-1 bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 rounded-[2rem] transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+              >
+                <div className="bg-white rounded-[1.9rem] py-8 flex flex-col items-center justify-center gap-3 group-hover:bg-white/90 transition-all">
+                  {isAnalyzing ? (
+                    <Loader2 size={32} className="animate-spin text-purple-500" />
+                  ) : (
+                    <Brain size={32} className="text-purple-500" />
+                  )}
+                  <div className="text-center">
+                    <p className="text-lg font-black text-slate-800">Gemini AI 뉴스 분석 실행</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Request Neural Intelligence Summary</p>
+                  </div>
+                </div>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Integrated Threaded Discussion Section */}
-        <div className="bg-stone-100/50 border-t border-stone-200 p-8 md:p-12">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-stone-900 flex items-center gap-3">
-              <MessageSquare className="w-6 h-6 text-accent-600" />
-              아고라 통합 토론 게시판 <span className="text-stone-400 text-sm font-mono">({comments.length})</span>
+        {/* ── 아고라 토론 섹션 ── */}
+        <div className="bg-slate-50/50 border-t border-slate-100 p-8 md:p-16">
+          <div className="max-w-3xl">
+            <h3 className="text-2xl font-black text-slate-900 flex items-center gap-4 mb-12">
+              <MessageSquare size={28} className="text-blue-600" />
+              요원 토론광장 <span className="bg-blue-600 text-white text-xs font-black px-3 py-1 rounded-full">{comments.length}</span>
             </h3>
-          </div>
 
-          {/* Root Comment Form */}
-          <form onSubmit={(e) => handleAddComment(e)} className="mb-12 relative">
-            <textarea 
-              value={commentText} onChange={e => setCommentText(e.target.value)}
-              placeholder={user ? "이 지능물에 대한 당신의 전략적 통찰을 발제하십시오..." : "요원 가동 승인(로그인) 후 참여 가능합니다."}
-              disabled={!user}
-              className="w-full p-6 bg-white border border-stone-200 rounded-3xl text-sm font-bold outline-none focus:ring-4 focus:ring-accent-600/10 transition-all pr-20 shadow-inner"
-              rows={3}
-            />
-            <button 
-              type="submit" disabled={!user || !commentText.trim()}
-              className="absolute right-4 bottom-4 p-3 bg-stone-900 text-white rounded-2xl hover:bg-black transition-all disabled:opacity-30 shadow-lg"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
+            {/* 댓글 입력 */}
+            <form onSubmit={(e) => handleAddComment(e)} className="mb-16 relative">
+              <textarea 
+                value={commentText} 
+                onChange={e => setCommentText(e.target.value)}
+                placeholder={user ? "이 소식에 대한 당신의 날카로운 분석을 들려주세요..." : "로그인한 요원만 토론에 참여할 수 있습니다."}
+                disabled={!user}
+                className="w-full p-8 bg-white border border-slate-200 rounded-[2.5rem] text-sm font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm placeholder:text-slate-300 min-h-[120px] resize-none"
+              />
+              <button 
+                type="submit" 
+                disabled={!user || !commentText.trim()}
+                className="absolute right-6 bottom-6 p-4 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-20"
+              >
+                <Send size={24} />
+              </button>
+            </form>
 
-          {/* Threaded Comment List */}
-          <div className="space-y-6">
-            {rootComments.length === 0 ? (
-              <div className="text-center py-12 text-stone-400 font-bold italic">현재 발제된 공식 의견이 없습니다.</div>
-            ) : (
-              rootComments.map(c => (
-                <div key={c.id} className="space-y-4">
-                  {/* Root Comment Card */}
-                  <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className={`text-[11px] font-black uppercase tracking-wider ${c.author_name.includes('Admin') ? 'text-accent-600' : 'text-stone-500'}`}>
-                        {c.author_name} {c.author_name.includes('Admin') && '(HQ)'}
-                      </span>
-                      <span className="text-[10px] text-stone-300 font-mono italic">{new Date(c.created_at).toLocaleTimeString()}</span>
-                    </div>
-                    <p className="text-sm text-stone-700 leading-relaxed font-bold mb-4">{c.content}</p>
-                    <button 
-                      onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
-                      className="text-[10px] font-black text-accent-600 uppercase hover:underline flex items-center gap-1"
-                    >
-                      <MessageSquarePlus className="w-3 h-3" />
-                      대댓글(답글) 작성
-                    </button>
-                  </div>
-
-                  {/* Replies (Thread) */}
-                  {getReplies(c.id).map(r => (
-                    <div key={r.id} className="ml-8 flex gap-3 animate-in slide-in-from-left-4">
-                      <CornerDownRight className="w-5 h-5 text-stone-300 mt-2 shrink-0" />
-                      <div className="flex-1 bg-white/60 p-5 rounded-2xl border border-stone-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-[10px] font-black text-stone-500 uppercase">{r.author_name}</span>
-                          <span className="text-[10px] text-stone-300 font-mono italic">{new Date(r.created_at).toLocaleTimeString()}</span>
-                        </div>
-                        <p className="text-xs text-stone-600 leading-relaxed font-medium">{r.content}</p>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Reply Form */}
-                  {replyTo === c.id && (
-                    <form onSubmit={(e) => handleAddComment(e, c.id)} className="ml-12 mt-2 flex gap-2 animate-in slide-in-from-top-2">
-                      <input 
-                        value={replyText} onChange={e => setReplyText(e.target.value)}
-                        placeholder="대댓글 내용을 입력하십시오..."
-                        className="flex-1 bg-white border border-accent-200 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-accent-600/20"
-                      />
-                      <button type="submit" className="bg-accent-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md">등록</button>
-                    </form>
-                  )}
+            {/* 댓글 리스트 */}
+            <div className="space-y-12">
+              {rootComments.length === 0 ? (
+                <div className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-sm">
+                  아직 기록된 전술적 토론이 없습니다.
                 </div>
-              ))
-            )}
+              ) : (
+                rootComments.map(c => (
+                  <div key={c.id} className="space-y-6">
+                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm relative group">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-black text-slate-400 text-[10px]">
+                            {c.author_name?.[0].toUpperCase()}
+                          </div>
+                          <span className="text-sm font-black text-slate-700">{c.author_name}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-300 italic">{format(new Date(c.created_at), 'HH:mm:ss')}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 font-bold leading-relaxed mb-6">{c.content}</p>
+                      <button 
+                        onClick={() => setReplyTo(replyTo === c.id ? null : c.id)}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 uppercase hover:underline"
+                      >
+                        <MessageSquarePlus size={14} /> 답글 달기
+                      </button>
+                    </div>
+
+                    {/* 대댓글 */}
+                    {getReplies(c.id).map(r => (
+                      <div key={r.id} className="ml-12 flex gap-4 animate-in slide-in-from-left-4">
+                        <CornerDownRight className="w-6 h-6 text-slate-200 mt-2 shrink-0" />
+                        <div className="flex-1 bg-white/60 p-6 rounded-[1.5rem] border border-slate-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-black text-slate-500">{r.author_name}</span>
+                            <span className="text-[10px] font-bold text-slate-300 italic">{format(new Date(r.created_at), 'HH:mm:ss')}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 font-bold leading-relaxed">{r.content}</p>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* 답글 입력 폼 */}
+                    {replyTo === c.id && (
+                      <form onSubmit={(e) => handleAddComment(e, c.id)} className="ml-16 flex gap-3 animate-in slide-in-from-top-4">
+                        <input 
+                          value={replyText} 
+                          onChange={e => setReplyText(e.target.value)}
+                          placeholder="답글을 입력하세요..."
+                          className="flex-1 bg-white border border-blue-100 rounded-2xl px-6 py-3 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 transition-all shadow-sm"
+                        />
+                        <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase shadow-lg active:scale-95">등록</button>
+                      </form>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -46,111 +46,71 @@ export async function scrapeArticleContent(url: string): Promise<string> {
 }
 
 /**
- * NewsAPI.org에서 최신 한국 뉴스를 정확하게 가져와 DB에 저장합니다.
+ * 연합뉴스 및 구글 뉴스 RSS 피드에서 최신 뉴스를 실시간으로 수집합니다.
  */
 export async function fetchLatestNews(): Promise<number> {
-  // API 키가 없을 경우 실감나는 한국어 모의 데이터를 생성하여 대표님께 보고합니다.
-  if (!NEWS_API_KEY) {
-    console.warn('[NewsService] NEWS_API_KEY가 설정되지 않아 정밀 모의 데이터를 생성합니다.');
-    return insertMockNews();
-  }
+  const rssFeeds = [
+    { name: '연합뉴스 속보', url: 'https://www.yna.co.kr/rss/news.xml', category: 'general' },
+    { name: '구글 뉴스 (대한민국)', url: 'https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko', category: 'general' },
+    { name: '네이버 경제', url: 'https://news.naver.com/main/rss/rss.nhn?sid1=101', category: 'business' },
+    { name: '네이버 IT', url: 'https://news.naver.com/main/rss/rss.nhn?sid1=105', category: 'technology' }
+  ];
 
-  const categories = ['business', 'technology', 'general'];
   let savedCount = 0;
 
-  for (const category of categories) {
+  for (const feed of rssFeeds) {
     try {
-      // 한국어 뉴스(country: kr)를 우선적으로 가져오며, 응답을 UTF-8로 명시적으로 처리합니다.
-      const response = await axios.get('https://newsapi.org/v2/top-headlines', {
-        params: {
-          category,
-          country: 'kr', 
-          pageSize: Math.floor(MAX_PER_FETCH / categories.length),
-          apiKey: NEWS_API_KEY,
-        },
+      console.log(`[NewsService] 수집 중: ${feed.name}...`);
+      const response = await axios.get(feed.url, { 
         timeout: 10000,
-        responseEncoding: 'utf8', // 응답 인코딩 강제 지정
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
       });
+      
+      const $ = cheerio.load(response.data, { xmlMode: true });
+      const items = $('item').toArray().slice(0, 10); // 피드당 최신 10개만 수집
 
-      const articles: NewsApiArticle[] = response.data?.articles ?? [];
+      for (const item of items) {
+        const title = $(item).find('title').text().trim();
+        const link = $(item).find('link').text().trim();
+        const description = $(item).find('description').text().trim();
+        const pubDate = $(item).find('pubDate').text().trim();
+        const source = feed.name;
 
-      for (const article of articles) {
-        if (!article.title || !article.url) continue;
-        if (article.title === '[Removed]') continue;
+        if (!title || !link) continue;
 
         try {
-          // 뉴스 원문과 최대한 일치하도록 제목과 설명을 정제하여 저장합니다.
           await query(
-            `INSERT INTO news (title, description, content, url, image_url, source_name, category, published_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+            `INSERT INTO news (title, description, url, source_name, category, published_at)
+             VALUES ($1, $2, $3, $4, $5, $6)
              ON CONFLICT (url) DO UPDATE SET
                title = EXCLUDED.title,
                description = EXCLUDED.description,
-               content = EXCLUDED.content,
                published_at = EXCLUDED.published_at`,
             [
-              article.title.slice(0, 500),
-              article.description?.slice(0, 1000) ?? null,
-              article.content?.slice(0, 5000) ?? null,
-              article.url,
-              article.urlToImage ?? null,
-              article.source?.name ?? null,
-              category,
-              article.publishedAt ? new Date(article.publishedAt).toISOString() : new Date().toISOString(),
+              title.slice(0, 500),
+              description.slice(0, 1000),
+              link,
+              source,
+              feed.category,
+              pubDate ? new Date(pubDate).toISOString() : new Date().toISOString()
             ]
           );
           savedCount++;
-        } catch (insertErr: any) {
-          console.error('[NewsService] 데이터 동기화 오류:', insertErr.message);
+        } catch (insertErr) {
+          // 중복은 무시
         }
       }
     } catch (err: any) {
-      console.error(`[NewsService] ${category} 데이터 수집 실패:`, err.message);
+      console.error(`[NewsService] ${feed.name} 수집 실패:`, err.message);
     }
   }
 
-  console.log(`[NewsService] ${savedCount}개 정밀 뉴스 데이터 동기화 완료`);
+  console.log(`[NewsService] 총 ${savedCount}개의 정밀 지능 데이터 동기화 완료`);
   return savedCount;
 }
 
 async function insertMockNews(): Promise<number> {
-  const mockArticles = [
-    {
-      title: '[종합] 2026년 국내 IT 기업들, AI 기반 생산성 혁신 본격화',
-      description: '국내 주요 IT 기업들이 인공지능 기술을 실무에 전격 도입하며 업무 효율성을 극대화하고 있습니다.',
-      url: `https://morningdock.ai/news/2026-it-trend`,
-      category: 'technology',
-      source_name: '모닝독 리서치',
-    },
-    {
-      title: '금융위원회, 핀테크 규제 샌드박스 확대 운영 계획 발표',
-      description: '새로운 금융 서비스의 시장 진입을 돕기 위한 규제 샌드박스 제도가 더욱 유연하게 운영될 전망입니다.',
-      url: `https://morningdock.ai/news/fintech-regulation-2026`,
-      category: 'business',
-      source_name: '경제 포커스',
-    },
-    {
-      title: '서울시, 스마트 모빌리티 인프라 구축에 5000억 투입',
-      description: '도심 교통 체증 해소를 위한 자율주행 및 드론 택시 거점 마련 사업이 가속화됩니다.',
-      url: `https://morningdock.ai/news/smart-mobility-seoul`,
-      category: 'general',
-      source_name: '도시환경 뉴스',
-    },
-  ];
-
-  let count = 0;
-  for (const article of mockArticles) {
-    try {
-      await query(
-        `INSERT INTO news (title, description, url, category, source_name, published_at)
-         VALUES ($1,$2,$3,$4,$5,NOW())
-         ON CONFLICT (url) DO UPDATE SET title = EXCLUDED.title`,
-        [article.title, article.description, article.url, article.category, article.source_name]
-      );
-      count++;
-    } catch {
-      // 오류 무시
-    }
-  }
-  return count;
+  // 실제 RSS 수집으로 대체되므로 하위 호환성을 위해 빈 함수로 유지하거나 RSS 수집을 호출합니다.
+  return fetchLatestNews();
 }
+

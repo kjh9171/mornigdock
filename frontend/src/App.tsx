@@ -31,6 +31,7 @@ export default function App() {
         <Route path="/" element={<Layout />}>
           <Route index                element={<Navigate to="/news" replace />} />
           <Route path="news"          element={<NewsPage />} />
+          <Route path="news/:id"      element={<NewsPage />} />
           <Route path="media"         element={<MediaPage />} />
           <Route path="finance"       element={<FinancePage />} />
           <Route path="board"         element={<BoardPage />} />

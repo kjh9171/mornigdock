@@ -194,9 +194,9 @@ export default function MediaPage() {
 
       {/* ── 미디어 추가 모달 ── */}
       {showForm && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500"
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-500"
           onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
-          <div className="w-full max-w-lg bg-agora-bg border border-white/10 rounded-[2.5rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)] relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+          <div className="w-full max-w-lg agora-bg border border-white/10 rounded-[2.5rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)] relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
             <div className="flex items-center justify-between mb-10">
               <div className="flex flex-col">
                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Add Intelligence</h2>

@@ -133,6 +133,8 @@ comments.delete('/:id', requireAuth(), async (c) => {
   if ((result.rowCount ?? 0) === 0) {
     return c.json({ success: false, message: '댓글을 찾을 수 없습니다.' }, 404);
   }
+  
+  // 본인 혹은 관리자만 삭제 가능
   if (result.rows[0].user_id !== userId && role !== 'admin') {
     return c.json({ success: false, message: '삭제 권한이 없습니다.' }, 403);
   }

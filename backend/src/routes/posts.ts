@@ -9,6 +9,7 @@ postsRouter.get('/', optionalAuth(), async (c) => {
   try {
     const type = c.req.query('type')
     const category = c.req.query('category')
+    const search = c.req.query('search')
     const page = parseInt(c.req.query('page') || '1')
     const limit = parseInt(c.req.query('limit') || '20')
     const offset = (page - 1) * limit
@@ -24,6 +25,11 @@ postsRouter.get('/', optionalAuth(), async (c) => {
     if (category && category !== '전체' && category !== 'all') {
       params.push(category)
       conditions.push(`p.category = $${params.length}`)
+    }
+
+    if (search) {
+      params.push(`%${search}%`)
+      conditions.push(`(p.title ILIKE $${params.length} OR p.content ILIKE $${params.length})`)
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
@@ -84,6 +90,37 @@ postsRouter.get('/:id', optionalAuth(), async (c) => {
   }
 })
 
+// ─── POST /api/posts/:id/reaction (좋아요/싫어요) ───
+postsRouter.post('/:id/reaction', requireAuth(), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'))
+    const user = c.get('user') as any
+    const { reaction } = await c.req.json()
+
+    if (!['like', 'dislike'].includes(reaction)) return c.json({ success: false, message: 'Invalid reaction' }, 400)
+
+    await query(
+      `INSERT INTO reactions (user_id, target_type, target_id, reaction)
+       VALUES ($1, 'post', $2, $3)
+       ON CONFLICT (user_id, target_type, target_id) 
+       DO UPDATE SET reaction = EXCLUDED.reaction`,
+      [user.userId, id, reaction]
+    )
+
+    await query(`
+      UPDATE posts SET 
+        likes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'post' AND target_id = $1 AND reaction = 'like'),
+        dislikes_count = (SELECT COUNT(*) FROM reactions WHERE target_type = 'post' AND target_id = $1 AND reaction = 'dislike')
+      WHERE id = $1
+    `, [id])
+
+    const updated = await query('SELECT likes_count, dislikes_count FROM posts WHERE id = $1', [id])
+    return c.json({ success: true, data: updated.rows[0] })
+  } catch (err: any) {
+    return c.json({ success: false, message: err.message }, 500)
+  }
+})
+
 // ─── POST /api/posts ───
 postsRouter.post('/', requireAuth(), async (c) => {
   try {
@@ -102,6 +139,33 @@ postsRouter.post('/', requireAuth(), async (c) => {
   }
 })
 
+// ─── PUT /api/posts/:id ───
+postsRouter.put('/:id', requireAuth(), async (c) => {
+  try {
+    const id = parseInt(c.req.param('id'))
+    const user = c.get('user') as any
+    const body = await c.req.json()
+    const { title, content, category } = body
+
+    const postRes = await query('SELECT user_id FROM posts WHERE id = $1', [id])
+    if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
+
+    // 본인 혹은 관리자만 수정 가능
+    if (user.role !== 'admin' && postRes.rows[0].user_id !== user.userId) {
+      return c.json({ success: false, message: 'Unauthorized - You do not have permission to edit this post' }, 403)
+    }
+
+    await query(
+      `UPDATE posts SET title = $1, content = $2, category = $3, updated_at = NOW() WHERE id = $4`,
+      [title, content, category || 'general', id]
+    )
+    return c.json({ success: true, message: 'Post updated successfully' })
+  } catch (err) {
+    console.error('Post Update Error:', err)
+    return c.json({ success: false }, 500)
+  }
+})
+
 // ─── DELETE /api/posts/:id ───
 postsRouter.delete('/:id', requireAuth(), async (c) => {
   try {
@@ -111,8 +175,9 @@ postsRouter.delete('/:id', requireAuth(), async (c) => {
     const postRes = await query('SELECT user_id FROM posts WHERE id = $1', [id])
     if (postRes.rows.length === 0) return c.json({ success: false, message: 'Not Found' }, 404)
     
+    // 본인 혹은 관리자만 삭제 가능
     if (user.role !== 'admin' && postRes.rows[0].user_id !== user.userId) {
-      return c.json({ success: false, message: 'Unauthorized' }, 403)
+      return c.json({ success: false, message: 'Unauthorized - You do not have permission to delete this post' }, 403)
     }
 
     await query('DELETE FROM posts WHERE id = $1', [id])

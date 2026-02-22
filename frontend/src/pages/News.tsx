@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
-import { useTranslation } from 'react-i18next';
-import { ExternalLink, Pin, Brain, MessageSquare, RefreshCw, Loader2, Search, Sparkles, Eye, User } from 'lucide-react';
+import { 
+  Newspaper, RefreshCw, Loader2, Search, 
+  ThumbsUp, ThumbsDown, MessageSquare, 
+  ChevronRight, Brain, Clock
+} from 'lucide-react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import CommentSection from '../components/CommentSection';
 
 interface News {
   id: number;
@@ -18,28 +20,33 @@ interface News {
   is_pinned: boolean;
   published_at: string;
   comment_count: number;
-  view_count?: number;
+  likes_count: number;
+  dislikes_count: number;
   ai_report: { summary: string; impact: string; advice: string } | null;
 }
 
-const CATEGORIES = ['all', 'business', 'technology', 'general'];
+const CATEGORIES = [
+  { id: 'all', label: '전체 뉴스' },
+  { id: 'general', label: '속보/일반' },
+  { id: 'business', label: '경제/금융' },
+  { id: 'technology', label: 'IT/기술' }
+];
 
 export default function NewsPage() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { t } = useTranslation();
-  const [news,          setNews]          = useState<News[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [fetching,      setFetching]      = useState(false);
-  const [category,      setCategory]      = useState('all');
-  const [search,        setSearch]        = useState('');
-  const [page,          setPage]          = useState(1);
-  const [totalPages,    setTotalPages]    = useState(1);
-  const [expandedId,    setExpandedId]    = useState<number | null>(null);
+  const [news, setNews] = useState<News[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [category, setCategory] = useState('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadNews = useCallback(async (p = 1, cat = category, q = search) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/news', { params: { page: p, limit: 30, category: cat, search: q } });
+      const { data } = await api.get('/news', { params: { page: p, limit: 12, category: cat, search: q } });
       setNews(data.data.items);
       setTotalPages(data.data.pagination.totalPages);
     } catch (err) {
@@ -51,200 +58,157 @@ export default function NewsPage() {
 
   useEffect(() => { loadNews(1, category, search); }, [category, loadNews, search]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    loadNews(1, category, search);
-  };
-
   const handleFetch = async () => {
     setFetching(true);
     try {
       await api.post('/news/fetch');
       await loadNews(1, category, search);
     } catch (err: any) {
-      alert('수집 실패');
+      alert('데이터 동기화 실패');
     } finally {
       setFetching(false);
     }
   };
 
-  const handleAIReport = async (item: News) => {
+  const handleReaction = async (e: React.MouseEvent, id: number, reaction: 'like' | 'dislike') => {
+    e.stopPropagation();
+    if (!user) return alert('로그인이 필요합니다.');
     try {
-      setLoading(true);
-      const { data } = await api.post(`/news/${item.id}/ai-report`);
-      setNews(prev => prev.map(n => n.id === item.id ? { ...n, ai_report: data.data } : n));
-      alert('AI 분석이 완료되었습니다!');
+      const { data } = await api.post(`/news/${id}/reaction`, { reaction });
+      setNews(prev => prev.map(n => n.id === id ? { ...n, ...data.data } : n));
     } catch (err: any) {
-      alert('분석 실패: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setLoading(false);
+      console.error('반응 처리 실패:', err);
     }
   };
 
-  const canModerate = user?.role === 'admin' || user?.role === 'editor';
-
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-slate-200 overflow-hidden">
-      {/* ── 상단 타이틀 & 카테고리 ── */}
-      <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold text-slate-800">모두의 뉴스</h1>
-          <div className="flex gap-1">
-            {CATEGORIES.map(cat => (
-              <button key={cat}
-                className={`px-3 py-1 text-[12px] font-medium rounded-full transition-all ${
-                  category === cat ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-200'
-                }`}
-                onClick={() => { setCategory(cat); setPage(1); }}>
-                {cat === 'all' ? '전체' : cat === 'business' ? '비즈니스' : cat === 'technology' ? '테크' : '일반'}
-              </button>
-            ))}
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in duration-500 min-h-screen bg-slate-50/30 rounded-[3rem]">
+      {/* ── 헤더 섹션 ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-100">
+        <div>
+          <div className="flex items-center gap-3 text-blue-600 mb-2">
+            <Newspaper size={28} className="stroke-[2.5]" />
+            <span className="text-sm font-black uppercase tracking-widest">Global Intelligence Feed</span>
           </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">통합 뉴스 리포트</h1>
+          <p className="text-slate-500 mt-2 font-medium">연합뉴스, 구글 뉴스 및 AI 분석 기반 실시간 지능 피드</p>
         </div>
-        {canModerate && (
-          <button onClick={handleFetch} disabled={fetching}
-            className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:underline">
-            {fetching ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            새 뉴스 수집
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleFetch} 
+            disabled={fetching}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
+          >
+            {fetching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            최신 데이터 동기화
           </button>
-        )}
+        </div>
       </div>
 
-      {/* ── 검색바 ── */}
-      <div className="p-3 border-b border-slate-100 flex justify-end bg-white">
-        <form onSubmit={handleSearch} className="flex gap-1">
-          <div className="relative">
-            <input className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded text-[13px] outline-none focus:border-blue-400 w-64" 
-              placeholder="제목, 내용 검색" value={search}
-              onChange={e => setSearch(e.target.value)} />
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          </div>
-          <button type="submit" className="px-4 bg-slate-600 text-white rounded text-[12px] font-bold hover:bg-slate-700 transition-all">검색</button>
-        </form>
+      {/* ── 필터 및 검색 ── */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-8 items-center px-4">
+        <div className="flex overflow-x-auto gap-2 p-1.5 bg-slate-200/50 rounded-2xl shrink-0 w-full lg:w-auto">
+          {CATEGORIES.map(cat => (
+            <button key={cat.id}
+              onClick={() => { setCategory(cat.id); setPage(1); }}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+                category === cat.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="relative w-full">
+          <input 
+            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm" 
+            placeholder="뉴스 제목 또는 본문 내용을 검색하세요..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && loadNews(1, category, search)}
+          />
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+        </div>
       </div>
 
-      {/* ── 뉴스 리스트 ── */}
+      {/* ── 뉴스 그리드 ── */}
       {loading ? (
         <div className="py-40 text-center">
-          <Loader2 size={30} className="animate-spin mx-auto mb-4 text-blue-600" />
-          <span className="text-[12px] text-slate-400">첩보 분석 중...</span>
+          <Loader2 size={48} className="animate-spin mx-auto mb-4 text-blue-600 opacity-20" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Intelligence Decrypting...</p>
         </div>
       ) : news.length === 0 ? (
-        <div className="py-40 text-center text-slate-400 text-[13px]">
-          표시할 뉴스가 없습니다.
+        <div className="py-40 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 mx-4">
+          <p className="text-slate-400 font-bold">수집된 뉴스 데이터가 없습니다.</p>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
-          {/* 헤더 행 (데스크톱 전용) */}
-          <div className="hidden md:flex bg-slate-50 text-[11px] font-bold text-slate-400 py-2 border-b border-slate-200 px-4">
-            <div className="w-16">분류</div>
-            <div className="flex-1">제목</div>
-            <div className="w-24 text-center">출처</div>
-            <div className="w-24 text-center">날짜</div>
-            <div className="w-16 text-center">조회</div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
           {news.map(item => (
-            <div key={item.id} className="group">
-              <div className={`flex flex-col md:flex-row items-start md:items-center px-4 py-3 hover:bg-blue-50/30 cursor-pointer transition-colors ${item.is_pinned ? 'bg-blue-50/50' : ''}`}
-                onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
-                
-                {/* 분류 */}
-                <div className="hidden md:block w-16">
-                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                     item.category === 'business' ? 'text-emerald-600 bg-emerald-50' :
-                     item.category === 'technology' ? 'text-blue-600 bg-blue-50' : 'text-slate-400 bg-slate-100'
-                   }`}>{item.category.toUpperCase()}</span>
-                </div>
-
-                {/* 제목 */}
-                <div className="flex-1 min-w-0 pr-4">
-                  <div className="flex items-center gap-2">
-                    {item.is_pinned && <Pin size={12} className="text-orange-500 shrink-0" fill="currentColor" />}
-                    <h2 className="text-[14px] font-medium text-slate-800 truncate group-hover:text-blue-600 group-hover:underline">
-                      {item.title}
-                    </h2>
-                    {item.comment_count > 0 && (
-                      <span className="text-[11px] font-bold text-orange-500">[{item.comment_count}]</span>
-                    )}
+            <div 
+              key={item.id} 
+              onClick={() => navigate(`/news/${item.id}`)}
+              className="group bg-white rounded-[2.5rem] border border-slate-100 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-500/10 transition-all cursor-pointer overflow-hidden flex flex-col shadow-sm"
+            >
+              <div className="p-8 flex-1">
+                <div className="flex items-center justify-between mb-5">
+                  <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider ${
+                    item.category === 'business' || item.category === 'finance' ? 'bg-emerald-50 text-emerald-600' :
+                    item.category === 'technology' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600'
+                  }`}>
+                    {item.category === 'business' || item.category === 'finance' ? 'Finance' : item.category === 'technology' ? 'Tech' : 'General'}
+                  </span>
+                  <div className="flex items-center gap-2 text-slate-400 text-[11px] font-bold">
+                    <Clock size={12} />
+                    {format(new Date(item.published_at), 'MM.dd HH:mm')}
                   </div>
                 </div>
+                
+                <h3 className="text-xl font-black text-slate-800 leading-tight mb-4 group-hover:text-blue-600 transition-colors line-clamp-2">
+                  {item.title}
+                </h3>
+                
+                <p className="text-slate-500 text-[15px] leading-relaxed line-clamp-3 mb-8 font-medium">
+                  {item.description || '본문 요약 정보가 없습니다.'}
+                </p>
 
-                {/* 출처 & 날짜 (모바일) */}
-                <div className="md:hidden flex items-center gap-3 mt-1 text-[11px] text-slate-400">
-                  <span>{item.source_name}</span>
-                  <span>{format(new Date(item.published_at), 'HH:mm')}</span>
+                <div className="flex items-center gap-3 text-slate-400">
+                  <span className="text-xs font-bold italic">{item.source_name}</span>
+                  {item.ai_report && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-600 rounded-lg animate-pulse">
+                      <Brain size={14} />
+                      <span className="text-[10px] font-black uppercase">AI Analyzed</span>
+                    </div>
+                  )}
                 </div>
-
-                {/* 정보 (데스크톱) */}
-                <div className="hidden md:block w-24 text-center text-[12px] text-slate-500 truncate">{item.source_name}</div>
-                <div className="hidden md:block w-24 text-center text-[12px] text-slate-400">
-                  {format(new Date(item.published_at), 'MM-dd')}
-                </div>
-                <div className="hidden md:block w-16 text-center text-[12px] text-slate-400">{item.view_count || 0}</div>
               </div>
 
-              {/* 확장된 내용 */}
-              {expandedId === item.id && (
-                <div className="p-6 bg-[#fcfcfc] border-y border-slate-100 animate-fade-in">
-                  {item.image_url && (
-                    <div className="mb-6 max-w-lg mx-auto border border-slate-100 rounded overflow-hidden">
-                       <img src={item.image_url} alt="" className="w-full h-auto" />
-                    </div>
-                  )}
-                  <p className="text-[14px] leading-relaxed text-slate-700 mb-8 whitespace-pre-wrap">{item.description || '내용이 없습니다.'}</p>
-                  
-                  {/* AI 분석 요약 (클리앙 느낌의 박스) */}
-                  {item.ai_report && (
-                    <div className="mb-8 border border-blue-100 bg-blue-50/30 rounded p-5">
-                      <div className="flex items-center gap-2 mb-3 text-blue-700">
-                        <Brain size={16} />
-                        <span className="text-[13px] font-bold">CERT AI 통합 분석 리포트</span>
-                      </div>
-                      <div className="space-y-4 text-[13px]">
-                        <div>
-                          <p className="font-bold text-slate-600 mb-1">핵심 요약</p>
-                          <p className="text-slate-700 leading-relaxed">{item.ai_report.summary}</p>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                             <p className="font-bold text-emerald-600 mb-1">시장 영향력</p>
-                             <p className="text-slate-700">{item.ai_report.impact}</p>
-                          </div>
-                          <div>
-                             <p className="font-bold text-orange-600 mb-1">대응 전략</p>
-                             <p className="text-slate-700 font-bold">{item.ai_report.advice}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                    <div className="flex items-center gap-4">
-                      {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-[12px] text-blue-600 hover:underline">
-                          <ExternalLink size={14} /> 원문 기사 보기
-                        </a>
-                      )}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleAIReport(item); }}
-                        className="flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-blue-600 transition-colors">
-                        <Sparkles size={14} /> AI 분석 요청
-                      </button>
-                    </div>
-                    <div className="text-[12px] text-slate-400">
-                       발행일: {format(new Date(item.published_at), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                     <CommentSection newsId={item.id} />
+              <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <button 
+                    onClick={(e) => handleReaction(e, item.id, 'like')}
+                    className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    <ThumbsUp size={18} className={item.likes_count > 0 ? 'fill-blue-600 text-blue-600' : ''} />
+                    <span className="text-sm font-black">{item.likes_count || 0}</span>
+                  </button>
+                  <button 
+                    onClick={(e) => handleReaction(e, item.id, 'dislike')}
+                    className="flex items-center gap-2 text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <ThumbsDown size={18} className={item.dislikes_count > 0 ? 'fill-red-500 text-red-500' : ''} />
+                    <span className="text-sm font-black">{item.dislikes_count || 0}</span>
+                  </button>
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <MessageSquare size={18} />
+                    <span className="text-sm font-black">{item.comment_count || 0}</span>
                   </div>
                 </div>
-              )}
+                <div className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:border-blue-100 transition-all shadow-sm">
+                  <ChevronRight size={20} />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -252,13 +216,14 @@ export default function NewsPage() {
 
       {/* ── 페이지네이션 ── */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-1 py-10 bg-white">
+        <div className="flex justify-center items-center gap-3 mt-20 mb-12">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <button key={p}
-              className={`min-w-[32px] h-8 px-2 rounded text-[12px] font-medium border transition-all ${
-                page === p ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600'
+              onClick={() => { setPage(p); loadNews(p, category, search); }}
+              className={`w-12 h-12 rounded-2xl text-sm font-black transition-all ${
+                page === p ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110' : 'bg-white border border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-600'
               }`}
-              onClick={() => { setPage(p); loadNews(p, category, search); }}>
+            >
               {p}
             </button>
           ))}

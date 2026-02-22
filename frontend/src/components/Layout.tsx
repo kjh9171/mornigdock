@@ -25,26 +25,26 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-[#1e293b] font-sans">
-      {/* ── 클리앙 스타일 상단 헤더 ── */}
-      <header className="bg-[#1d4ed8] shadow-md sticky top-0 z-50">
-        <div className="max-w-[1100px] mx-auto flex items-center justify-between h-14 px-4 lg:px-0">
-          <div className="flex items-center gap-6">
+    <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-white font-sans selection:bg-agora-gold/30">
+      {/* ── 아고라 프리미엄 상단 헤더 ── */}
+      <header className="bg-black/60 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+        <div className="max-w-[1100px] mx-auto flex items-center justify-between h-16 px-4 lg:px-0">
+          <div className="flex items-center gap-10">
             <Link to="/news" className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tighter text-white">AGORA</span>
+              <span className="text-2xl font-black tracking-tighter text-white uppercase italic">AGORA</span>
             </Link>
             
-            <nav className="hidden md:flex items-center">
+            <nav className="hidden md:flex items-center gap-2">
               {nav.map(({ path, label }) => {
                 const isActive = location.pathname.startsWith(path);
                 return (
                   <Link
                     key={path}
                     to={path}
-                    className={`px-4 py-4 text-[14px] font-bold transition-all ${
+                    className={`px-5 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                       isActive
-                        ? 'text-white bg-black/10'
-                        : 'text-white/80 hover:text-white hover:bg-white/5'
+                        ? 'text-agora-gold bg-agora-gold/10 border border-agora-gold/20'
+                        : 'text-white/40 hover:text-white/80 hover:bg-white/5'
                     }`}
                   >
                     {label}
@@ -54,31 +54,31 @@ export default function Layout() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
              <button 
               onClick={toggleLanguage}
-              className="px-2 py-1 text-[11px] font-bold text-white/70 border border-white/30 rounded hover:bg-white/10 transition-all"
+              className="px-3 py-1.5 text-[10px] font-black text-white/40 border border-white/10 rounded-lg hover:bg-white/5 transition-all"
             >
               {language === 'ko' ? 'EN' : 'KO'}
             </button>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-4">
-                <Link to="/profile" className="flex items-center gap-2 text-white/90 hover:text-white">
+              <div className="flex items-center gap-6">
+                <Link to="/profile" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
                   <User size={16} />
-                  <span className="text-[13px] font-medium hidden sm:inline">{user?.name}님</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest hidden sm:inline">{user?.name} 요원</span>
                 </Link>
                 <button 
                   onClick={handleLogout} 
-                  className="text-white/70 hover:text-white transition-all"
+                  className="text-white/30 hover:text-red-400 transition-all active:scale-95"
                   title="로그아웃"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={18} />
                 </button>
               </div>
             ) : (
-              <Link to="/login" className="text-white font-bold text-[13px] px-4 py-1.5 bg-white/10 rounded hover:bg-white/20">
-                로그인
+              <Link to="/login" className="text-white font-black text-[11px] px-6 py-2.5 bg-primary-600 rounded-xl hover:bg-primary-500 transition-all shadow-lg shadow-primary-900/20 uppercase tracking-widest">
+                Login Access
               </Link>
             )}
           </div>
@@ -86,15 +86,15 @@ export default function Layout() {
       </header>
 
       {/* ── 메인 콘텐츠 ── */}
-      <main className="flex-1 max-w-[1100px] mx-auto w-full px-4 lg:px-0 py-6 animate-fade-in">
+      <main className="flex-1 max-w-[1100px] mx-auto w-full px-4 lg:px-0 py-10 animate-fade-in">
         <Outlet />
       </main>
 
       {/* ── 푸터 ── */}
-      <footer className="bg-white border-t border-slate-200 py-8 text-center text-slate-400 mt-10">
+      <footer className="bg-black/40 border-t border-white/5 py-12 text-center text-white/20 mt-20">
         <div className="max-w-[1100px] mx-auto px-4">
-          <p className="text-[11px] mb-2 font-bold tracking-widest text-slate-300 uppercase">Agora Platform</p>
-          <p className="text-[10px]">© 2026 Agora. All rights reserved. CERT Division.</p>
+          <p className="text-[10px] mb-3 font-black tracking-[0.5em] text-agora-gold/40 uppercase">Antigravity Security Platform</p>
+          <p className="text-[9px] font-bold uppercase tracking-widest">© 2026 Agora Intel Hub. Authorized Access Only.</p>
         </div>
       </footer>
     </div>

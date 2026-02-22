@@ -347,17 +347,113 @@ export default function AdminPage() {
           )}
 
           {tab === 'settings' && (
-             <div className="glass-container p-12 rounded-[2.5rem] border border-white/5 max-w-2xl mx-auto animate-in fade-in duration-500">
-                 <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-10 flex items-center gap-4"><Settings size={22} className="text-agora-gold" /> System Calibration</h3>
-                 <div className="space-y-8">
-                    {Object.entries(settings).map(([key, value]) => (
-                        <div key={key} className="space-y-3">
-                            <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-2">{key.replace(/_/g, ' ')}</label>
-                            <input className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold outline-none focus:border-agora-gold/30 transition-all" value={value} onChange={e => setSettings(s => ({...s, [key]: e.target.value}))} />
-                        </div>
-                    ))}
-                    <button onClick={async () => { await api.put('/admin/settings', settings); alert('저장 완료'); }} className="w-full py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95">Save Protocols</button>
-                 </div>
+             <div className="space-y-8 animate-in fade-in duration-500 max-w-3xl mx-auto">
+               <div className="glass-container p-12 rounded-[3.5rem] border border-white/5 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-10 opacity-5 shadow-2xl"><Settings size={150} /></div>
+                   <div className="flex items-center gap-4 mb-12 relative z-10">
+                       <div className="w-12 h-12 bg-agora-gold/20 rounded-2xl flex items-center justify-center">
+                           <Zap size={20} className="text-agora-gold animate-pulse" />
+                       </div>
+                       <div>
+                           <h3 className="text-xl font-black text-white uppercase tracking-tighter">System Calibration Center</h3>
+                           <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mt-1">기지 운영 핵심 프로토콜 조율</p>
+                       </div>
+                   </div>
+
+                   <div className="space-y-6 relative z-10">
+                      {[
+                        { 
+                          key: 'AI_ANALYSIS_ENABLED', 
+                          label: 'AI 지능 분석 엔진', 
+                          desc: '뉴스 및 첩보 수집 시 인공지능이 자동으로 분석 리포트를 생성하도록 합니다.',
+                          isToggle: true 
+                        },
+                        { 
+                          key: 'AUTO_FETCH_ENABLED', 
+                          label: '실시간 뉴스 자동 수집', 
+                          desc: '주기적으로 외부 매체에서 새로운 지능 데이터를 자동으로 수집합니다.',
+                          isToggle: true 
+                        },
+                        { 
+                          key: 'MAINTENANCE_MODE', 
+                          label: '점검 모드 (민간인 접근 제어)', 
+                          desc: '활성화 시 관리자 등급 요원 외에는 기지 접근이 차단됩니다.',
+                          isToggle: true 
+                        },
+                        { 
+                          key: 'MAX_NEWS_PER_FETCH', 
+                          label: '최대 지능 수집량', 
+                          desc: '자동 수집 시 한 번에 가져올 최대 기사 수를 설정합니다.',
+                          isToggle: false,
+                          unit: '건'
+                        },
+                        { 
+                          key: 'NEWS_FETCH_INTERVAL', 
+                          label: '수집 주기 (분 단위)', 
+                          desc: '데이터 수집 시도 간격을 설정합니다. (너무 잦으면 차단 위험)',
+                          isToggle: false,
+                          unit: '분'
+                        }
+                      ].map((item) => (
+                          <div key={item.key} className="p-6 rounded-3xl bg-white/[0.03] border border-white/5 hover:bg-white/5 transition-all group">
+                              <div className="flex items-center justify-between gap-6">
+                                  <div className="flex-1">
+                                      <p className="text-[11px] font-black text-white uppercase tracking-widest mb-1 group-hover:text-agora-gold transition-colors">{item.label}</p>
+                                      <p className="text-[10px] font-medium text-white/30 leading-relaxed">{item.desc}</p>
+                                  </div>
+                                  <div className="shrink-0">
+                                      {item.isToggle ? (
+                                          <button 
+                                              onClick={() => setSettings(s => ({...s, [item.key]: s[item.key] === 'true' ? 'false' : 'true'}))}
+                                              className={`w-14 h-8 rounded-full p-1 transition-all duration-300 ${settings[item.key] === 'true' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'}`}
+                                          >
+                                              <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300 ${settings[item.key] === 'true' ? 'translate-x-6' : 'translate-x-0'}`} />
+                                          </button>
+                                      ) : (
+                                          <div className="flex items-center gap-3">
+                                              <input 
+                                                  className="w-20 px-4 py-2 bg-black/40 border border-white/10 rounded-xl text-center text-[11px] font-black text-white outline-none focus:border-agora-gold/30"
+                                                  value={settings[item.key]} 
+                                                  onChange={e => setSettings(s => ({...s, [item.key]: e.target.value}))}
+                                              />
+                                              <span className="text-[9px] font-black text-white/30 uppercase">{item.unit}</span>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+
+                      <div className="pt-10 flex gap-4">
+                          <button 
+                            onClick={async () => {
+                                const { data } = await api.get('/admin/settings');
+                                setSettings(data.data);
+                            }}
+                            className="flex-1 py-5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest transition-all"
+                          >
+                            Reset Protocols
+                          </button>
+                          <button 
+                            onClick={async () => { 
+                                await api.put('/admin/settings', settings); 
+                                alert('운영 프로토콜이 업데이트되었습니다.'); 
+                            }} 
+                            className="flex-[2] py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary-900/40 transition-all active:scale-95"
+                          >
+                            Apply Operational Changes
+                          </button>
+                      </div>
+                   </div>
+               </div>
+               <div className="p-8 border border-agora-gold/10 bg-agora-gold/[0.02] rounded-[2.5rem] flex items-center gap-6">
+                  <div className="w-10 h-10 rounded-full bg-agora-gold/10 flex items-center justify-center shrink-0">
+                      <Shield size={18} className="text-agora-gold" />
+                  </div>
+                  <p className="text-[10px] font-medium text-white/40 leading-loose uppercase tracking-widest">
+                    주의: 설정 변경은 기지 전체 요원에게 즉시 적용되며, 시스템 자원 소모량에 변화를 줄 수 있습니다. 신중하게 검토 후 승인하십시오.
+                  </p>
+               </div>
              </div>
           )}
         </div>
