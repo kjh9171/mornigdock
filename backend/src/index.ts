@@ -16,6 +16,7 @@ import mediaRoutes   from './routes/media.js';
 import adminRoutes   from './routes/admin.js';
 import stocksRoutes  from './routes/stocks.js';
 import postsRoutes   from './routes/posts.js';
+import rssRoutes     from './routes/rss.js';   // ✅ 추가
 
 const app = new Hono();
 const PORT = Number(process.env.PORT ?? 8787);
@@ -25,14 +26,13 @@ app.use('*', logger());
 app.use('*', secureHeaders());
 app.use('*', prettyJSON());
 app.use('*', cors({
-  origin: (origin) => origin, // 모든 오리진 허용 (개발 편의성)
+  origin: (origin) => origin,
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // ── API 라우트 등록 ──
-// 모든 API는 /api 경로 아래에 둡니다. (404 방지 프로토콜)
 const api = new Hono();
 
 api.get('/health', async (c) => {
@@ -47,6 +47,7 @@ api.route('/media',    mediaRoutes);
 api.route('/admin',    adminRoutes);
 api.route('/stocks',   stocksRoutes);
 api.route('/posts',    postsRoutes);
+api.route('/rss',      rssRoutes);   // ✅ 추가
 
 app.route('/api', api);
 

@@ -1,202 +1,295 @@
-import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Clock, ChevronRight, Newspaper, X, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Newspaper, RefreshCw, ExternalLink, Clock, ChevronRight,
+  Globe, Tv, Music2, Heart, Trophy, Users, Building2,
+  TrendingUp, MapPin, BookOpen, Mic2, FlaskConical, Flag
+} from 'lucide-react';
 import { api } from '../lib/api';
 
-interface NewsArticle {
-  id: number;
-  title: string;
-  category: string;
-  published_at: string;
+interface NewsItem {
+  title:       string;
+  link:        string;
   description: string;
-  urlToImage: string;
-  source: string;
-  ai_report?: any;
+  pubDate:     string;
+  category:    string;
+  thumbnail:   string;
+}
+
+interface Category {
+  key:   string;
+  label: string;
+}
+
+const categoryIcons: Record<string, React.ReactElement> = {
+  news:          <Newspaper size={13} />,
+  politics:      <Building2 size={13} />,
+  northkorea:    <Flag size={13} />,
+  economy:       <TrendingUp size={13} />,
+  market:        <TrendingUp size={13} />,
+  industry:      <FlaskConical size={13} />,
+  society:       <Users size={13} />,
+  local:         <MapPin size={13} />,
+  international: <Globe size={13} />,
+  culture:       <Tv size={13} />,
+  health:        <Heart size={13} />,
+  entertainment: <Music2 size={13} />,
+  sports:        <Trophy size={13} />,
+  opinion:       <BookOpen size={13} />,
+  people:        <Mic2 size={13} />,
+};
+
+const categoryColors: Record<string, string> = {
+  news:          'bg-blue-600',
+  politics:      'bg-red-600',
+  northkorea:    'bg-gray-700',
+  economy:       'bg-emerald-600',
+  market:        'bg-teal-600',
+  industry:      'bg-cyan-600',
+  society:       'bg-orange-600',
+  local:         'bg-lime-600',
+  international: 'bg-violet-600',
+  culture:       'bg-pink-600',
+  health:        'bg-rose-500',
+  entertainment: 'bg-purple-600',
+  sports:        'bg-amber-600',
+  opinion:       'bg-indigo-600',
+  people:        'bg-fuchsia-600',
+};
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d    = new Date(dateStr);
+    const now  = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 1000 / 60);
+    if (diff < 1)    return '방금 전';
+    if (diff < 60)   return diff + '분 전';
+    if (diff < 1440) return Math.floor(diff / 60) + '시간 전';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  } catch {
+    return dateStr;
+  }
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, ' ').trim();
+}
+
+function handleImgError(e: React.SyntheticEvent<HTMLImageElement>): void {
+  (e.target as HTMLImageElement).style.display = 'none';
 }
 
 export default function News() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [news, setNews] = useState<NewsArticle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [generatingAI, setGeneratingAI] = useState(false);
-
-  const fetchNews = async () => {
-    try {
-      const res = await api.get('/news', { params: { search: searchQuery } });
-      if (res.data.success && res.data.data.items) {
-        setNews(res.data.data.items);
-      }
-    } catch (err) {
-      console.error('Failed to fetch news', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [categories, setCategories]         = useState<Category[]>([]);
+  const [activeCategory, setActiveCategory] = useState('news');
+  const [newsList, setNewsList]             = useState<NewsItem[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [refreshing, setRefreshing]         = useState(false);
+  const [lastUpdated, setLastUpdated]       = useState<Date | null>(null);
+  const [featured, setFeatured]             = useState<NewsItem | null>(null);
 
   useEffect(() => {
-    fetchNews();
-  }, [searchQuery]);
+    api.get('/news/categories')
+      .then(function(res) { if (res.data.success) setCategories(res.data.data); })
+      .catch(console.error);
+  }, []);
 
-  const handleArticleClick = async (article: NewsArticle) => {
+  const fetchNews = useCallback(async function(isRefresh: boolean = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
-      const res = await api.get(`/news/${article.id}`);
+      const res = await api.get('/news', { params: { category: activeCategory, limit: 30 } });
       if (res.data.success) {
-        setSelectedArticle(res.data.data);
-      } else {
-        setSelectedArticle(article);
+        const data: NewsItem[] = res.data.data;
+        setNewsList(data);
+        setFeatured(data[0] ?? null);
+        setLastUpdated(new Date());
       }
-    } catch (e) {
-      setSelectedArticle(article);
-    }
-  };
-
-  const generateAIReport = async () => {
-    if (!selectedArticle) return;
-    setGeneratingAI(true);
-    try {
-      const res = await api.post(`/news/${selectedArticle.id}/ai-report`);
-      if (res.data.success) {
-        setSelectedArticle({ ...selectedArticle, ai_report: res.data.data });
-        fetchNews();
-      }
-    } catch (e) {
-      alert('AI 리포트 생성에 실패했습니다. (API 연동을 확인하세요)');
+    } catch (err) {
+      console.error('뉴스 로딩 실패', err);
     } finally {
-      setGeneratingAI(false);
+      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [activeCategory]);
+
+  useEffect(function() { fetchNews(); }, [fetchNews]);
+
+  useEffect(function() {
+    const interval = setInterval(function() { fetchNews(true); }, 5 * 60 * 1000);
+    return function() { clearInterval(interval); };
+  }, [fetchNews]);
+
+  const activeCategoryLabel = categories.find(function(c) { return c.key === activeCategory; })?.label ?? '최신기사';
+  const accentColor         = categoryColors[activeCategory] ?? 'bg-blue-600';
+
+  function getCategoryTabClass(key: string): string {
+    const base = 'flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border flex-shrink-0';
+    if (key === activeCategory) {
+      return base + ' ' + accentColor + ' text-white border-transparent shadow-lg';
+    }
+    return base + ' bg-white text-slate-500 border-slate-200 hover:border-slate-400';
+  }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto animate-in fade-in zoom-in duration-500 relative">
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-blue-600 via-indigo-700 to-slate-900 p-10 text-white mb-12 shadow-2xl shadow-blue-500/20">
-        <div className="absolute top-0 right-0 p-8 opacity-10 transform translate-x-1/4 -translate-y-1/4">
-          <Newspaper size={200} />
-        </div>
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-widest mb-6 border border-white/20">
-            <TrendingUp size={14} className="text-blue-300" />
-            <span>실시간 글로벌 테크 동향</span>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 rounded-full text-[10px] font-black uppercase tracking-widest mb-3 border border-blue-100 text-blue-600">
+            <Newspaper size={12} />
+            연합뉴스 실시간
           </div>
-          <h1 className="text-5xl font-black mb-4 tracking-tighter shadow-sm">뉴스 모니터링 허브</h1>
-          <p className="text-lg text-blue-100 font-medium tracking-tight mb-8">
-            최신 보안, 인공지능, 그리고 IT 시장의 핵심 지수를 실시간으로 분석하고 큐레이션하여 제공합니다.
-          </p>
-          <div className="relative max-w-md group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="관심 키워드로 인텔리전스 검색..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 rounded-2xl bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transition-all font-bold"
-            />
-          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">뉴스 브리핑</h1>
+          {lastUpdated && (
+            <p className="text-xs text-slate-400 font-bold mt-1 flex items-center gap-1">
+              <Clock size={11} />
+              마지막 업데이트: {lastUpdated.toLocaleTimeString('ko-KR')}
+            </p>
+          )}
         </div>
+        <button
+          onClick={function() { fetchNews(true); }}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-700 transition-all shadow-md disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? '갱신 중...' : '새로고침'}
+        </button>
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-8">
+        {categories.map(function(cat) {
+          return (
+            <button
+              key={cat.key}
+              onClick={function() { setActiveCategory(cat.key); }}
+              className={getCategoryTabClass(cat.key)}
+            >
+              {categoryIcons[cat.key]}
+              {cat.label}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex justify-center py-32">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {news.map(article => (
-            <div key={article.id} onClick={() => handleArticleClick(article)} className="group bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 flex flex-col cursor-pointer">
-              <div className="aspect-[4/3] overflow-hidden relative">
-                <img src={article.urlToImage || 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop'} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-blue-600">
-                  {article.category}
-                </div>
-              </div>
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
-                    <span>{article.source || 'AGORA HUB'}</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                    <span className="flex items-center gap-1"><Clock size={12} /> {new Date(article.published_at || new Date()).toLocaleDateString()}</span>
-                  </div>
-                  <h3 className="text-xl font-black text-slate-800 leading-tight mb-4 group-hover:text-blue-600 transition-colors line-clamp-2">
-                    {article.title}
-                  </h3>
-                  <p className="text-sm font-medium text-slate-500 line-clamp-3 mb-4">
-                    {article.description}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between border-t border-slate-50 pt-4 mt-auto">
-                  <span className={`text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-lg ${article.ai_report ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                    {article.ai_report ? 'AI 리포트 준비완료' : 'AI 리포트 미분석'}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center transition-colors">
-                    <ChevronRight size={16} className="text-slate-400 group-hover:text-white transition-colors" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        <div className="space-y-8">
 
-      {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] shadow-2xl relative animate-in zoom-in-95">
-            <button onClick={() => setSelectedArticle(null)} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors z-10 text-slate-600">
-              <X size={20} />
-            </button>
-            <div className="p-10 border-b border-slate-100">
-              <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-black uppercase tracking-widest mb-4">
-                {selectedArticle.category}
-              </div>
-              <h2 className="text-3xl font-black text-slate-900 leading-snug mb-4">{selectedArticle.title}</h2>
-              <div className="flex items-center gap-4 text-sm font-bold text-slate-400">
-                <span className="flex items-center gap-1"><Newspaper size={16} /> {selectedArticle.source || 'AGORA'}</span>
-                <span className="flex items-center gap-1"><Clock size={16} /> {new Date(selectedArticle.published_at || new Date()).toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="p-10 bg-slate-50">
-              <h3 className="text-lg font-black text-slate-800 mb-4">기사 요약문</h3>
-              <p className="text-slate-700 leading-loose mb-8 font-medium">
-                {selectedArticle.description || '본문 요약이 존재하지 않습니다.'}
-              </p>
-              
-              <div className="bg-white p-8 rounded-[2rem] border border-blue-100 shadow-xl shadow-blue-500/5">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-black text-blue-600 flex items-center gap-2">
-                    <TrendingUp size={24} /> AGORA Intelligence Report
-                  </h3>
-                  {!selectedArticle.ai_report && (
-                    <button 
-                      onClick={generateAIReport} 
-                      disabled={generatingAI}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {generatingAI ? <><Loader2 size={14} className="animate-spin" /> 분석 진행중</> : 'AI 정밀 분석 요청'}
-                    </button>
-                  )}
+          {featured && (
+            <a
+              href={featured.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block relative rounded-3xl overflow-hidden shadow-2xl hover:-translate-y-1 transition-all duration-500 min-h-[300px] bg-slate-900"
+            >
+              {featured.thumbnail ? (
+                <img
+                  src={featured.thumbnail}
+                  alt={featured.title}
+                  onError={handleImgError}
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700"
+                />
+              ) : (
+                <div className={'absolute inset-0 opacity-20 ' + accentColor} />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
+
+              <div className="relative z-10 p-8 flex flex-col justify-end min-h-[300px]">
+                <div className="mb-auto">
+                  <div className={'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-[10px] font-black mb-3 ' + accentColor}>
+                    {categoryIcons[activeCategory]}
+                    {activeCategoryLabel} · 주요기사
+                  </div>
                 </div>
-                
-                {selectedArticle.ai_report ? (
-                  <div className="space-y-6">
-                    <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
-                      <h4 className="font-black text-blue-800 mb-2 uppercase text-xs tracking-widest">Summary</h4>
-                      <p className="text-sm text-blue-900 leading-relaxed font-medium">{selectedArticle.ai_report.summary}</p>
-                    </div>
-                    <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                      <h4 className="font-black text-emerald-800 mb-2 uppercase text-xs tracking-widest">Impact</h4>
-                      <p className="text-sm text-emerald-900 leading-relaxed font-medium">{selectedArticle.ai_report.impact}</p>
-                    </div>
-                    <div className="p-6 bg-indigo-50/50 rounded-2xl border border-indigo-100">
-                      <h4 className="font-black text-indigo-800 mb-2 uppercase text-xs tracking-widest">Actionable Advice</h4>
-                      <p className="text-sm text-indigo-900 leading-relaxed font-medium">{selectedArticle.ai_report.advice}</p>
-                    </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-black text-white leading-snug mb-3 group-hover:text-blue-300 transition-colors">
+                    {featured.title}
+                  </h2>
+                  {featured.description && (
+                    <p className="text-slate-300 text-sm font-medium line-clamp-2 mb-4">
+                      {stripHtml(featured.description)}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs font-bold flex items-center gap-1">
+                      <Clock size={11} />
+                      {formatDate(featured.pubDate)}
+                    </span>
+                    <span className="flex items-center gap-1 text-white text-xs font-black bg-white/10 px-3 py-1.5 rounded-full">
+                      전문 보기
+                      <ExternalLink size={11} />
+                    </span>
                   </div>
-                ) : (
-                  <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
-                    <p className="text-sm font-bold text-slate-400">아직 AI 분석이 수행되지 않았습니다. 우측 상단의 버튼을 눌러 분석을 시작하세요.</p>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            </a>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {newsList.slice(1).map(function(item, idx) {
+              return (
+                <a
+                  key={idx}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col bg-white rounded-2xl border border-slate-100 overflow-hidden hover:border-slate-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  {item.thumbnail && (
+                    <div className="relative overflow-hidden h-44 bg-slate-100">
+                      <img
+                        src={item.thumbnail}
+                        alt={item.title}
+                        onError={handleImgError}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-5 flex flex-col flex-1">
+                    <div className={'inline-flex self-start items-center gap-1 px-2.5 py-1 rounded-lg text-white text-[10px] font-black mb-3 ' + accentColor}>
+                      {categoryIcons[activeCategory]}
+                      {activeCategoryLabel}
+                    </div>
+
+                    <h3 className="text-sm font-black text-slate-800 leading-snug mb-2 line-clamp-3 group-hover:text-blue-700 transition-colors flex-1">
+                      {item.title}
+                    </h3>
+
+                    {item.description && (
+                      <p className="text-slate-400 text-xs font-medium line-clamp-2 mb-3">
+                        {stripHtml(item.description)}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-50">
+                      <span className="text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                        <Clock size={10} />
+                        {formatDate(item.pubDate)}
+                      </span>
+                      <span className="text-blue-600 text-[10px] font-black flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
+                        읽기
+                        <ChevronRight size={11} />
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
+
+          {newsList.length === 0 && (
+            <div className="text-center py-24 text-slate-400">
+              <Newspaper size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="font-bold">뉴스를 불러올 수 없습니다.</p>
+              <p className="text-xs mt-1">잠시 후 다시 시도해주세요.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

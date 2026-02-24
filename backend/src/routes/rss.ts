@@ -1,21 +1,6 @@
 import { Hono } from 'hono';
 
-const news = new Hono();
-
-// ── 타입 정의 ─────────────────────────────────────────────
-interface NewsItem {
-  title:       string;
-  link:        string;
-  description: string;
-  pubDate:     string;
-  category:    string;
-  thumbnail:   string;
-}
-
-interface CacheEntry {
-  data: NewsItem[];
-  time: number;
-}
+const rss = new Hono();
 
 // ── RSS 피드 목록 ─────────────────────────────────────────
 const RSS_FEEDS: Record<string, string> = {
@@ -55,20 +40,34 @@ const CATEGORIES = [
 ];
 
 // ── 메모리 캐시 (5분) ─────────────────────────────────────
+interface CacheEntry {
+  data: NewsItem[];
+  time: number;
+}
 const cache: Record<string, CacheEntry> = {};
 const CACHE_TTL = 5 * 60 * 1000;
+
+// ── 타입 정의 ─────────────────────────────────────────────
+interface NewsItem {
+  title:       string;
+  link:        string;
+  description: string;
+  pubDate:     string;
+  category:    string;
+  thumbnail:   string;
+}
 
 // ── XML 태그 값 추출 헬퍼 ─────────────────────────────────
 function getTag(block: string, tag: string): string {
   const m = block.match(
-    new RegExp('<' + tag + '[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/' + tag + '>', 'i')
+    new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i')
   );
   return m ? m[1].trim() : '';
 }
 
 function getAttr(block: string, tag: string, attr: string): string {
   const m = block.match(
-    new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'i')
+    new RegExp(`<${tag}[^>]*${attr}="([^"]*)"`, 'i')
   );
   return m ? m[1] : '';
 }
@@ -81,6 +80,8 @@ function parseRSS(xml: string): NewsItem[] {
 
   while ((match = itemRegex.exec(xml)) !== null) {
     const block = match[1];
+
+    // 썸네일: media:content → media:thumbnail → enclosure 순으로 시도
     const thumbnail =
       getAttr(block, 'media:content', 'url') ||
       getAttr(block, 'media:thumbnail', 'url') ||
@@ -100,14 +101,14 @@ function parseRSS(xml: string): NewsItem[] {
   return items;
 }
 
-// ── GET /api/news/categories ──────────────────────────────
-news.get('/categories', function(c) {
+// ── GET /api/rss/categories ───────────────────────────────
+rss.get('/categories', (c) => {
   return c.json({ success: true, data: CATEGORIES });
 });
 
-// ── GET /api/news?category=news&limit=20 ─────────────────
-news.get('/', async function(c) {
-  const category = c.req.query('category') ?? 'news';
+// ── GET /api/rss?category=news&limit=20 ──────────────────
+rss.get('/', async (c) => {
+  const category = (c.req.query('category') ?? 'news') as string;
   const limit    = Math.min(parseInt(c.req.query('limit') ?? '20'), 50);
 
   const feedUrl = RSS_FEEDS[category];
@@ -115,9 +116,14 @@ news.get('/', async function(c) {
     return c.json({ success: false, message: '유효하지 않은 카테고리입니다.' }, 400);
   }
 
+  // 캐시 확인
   const cached = cache[category];
   if (cached && Date.now() - cached.time < CACHE_TTL) {
-    return c.json({ success: true, cached: true, data: cached.data.slice(0, limit) });
+    return c.json({
+      success: true,
+      cached:  true,
+      data:    cached.data.slice(0, limit),
+    });
   }
 
   try {
@@ -126,7 +132,7 @@ news.get('/', async function(c) {
     });
 
     if (!response.ok) {
-      throw new Error('HTTP ' + response.status);
+      throw new Error(`HTTP ${response.status}`);
     }
 
     const xml   = await response.text();
@@ -134,12 +140,16 @@ news.get('/', async function(c) {
 
     cache[category] = { data: items, time: Date.now() };
 
-    return c.json({ success: true, cached: false, data: items.slice(0, limit) });
+    return c.json({
+      success: true,
+      cached:  false,
+      data:    items.slice(0, limit),
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[News RSS] fetch 실패 (' + category + '):', message);
+    console.error(`[RSS] fetch 실패 (${category}):`, message);
     return c.json({ success: false, message: 'RSS 불러오기 실패', error: message }, 500);
   }
 });
 
-export default news;
+export default rss;
