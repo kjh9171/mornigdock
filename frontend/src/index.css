@@ -1,68 +1,12 @@
-/* ✅ @import는 반드시 파일 최상단에 위치해야 함 */
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
-
-:root {
-  --agora-gold: #c5a059;
-  --agora-bg: #0a0a0b;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 추가적으로 필요한 전역 스타일 */
 body {
-  font-family:
-    "Pretendard",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  margin: 0;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--agora-bg);
-  color: #ffffff;
-  margin: 0;
-}
-
-@layer components {
-  .glass-container {
-    /* 기존 bg-white를 제거하고 반투명과 블러 효과를 부여합니다. */
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-  .clien-card {
-    @apply bg-white border-b border-slate-100 hover:bg-slate-50 transition-colors px-4 py-3 flex items-center justify-between;
-  }
-}
-
-.agora-bg {
-  background-color: var(--agora-bg);
-}
-
-.text-agora-gold {
-  color: var(--agora-gold);
-}
-
-.bg-agora-gold {
-  background-color: var(--agora-gold);
-}
-
-.border-agora-gold {
-  border-color: var(--agora-gold);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  text-rendering: optimizeLegibility;
 }

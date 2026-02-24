@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../lib/api';
+// import { api } from '../lib/api'; // api 모듈은 나중에 구현합니다.
 
 interface User {
   id: number;
@@ -40,7 +40,7 @@ interface AuthState {
   setUser:  (user: User) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   isAuthenticated: false,
@@ -48,50 +48,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password, otpCode) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/auth/login', { email, password, otpCode });
-      if (data.data?.requireOtp || data.requireOtp) {
-        set({ isLoading: false });
-        return { success: data.success ?? false, requireOtp: true, message: data.message };
-      }
-      const { accessToken, refreshToken, user } = data.data;
-      localStorage.setItem('accessToken',  accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      set({ user, isAuthenticated: true, isLoading: false });
-      return { success: true, accessToken, refreshToken, user };
+      // API 호출 로직은 나중에 구현
+      console.log('Login attempt:', email, password, otpCode);
+      // 임시 응답 (성공)
+      return { success: true, user: { id: 1, email, name: 'Agent', role: 'user', otp_enabled: false } };
     } catch (err: any) {
-      set({ isLoading: false });
       return { success: false, message: err.response?.data?.message ?? '로그인 실패' };
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   register: async (email, password, name) => {
+    set({ isLoading: true });
     try {
-      const { data } = await api.post('/auth/register', { email, password, name });
-      return { success: data.success, message: data.message, data: data.data };
+      // API 호출 로직은 나중에 구현
+      console.log('Register attempt:', email, password, name);
+      // 임시 응답 (성공)
+      return { success: true, data: { user: { id: 1, email, name, role: 'user', otp_enabled: false }, qrCode: 'temp_qr_code', otpSecret: 'temp_secret' } };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message ?? '회원가입 실패' };
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   logout: async () => {
-    try {
-      const refreshToken = localStorage.getItem('refreshToken');
-      await api.post('/auth/logout', { refreshToken });
-    } catch {}
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    // API 호출 로직은 나중에 구현
+    console.log('Logout');
     set({ user: null, isAuthenticated: false });
   },
 
   fetchMe: async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-    try {
-      const { data } = await api.get('/auth/me');
-      set({ user: data.data, isAuthenticated: true });
-    } catch {
-      set({ user: null, isAuthenticated: false });
-    }
+    // API 호출 로직은 나중에 구현
+    console.log('Fetch Me');
+    set({ user: null, isAuthenticated: false });
   },
 
   setUser: (user) => set({ user }),

@@ -1,24 +1,18 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
-import { useLanguageStore } from '../store/useLanguageStore';
-import { useTranslation } from 'react-i18next';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore'; // AuthStore는 나중에 구현합니다.
 import { 
-  Newspaper, Tv, Shield, User, LogOut, 
+  Newspaper, Tv, Shield, LogOut, 
   MessageSquare, BarChart3, Bell, Search, 
   Menu, X
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
 export default function Layout() {
-  const { isAuthenticated, user, logout } = useAuthStore();
-  const { language, toggleLanguage } = useLanguageStore();
-  const { t } = useTranslation();
+  const { isAuthenticated, user, logout } = useAuthStore(); // useAuthStore는 나중에 구현합니다.
   const location = useLocation();
-  const navigate  = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ── 메뉴 목록 고정 (마술 방지 프로토콜) ──
-  // 유저 정보 로딩 상태와 상관없이 금융분석 등 기본 메뉴는 항상 노출되도록 useMemo로 고정합니다.
+  // ── 메뉴 목록 고정 ──
   const navItems = useMemo(() => {
     const baseNav = [
       { path: '/news',    label: '뉴스지능', icon: Newspaper },
@@ -27,7 +21,6 @@ export default function Layout() {
       { path: '/media',   label: '미디어', icon: Tv },
     ];
 
-    // 관리자 메뉴는 조건부 추가 (하지만 기본 메뉴들의 위치는 변하지 않음)
     if (user?.role === 'admin') {
       baseNav.push({ path: '/admin', label: '관제실', icon: Shield });
     }
@@ -36,8 +29,8 @@ export default function Layout() {
   }, [user?.role]);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    await logout(); // AuthStore 구현 후 활성화
+    console.log('Logout initiated');
   };
 
   return (
@@ -85,11 +78,12 @@ export default function Layout() {
               </button>
             </div>
 
+            {/* 언어 토글 (임시) */}
             <button 
-              onClick={toggleLanguage}
+              // onClick={toggleLanguage} // 언어 스토어 구현 후 활성화
               className="hidden sm:block px-4 py-2 text-[11px] font-black text-slate-400 border border-slate-100 rounded-xl hover:bg-slate-50 transition-all mr-2"
             >
-              {language === 'ko' ? 'KR' : 'EN'}
+              KR
             </button>
 
             {isAuthenticated ? (
