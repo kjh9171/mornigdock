@@ -42,7 +42,7 @@ export const fetchStockService = async () => {
     console.log('[FinanceService] 네이버 금융 주요 뉴스 수집 중...');
     const newsResponse = await axios.get('https://finance.naver.com/news/mainnews.naver', { 
       headers: { 'User-Agent': USER_AGENT },
-      responseEncoding: 'binary' 
+      responseType: 'arraybuffer' 
     });
     const decoder = new TextDecoder('euc-kr');
     const html = decoder.decode(newsResponse.data);
