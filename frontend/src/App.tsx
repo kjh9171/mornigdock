@@ -1,42 +1,57 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './store/useAuthStore'; // AuthStore는 나중에 구현합니다.
-import Layout from './components/Layout';         // Layout은 나중에 구현합니다.
+import { useAuthStore } from './store/useAuthStore'; // AuthStore 전역 상태 임포트
+import Layout from './components/Layout';         // 공용 레이아웃 셸
+import Login from './pages/Login';
 
-// 임시 ProtectedRoute 컴포넌트
+// 새로 만들어진 멋진 페이지 컴포넌트들을 임포트합니다.
+import News from './pages/News';
+import Finance from './pages/Finance';
+import Board from './pages/Board';
+import Media from './pages/Media';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+
+// 임시 ProtectedRoute 컴포넌트: 인증 여부에 따라 페이지 접근을 방어합니다.
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore(); // useAuthStore는 나중에 구현합니다.
+  const { isAuthenticated } = useAuthStore();
   if (!isAuthenticated) {
+    // 비인가 시 로그인 화면으로 즉각 리다이렉션
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 }
 
 export default function App() {
-  const fetchMe = useAuthStore(state => state.fetchMe); // useAuthStore는 나중에 구현합니다.
+  const fetchMe = useAuthStore(state => state.fetchMe); 
 
   useEffect(() => {
-    // fetchMe(); // AuthStore 구현 후 활성화
+    // 앱 진입점 초기 상태 검증을 나중에 활성화 예정
   }, [fetchMe]);
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* 로그인 페이지 (나중에 구현) */}
-        <Route path="/login" element={<div className="min-h-screen flex items-center justify-center bg-slate-100/80"><h1>Login Page (Placeholder)</h1></div>} />
+        {/* 단독 인증 페이지 */}
+        <Route path="/login" element={<Login />} />
         
-        <Route path="/" element={<Layout />}> {/* Layout은 나중에 구현합니다. */}
+        {/* 공통 헤더/푸터가 적용되는 메인 레이아웃 라우트 */}
+        <Route path="/" element={<Layout />}>
+          {/* 기본 경로는 뉴스 허브로 연결 */}
           <Route index element={<Navigate to="/news" replace />} />
-          {/* 다른 라우트들은 나중에 추가합니다. */}
-          <Route path="/news" element={<div className="p-4">뉴스 페이지 (Placeholder)</div>} />
-          <Route path="/finance" element={<div className="p-4">금융 분석 페이지 (Placeholder)</div>} />
-          <Route path="/board" element={<div className="p-4">게시판 페이지 (Placeholder)</div>} />
-          <Route path="/media" element={<div className="p-4">미디어 페이지 (Placeholder)</div>} />
-          <Route path="/profile" element={<ProtectedRoute><div className="p-4">프로필 페이지 (Placeholder)</div></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><div className="p-4">관리자 페이지 (Placeholder)</div></ProtectedRoute>} />
+          
+          {/* 실제 퍼블리싱된 멋진 뷰들과 연결합니다! */}
+          <Route path="/news" element={<News />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/board" element={<Board />} />
+          <Route path="/media" element={<Media />} />
+          
+          {/* 보안이 필요한 개인 및 관리자 구역 */}
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         </Route>
         
-        {/* 없는 경로는 뉴스 페이지로 리다이렉트 */}
+        {/* 길 잃은 요원들을 위한 기본 리다이렉트 */}
         <Route path="*" element={<Navigate to="/news" replace />} />
       </Routes>
     </BrowserRouter>
