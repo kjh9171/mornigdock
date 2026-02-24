@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-// import { api } from '../lib/api'; // api 모듈은 나중에 구현합니다.
+import { api } from '../lib/api';
 
 interface User {
   id: number;
@@ -25,7 +25,7 @@ interface RegisterResponse {
     user: User;
     qrCode: string;
     otpSecret: string;
-  }
+  };
 }
 
 interface AuthState {
@@ -43,15 +43,25 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
-  isAuthenticated: false,
+  isAuthenticated: !!localStorage.getItem('accessToken'),
 
   login: async (email, password, otpCode) => {
     set({ isLoading: true });
     try {
-      // API 호출 로직은 나중에 구현
-      console.log('Login attempt:', email, password, otpCode);
-      // 임시 응답 (성공)
-      return { success: true, user: { id: 1, email, name: 'Agent', role: 'user', otp_enabled: false } };
+      const res = await api.post('/auth/login', { email, password, otpCode });
+      const data = res.data;
+
+      if (data.requireOtp) {
+        return { success: true, requireOtp: true, message: data.message };
+      }
+
+      if (data.success && data.data) {
+        localStorage.setItem('accessToken', data.data.accessToken);
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+        set({ user: data.data.user, isAuthenticated: true });
+        return { success: true, user: data.data.user };
+      }
+      return { success: false, message: data.message || '로그인 실패' };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message ?? '로그인 실패' };
     } finally {
@@ -62,10 +72,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (email, password, name) => {
     set({ isLoading: true });
     try {
-      // API 호출 로직은 나중에 구현
-      console.log('Register attempt:', email, password, name);
-      // 임시 응답 (성공)
-      return { success: true, data: { user: { id: 1, email, name, role: 'user', otp_enabled: false }, qrCode: 'temp_qr_code', otpSecret: 'temp_secret' } };
+      const res = await api.post('/auth/register', { email, password, name });
+      const data = res.data;
+      if (data.success) {
+        return { success: true, data: data.data };
+      }
+      return { success: false, message: data.message || '회원가입 실패' };
     } catch (err: any) {
       return { success: false, message: err.response?.data?.message ?? '회원가입 실패' };
     } finally {
@@ -74,15 +86,32 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    // API 호출 로직은 나중에 구현
-    console.log('Logout');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     set({ user: null, isAuthenticated: false });
   },
 
   fetchMe: async () => {
-    // API 호출 로직은 나중에 구현
-    console.log('Fetch Me');
-    set({ user: null, isAuthenticated: false });
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      set({ user: null, isAuthenticated: false });
+      return;
+    }
+    
+    try {
+      const res = await api.get('/auth/me');
+      if (res.data.success) {
+        set({ user: res.data.data, isAuthenticated: true });
+      } else {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        set({ user: null, isAuthenticated: false });
+      }
+    } catch (err) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({ user: null, isAuthenticated: false });
+    }
   },
 
   setUser: (user) => set({ user }),

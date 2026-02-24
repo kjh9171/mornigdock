@@ -26,7 +26,7 @@ export default function App() {
   const fetchMe = useAuthStore(state => state.fetchMe); 
 
   useEffect(() => {
-    // 앱 진입점 초기 상태 검증을 나중에 활성화 예정
+    fetchMe();
   }, [fetchMe]);
 
   return (

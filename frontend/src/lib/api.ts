@@ -4,9 +4,10 @@ import axios from 'axios';
 // 개발 환경에서는 Vite 프록시를 통해 백엔드로 요청이 전달됩니다.
 // 프로덕션 환경에서는 Nginx가 프록시 역할을 수행하거나, 직접 백엔드 URL을 지정합니다.
 const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
 
 export const api = axios.create({
-  baseURL: `${BASE_URL}/api`, // 모든 API 요청은 /api 접두사를 가집니다.
+  baseURL: API_URL, // 중복 /api 방지
   withCredentials: true,       // JWT 토큰 등을 주고받을 때 필요합니다.
 });
 
@@ -37,7 +38,7 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           // 리프레시 토큰을 사용하여 새 액세스 토큰 요청
-          const res = await axios.post(`${BASE_URL}/api/auth/refresh`, { refreshToken });
+          const res = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = res.data.data;
 
           localStorage.setItem('accessToken', newAccessToken);
