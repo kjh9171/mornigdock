@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlayCircle, Headphones, Youtube, Music, Search, X, Volume2, ExternalLink, Star } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
@@ -20,18 +20,14 @@ interface MediaItem {
 
 // ── YouTube URL을 Embed URL로 변환 ───────────────────────────
 function toEmbedUrl(url: string): string {
-  // 일반 유튜브 링크: youtube.com/watch?v=VIDEO_ID
   const matchWatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
   if (matchWatch) return `https://www.youtube.com/embed/${matchWatch[1]}?autoplay=1&rel=0`;
 
-  // 단축 링크: youtu.be/VIDEO_ID
   const matchShort = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
   if (matchShort) return `https://www.youtube.com/embed/${matchShort[1]}?autoplay=1&rel=0`;
 
-  // 이미 embed URL이면 그대로 사용
   if (url.includes('/embed/')) return url;
 
-  // 그 외 (팟캐스트 등)는 그대로 반환
   return url;
 }
 
@@ -59,11 +55,9 @@ export default function Media() {
   const [activeType, setActiveType]   = useState<'all' | 'youtube' | 'podcast' | 'music'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 재생 중인 미디어 상태
   const [playing, setPlaying]         = useState<MediaItem | null>(null);
   const [showPlayer, setShowPlayer]   = useState(false);
 
-  // 음악 신청 모달
   const [showRequest, setShowRequest] = useState(false);
   const [reqForm, setReqForm]         = useState({ title: '', url: '', content: '' });
   const [reqSending, setReqSending]   = useState(false);
@@ -72,7 +66,7 @@ export default function Media() {
   const fetchMedia = async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: Record<string, string> = {};
       if (activeType !== 'all')  params.type   = activeType;
       if (searchQuery.trim())    params.search = searchQuery;
 
@@ -96,10 +90,8 @@ export default function Media() {
   const handlePlay = async (item: MediaItem) => {
     setPlaying(item);
     setShowPlayer(true);
-    // 재생 횟수 백엔드에 기록 (비동기, 실패해도 무관)
     try {
       await api.post(`/media/${item.id}/play`);
-      // 목록 내 play_count 즉시 업데이트
       setMediaList(prev =>
         prev.map(m => m.id === item.id ? { ...m, play_count: m.play_count + 1 } : m)
       );
@@ -118,15 +110,16 @@ export default function Media() {
         setShowRequest(false);
         setReqForm({ title: '', url: '', content: '' });
       }
-    } catch (err: any) {
-      alert(err.response?.data?.message || '신청 실패. 다시 시도해주세요.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(error.response?.data?.message || '신청 실패. 다시 시도해주세요.');
     } finally {
       setReqSending(false);
     }
   };
 
-  // 타입 필터 버튼 목록
-  const typeFilters: { key: typeof activeType; label: string; icon: JSX.Element }[] = [
+  // ✅ 수정: JSX.Element → React.ReactElement
+  const typeFilters: { key: typeof activeType; label: string; icon: React.ReactElement }[] = [
     { key: 'all',     label: '전체',    icon: <Volume2 size={13} /> },
     { key: 'youtube', label: 'YouTube', icon: <Youtube size={13} /> },
     { key: 'podcast', label: '팟캐스트', icon: <Headphones size={13} /> },
@@ -147,7 +140,6 @@ export default function Media() {
 
       {/* 컨트롤 바 */}
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        {/* 타입 필터 */}
         <div className="flex gap-2">
           {typeFilters.map(f => (
             <button key={f.key} onClick={() => setActiveType(f.key)}
@@ -157,7 +149,6 @@ export default function Media() {
             </button>
           ))}
         </div>
-        {/* 검색 + 신청 버튼 */}
         <div className="flex gap-2 ml-auto">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -184,7 +175,6 @@ export default function Media() {
               className="group relative bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-2 transition-all duration-500 cursor-pointer"
               onClick={() => handlePlay(item)}>
 
-              {/* 배경 이미지 */}
               <div className="absolute inset-0">
                 <img
                   src={item.thumbnail || `https://images.unsplash.com/photo-1478737270239-2f02b77fc618?q=80&w=600`}
@@ -195,9 +185,7 @@ export default function Media() {
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/70 to-transparent" />
               </div>
 
-              {/* 콘텐츠 레이어 */}
               <div className="relative z-10 p-6 flex flex-col min-h-[280px]">
-                {/* 상단 배지들 */}
                 <div className="flex justify-between items-start mb-auto">
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 ${typeBg[item.type]} rounded-xl text-white text-[10px] font-black`}>
                     <TypeIcon type={item.type} size={12} />
@@ -216,7 +204,6 @@ export default function Media() {
                   </div>
                 </div>
 
-                {/* 하단 콘텐츠 정보 */}
                 <div className="mt-auto">
                   {item.artist && (
                     <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{item.artist}</p>
@@ -230,7 +217,6 @@ export default function Media() {
                 </div>
               </div>
 
-              {/* 재생 오버레이 버튼 */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
                 <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-300 shadow-2xl">
                   <PlayCircle size={34} className="text-white ml-0.5" />
@@ -253,7 +239,6 @@ export default function Media() {
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setShowPlayer(false)}>
           <div className="w-full max-w-4xl animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
-            {/* 플레이어 헤더 */}
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-xl ${typeBg[playing.type]} flex items-center justify-center`}>
@@ -265,7 +250,6 @@ export default function Media() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* 원본 링크로 열기 */}
                 <a href={playing.url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-white text-xs font-bold transition-colors" onClick={e => e.stopPropagation()}>
                   <ExternalLink size={12} /> 원본
@@ -276,7 +260,6 @@ export default function Media() {
               </div>
             </div>
 
-            {/* YouTube Embed 플레이어 */}
             {(playing.type === 'youtube' || playing.url.includes('youtube') || playing.url.includes('youtu.be')) ? (
               <div className="relative w-full rounded-[1.5rem] overflow-hidden shadow-2xl bg-black" style={{ aspectRatio: '16/9' }}>
                 <iframe
@@ -288,7 +271,6 @@ export default function Media() {
                 />
               </div>
             ) : (
-              // 팟캐스트 / 음악: 썸네일 + 외부 링크 안내
               <div className="bg-slate-800 rounded-[1.5rem] p-10 text-center shadow-2xl">
                 <img src={playing.thumbnail || 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?q=80&w=400'} alt={playing.title}
                   className="w-40 h-40 rounded-2xl object-cover mx-auto mb-6 shadow-xl" />
