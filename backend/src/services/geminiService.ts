@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getSystemSetting } from '../utils/settings.ts';
+import { getSystemSetting } from '../utils/settings.js';
 
 /**
  * Gemini API 연동 서비스

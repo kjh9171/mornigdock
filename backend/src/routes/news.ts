@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { query } from '../db/pool.ts';
-import { scrapeArticleContent } from '../services/newsService.ts';
-import { analyzeNewsWithGemini } from '../services/geminiService.ts';
-import { requireAuth, optionalAuth } from '../middleware/auth.ts';
+import { query } from '../db/pool.js';
+import { scrapeArticleContent } from '../services/newsService.js';
+import { analyzeNewsWithGemini } from '../services/geminiService.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const newsRoutes = new Hono();
 

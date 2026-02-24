@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { pool } from './db/pool.ts';
-import { analyzeNewsWithGemini } from './services/geminiService.ts';
+import { pool } from './db/pool.js';
+import { analyzeNewsWithGemini } from './services/geminiService.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
 

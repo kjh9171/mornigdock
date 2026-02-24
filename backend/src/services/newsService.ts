@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { query } from '../db/pool.ts';
-import { getSystemSetting } from '../utils/settings.ts';
+import { query } from '../db/pool.js';
+import { getSystemSetting } from '../utils/settings.js';
 
 /**
  * 뉴스 URL로부터 본문 내용을 정밀하게 크롤링합니다.
