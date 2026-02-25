@@ -17,7 +17,8 @@ import adminRoutes   from './routes/admin.js';
 import stocksRoutes  from './routes/stocks.js';
 import financeRoutes from './routes/finance.js';
 import postsRoutes   from './routes/posts.js';
-import rssRoutes     from './routes/rss.js';   // ✅ 추가
+import rssRoutes     from './routes/rss.js';
+import notificationsRoutes from './routes/notifications.js';
 
 const app = new Hono();
 const PORT = Number(process.env.PORT ?? 8787);
@@ -49,7 +50,8 @@ api.route('/admin',    adminRoutes);
 api.route('/stocks',   stocksRoutes);
 api.route('/finance', financeRoutes);
 api.route('/posts',    postsRoutes);
-api.route('/rss',      rssRoutes);   // ✅ 추가
+api.route('/rss',      rssRoutes);
+api.route('/notifications', notificationsRoutes);
 
 app.route('/api', api);
 

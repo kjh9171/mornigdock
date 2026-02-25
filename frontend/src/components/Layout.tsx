@@ -7,6 +7,7 @@ import {
   ArrowRight, Clock, Flame
 } from 'lucide-react';
 import React, { useState, useMemo, useEffect, useRef, createContext, useContext } from 'react';
+import { getNotificationsAPI } from '../lib/api';
 
 // ═══════════════════════════════════════════════════════════
 // 1. 언어 컨텍스트
@@ -43,22 +44,16 @@ function useLang() { return useContext(LangContext); }
 // 2. 알림 타입 & 목 데이터
 // ═══════════════════════════════════════════════════════════
 interface Notification {
-  id:    number;
+  id:    string | number;
   type:  'news' | 'finance' | 'system';
   title: string;
   body:  string;
-  time:  Date;
+  time:  Date | string;
   read:  boolean;
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: 1, type: 'finance', title: '금융 속보',     body: '코스피 장중 2,600선 돌파',          time: new Date(Date.now() - 3   * 60000), read: false },
-  { id: 2, type: 'news',    title: '뉴스 업데이트', body: '오늘의 주요 뉴스가 업데이트되었습니다', time: new Date(Date.now() - 15  * 60000), read: false },
-  { id: 3, type: 'system',  title: '시스템',        body: '새로운 미디어 콘텐츠가 등록되었습니다', time: new Date(Date.now() - 60  * 60000), read: true  },
-  { id: 4, type: 'finance', title: '환율 알림',     body: '달러/원 환율 1,340원대 진입',         time: new Date(Date.now() - 120 * 60000), read: true  },
-];
-
-function formatNotiTime(date: Date): string {
+function formatNotiTime(dateInput: Date | string): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const diff = Math.floor((Date.now() - date.getTime()) / 1000 / 60);
   if (diff < 1)    return '방금 전';
   if (diff < 60)   return diff + '분 전';
@@ -222,9 +217,26 @@ function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 // ═══════════════════════════════════════════════════════════
 function NotificationBell() {
   const [open, setOpen]   = useState(false);
-  const [items, setItems] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const [items, setItems] = useState<Notification[]>([]);
   const ref               = useRef<HTMLDivElement>(null);
   const unreadCount       = items.filter(function(n) { return !n.read; }).length;
+
+  // 데이터 로드
+  const loadNotifications = async () => {
+    try {
+      const res = await getNotificationsAPI();
+      if (res.success) setItems(res.data);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  useEffect(function() {
+    loadNotifications();
+    // 5분마다 갱신
+    const timer = setInterval(loadNotifications, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(function() {
     function handleClick(e: MouseEvent) {
@@ -238,7 +250,7 @@ function NotificationBell() {
     setItems(function(prev) { return prev.map(function(n) { return { ...n, read: true }; }); });
   }
 
-  function dismiss(id: number) {
+  function dismiss(id: string | number) {
     setItems(function(prev) { return prev.filter(function(n) { return n.id !== id; }); });
   }
 

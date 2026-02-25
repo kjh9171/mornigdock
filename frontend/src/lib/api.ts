@@ -66,5 +66,5 @@ api.interceptors.response.use(
 );
 
 // 재사용 가능한 API 호출 함수들 (추후 추가)
-// 예시:
-// export const getNewsAPI = async (params?: any) => (await api.get('/news', { params })).data;
+export const getNotificationsAPI = async () => (await api.get('/notifications')).data;
+export const getNewsAPI = async (params?: any) => (await api.get('/news', { params })).data;
