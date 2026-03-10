@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { useAuthStore } from './store/useAuthStore'; // AuthStore 전역 상태 임포트
 import Layout from './components/Layout';         // 공용 레이아웃 셸
 import Login from './pages/Login';
