@@ -1,22 +1,9 @@
 {
   "version": 2,
   "name": "mornigdock",
-  "builds": [
-    {
-      "src": "backend/src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["backend/src/**"]
-      }
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -24,7 +11,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "frontend/$1"
+      "destination": "frontend/dist/$1"
     }
   ],
   "crons": [
