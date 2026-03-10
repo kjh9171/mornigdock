@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { fetchLatestNews } from '../services/newsService.js';
 
 const news = new Hono();
 
@@ -99,6 +100,16 @@ function parseRSS(xml: string): NewsItem[] {
 
   return items;
 }
+
+// ── GET /api/news/fetch (크론 작업용) ──────────────────────
+news.get('/fetch', async (c) => {
+  try {
+    const count = await fetchLatestNews();
+    return c.json({ success: true, message: `첩보 수집 완료: ${count}건` });
+  } catch (err: any) {
+    return c.json({ success: false, message: '수집 실패', error: err.message }, 500);
+  }
+});
 
 // ── GET /api/news/categories ──────────────────────────────
 news.get('/categories', function(c) {

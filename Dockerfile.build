@@ -1,0 +1,20 @@
+# 🛠️ AGORA 빌드 사령부 전용 도커 이미지
+FROM node:20-slim
+
+# 보안 및 빌드 도구 설치
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Vercel CLI 전역 설치
+RUN npm install -g vercel@latest
+
+# 작업 디렉토리 설정
+WORKDIR /workspace
+
+# 빌드 환경 식별자
+ENV BUILD_ENV=docker-standard
+
+# 빌드 엔진 점화 대기
+CMD ["/bin/bash"]

@@ -70,11 +70,17 @@ cron.schedule('0 * * * *', async () => {
 
 // ── 서버 기동 ──
 async function bootstrap() {
-  console.log('[Boot] 기지 시스템 최적화 중...');
-  serve({ fetch: app.fetch, port: PORT }, () => {
-    console.log(`\n🏛️  AGORA Premium Backend Operational`);
-    console.log(`📡 Endpoint: http://localhost:${PORT}/api`);
-  });
+  // 로컬 환경이나 명시적 실행 환경에서만 서버를 기동합니다.
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    console.log('[Boot] 기지 시스템 최적화 중...');
+    serve({ fetch: app.fetch, port: PORT }, () => {
+      console.log(`\n🏛️  AGORA Premium Backend Operational`);
+      console.log(`📡 Endpoint: http://localhost:${PORT}/api`);
+    });
+  }
 }
+
+// Vercel 서버리스 환경을 위한 export
+export default app;
 
 bootstrap();
