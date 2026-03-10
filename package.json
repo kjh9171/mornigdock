@@ -11,9 +11,10 @@
   ],
   "scripts": {
     "build:frontend": "npm run build -w frontend",
-    "build:backend": "npm run build -w backend"
+    "build:backend": "npm run build -w backend",
+    "build:all": "npm run build:frontend && npm run build:backend"
   },
   "devDependencies": {
-    "wrangler": "^4.71.0"
+    "wrangler": "^3.109.2"
   }
 }
