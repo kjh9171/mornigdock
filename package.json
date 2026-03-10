@@ -12,5 +12,8 @@
   "scripts": {
     "build:frontend": "npm run build -w frontend",
     "build:backend": "npm run build -w backend"
+  },
+  "devDependencies": {
+    "wrangler": "^4.71.0"
   }
 }
