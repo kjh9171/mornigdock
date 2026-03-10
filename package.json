@@ -2,8 +2,8 @@
   "name": "mornigdock",
   "private": true,
   "engines": {
-    "node": "22.16.0",
-    "npm": "10.9.0"
+    "node": ">=22.16.0",
+    "npm": ">=10.9.0"
   },
   "scripts": {
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
