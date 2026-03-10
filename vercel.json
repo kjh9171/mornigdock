@@ -1,7 +1,8 @@
 {
   "version": 2,
   "name": "mornigdock",
-  "installCommand": "npm install",
+  "framework": "vite",
+  "installCommand": "npm install --include=dev",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
