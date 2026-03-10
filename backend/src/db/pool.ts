@@ -2,12 +2,8 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL 환경변수가 설정되지 않았습니다.');
-}
-
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || 'postgresql://placeholder:5432/db',
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -21,6 +17,9 @@ export async function query<T extends pg.QueryResultRow = any>(
   text: string,
   params?: (string | number | boolean | null | undefined)[]
 ): Promise<pg.QueryResult<T>> {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL 환경변수가 설정되지 않았습니다.');
+  }
   const start = Date.now();
   try {
     const result = await pool.query<T>(text, params);
