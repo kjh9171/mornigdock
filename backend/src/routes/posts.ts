@@ -63,7 +63,7 @@ postsRouter.get('/', optionalAuth(), async (c) => {
 
 // ─── GET /api/posts/:id (ID 파싱 보강) ───
 postsRouter.get('/:id', optionalAuth(), async (c) => {
-  const idStr = c.req.param('id')
+  const idStr = c.req.param('id') || '' // undefined 방지
   const id = parseInt(idStr)
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
@@ -94,7 +94,7 @@ postsRouter.get('/:id', optionalAuth(), async (c) => {
 
 // ─── POST /api/posts/:id/reaction (좋아요/싫어요) ───
 postsRouter.post('/:id/reaction', requireAuth(), async (c) => {
-  const idStr = c.req.param('id')
+  const idStr = c.req.param('id') || '' // undefined 방지
   const id = parseInt(idStr)
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
