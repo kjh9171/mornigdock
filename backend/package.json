@@ -7,6 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "deploy": "wrangler deploy",
+    "worker:dev": "wrangler dev",
     "fetch-news": "tsx -e \"import { fetchLatestNews } from './src/services/newsService.js'; (async () => { await fetchLatestNews(); process.exit(0); })();\"",
     "fetch-stocks": "tsx -e \"import { fetchStockService } from './src/stockService.js'; (async () => { await fetchStockService(); process.exit(0); })();\""
   },
@@ -25,6 +27,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cheerio": "^0.22.35",
     "@types/jsonwebtoken": "^9.0.5",

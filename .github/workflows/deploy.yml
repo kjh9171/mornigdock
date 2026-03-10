@@ -1,4 +1,4 @@
-name: AGORA Base Deployment (Vercel Serverless)
+name: AGORA Base Deployment (Cloudflare Workers & Pages)
 
 on:
   push:
@@ -14,31 +14,32 @@ jobs:
       - name: 🛰️ 기지 코드 보급 (Checkout)
         uses: actions/checkout@v4
 
-      - name: 🏗️ 빌드 사령부 도커 이미지 구축 (Build Environment)
-        run: |
-          docker build -t agora-build-env -f Dockerfile.build .
+      - name: 🏗️ Node.js 환경 구축
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-      - name: 🚀 서버리스 전력망 전개 (Vercel Prebuilt & Deploy)
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: 📦 의존성 설치 및 프론트엔드 빌드
         run: |
-          # 빌드 전용 컨테이너 내부에서 Vercel 빌드 및 배포 수행
-          docker run --rm \
-            -v $(pwd):/workspace \
-            -e VERCEL_TOKEN=$VERCEL_TOKEN \
-            -e VERCEL_ORG_ID=$VERCEL_ORG_ID \
-            -e VERCEL_PROJECT_ID=$VERCEL_PROJECT_ID \
-            agora-build-env \
-            /bin/bash -c "
-              # 기지 설정 동기화
-              vercel pull --yes --environment=production --token=\$VERCEL_TOKEN && \
-              # 서버리스 최적화 빌드
-              vercel build --prod --token=\$VERCEL_TOKEN && \
-              # 사전 빌드된 결과물로 초고속 배포
-              vercel deploy --prebuilt --prod --token=\$VERCEL_TOKEN
-            "
+          npm install
+          cd backend && npm install
+          cd ../frontend && npm install
+          # 프론트엔드 빌드 시 API URL 환경 변수 주입
+          VITE_API_URL=${{ secrets.VITE_API_URL }} npm run build
+
+      - name: 🚀 백엔드 전개 (Cloudflare Workers)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: 'backend'
+          command: deploy
+
+      - name: 🚀 프론트엔드 전개 (Cloudflare Pages)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: 'frontend'
+          command: pages deploy dist --project-name=mornigdock-frontend
 
       - name: 📋 배포 성공 보고
-        run: echo "필승! 아고라 기지 시스템이 Vercel 서버리스 환경에 성공적으로 전개되었습니다!"
+        run: echo "필승! 아고라 기지 시스템이 Cloudflare 전력망에 성공적으로 전개되었습니다!"

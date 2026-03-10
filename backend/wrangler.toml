@@ -1,0 +1,12 @@
+name = "agora-backend"
+main = "src/index.ts"
+compatibility_date = "2024-03-10"
+compatibility_flags = [ "nodejs_compat" ]
+
+# 주기적 데이터 수집 (매 시간 정각)
+[triggers]
+crons = [ "0 * * * *" ]
+
+[vars]
+# DATABASE_URL은 'wrangler secret put DATABASE_URL' 명령어로 별도로 등록해야 합니다.
+NODE_ENV = "production"
