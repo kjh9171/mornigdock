@@ -10,6 +10,7 @@
     "backend"
   ],
   "scripts": {
-    "build": "npm run build -w frontend"
+    "build:frontend": "npm run build -w frontend",
+    "build:backend": "npm run build -w backend"
   }
 }
