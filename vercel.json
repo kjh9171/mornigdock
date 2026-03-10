@@ -2,7 +2,7 @@
   "version": 2,
   "name": "mornigdock",
   "framework": "vite",
-  "installCommand": "npm install --include=dev",
+  "installCommand": "npm install --legacy-peer-deps --include=dev",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [

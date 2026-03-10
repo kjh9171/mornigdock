@@ -1,6 +1,11 @@
 {
   "name": "mornigdock-monorepo",
   "private": true,
+  "packageManager": "npm@10.9.0",
+  "engines": {
+    "node": ">=22.16.0",
+    "npm": ">=10.0.0"
+  },
   "workspaces": [
     "frontend",
     "backend"
@@ -10,5 +15,8 @@
     "build:frontend": "npm run build -w frontend",
     "build:backend": "npm run build -w backend",
     "build": "npm run build:frontend && npm run build:backend"
+  },
+  "overrides": {
+    "vite": "^7.3.1"
   }
 }
