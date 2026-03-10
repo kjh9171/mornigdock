@@ -34,8 +34,8 @@ postsRouter.get('/', optionalAuth(), async (c) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-    const countResult = await query(`SELECT COUNT(*) FROM posts p ${whereClause}`, params)
-    const total = parseInt(countResult.rows[0].count)
+    const countResult = await query(`SELECT COUNT(*) as count FROM posts p ${whereClause}`, params)
+    const total = parseInt(countResult.rows[0].count || '0')
 
     const dataParams = [...params, limit, offset]
     const result = await query(
@@ -63,7 +63,8 @@ postsRouter.get('/', optionalAuth(), async (c) => {
 
 // ─── GET /api/posts/:id (ID 파싱 보강) ───
 postsRouter.get('/:id', optionalAuth(), async (c) => {
-  const id = parseInt(c.req.param('id'))
+  const idStr = c.req.param('id')
+  const id = parseInt(idStr)
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
   try {
@@ -93,7 +94,8 @@ postsRouter.get('/:id', optionalAuth(), async (c) => {
 
 // ─── POST /api/posts/:id/reaction (좋아요/싫어요) ───
 postsRouter.post('/:id/reaction', requireAuth(), async (c) => {
-  const id = parseInt(c.req.param('id'))
+  const idStr = c.req.param('id')
+  const id = parseInt(idStr)
   if (isNaN(id)) return c.json({ success: false, message: 'Invalid ID' }, 400)
 
   const user = c.get('user') as any

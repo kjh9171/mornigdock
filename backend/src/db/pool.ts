@@ -17,7 +17,7 @@ pool.on('error', (err) => {
   console.error('[DB] 연결 오류:', err.message);
 });
 
-export async function query<T = any>(
+export async function query<T extends pg.QueryResultRow = any>(
   text: string,
   params?: (string | number | boolean | null | undefined)[]
 ): Promise<pg.QueryResult<T>> {
