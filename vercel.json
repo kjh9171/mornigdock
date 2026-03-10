@@ -2,7 +2,7 @@
   "version": 2,
   "name": "mornigdock",
   "framework": null,
-  "installCommand": "npm install --legacy-peer-deps --include=dev",
+  "installCommand": "npm run install:all",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
