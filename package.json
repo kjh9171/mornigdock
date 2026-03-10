@@ -10,6 +10,6 @@
     "backend"
   ],
   "scripts": {
-    "build": "cd frontend && vite build"
+    "build": "npm run build -w frontend"
   }
 }
