@@ -13,9 +13,18 @@
     "build:frontend": "npm run build -w frontend",
     "build:backend": "npm run build -w backend",
     "build:all": "npm run build:frontend && npm run build:backend",
-    "deploy": "(cd backend && npx wrangler deploy) && (cd frontend && npx wrangler pages deploy dist --project-name=mornigdock --commit-dirty=true)"
+    "deploy": "npm run build:all && cd backend && npx wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^3.109.2"
   }
 }
+```
+
+---
+
+### 방법 B 선택 시 최종 구조
+```
+https://mornigdock.gimjonghwan319.workers.dev/
+├── /api/*   → Hono 백엔드 API
+└── /*       → frontend/dist 정적 파일 (React SPA)

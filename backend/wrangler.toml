@@ -3,12 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2025-03-10"
 compatibility_flags = [ "nodejs_compat" ]
 
-# 빌드 타임에 WORKER를 상수 "true"로 고정
-# → esbuild가 node-cron 블록을 dead code로 제거
 [define]
 "process.env.WORKER" = '"true"'
 
-# 주기적 데이터 수집 (매 시간 정각)
 [triggers]
 crons = [ "0 * * * *" ]
 
@@ -16,8 +13,7 @@ crons = [ "0 * * * *" ]
 NODE_ENV = "production"
 WORKER = "true"
 
-# ✅ 프론트엔드 정적 파일 서빙 (빌드 후 frontend/dist 폴더)
-# /api/* 요청은 Worker가 처리하고, 나머지는 정적 파일로 서빙
+# ✅ 프론트엔드 정적 파일을 Worker가 직접 서빙
 [assets]
 directory = "../frontend/dist"
 binding = "ASSETS"
