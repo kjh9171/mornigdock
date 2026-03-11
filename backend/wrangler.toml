@@ -3,11 +3,16 @@ main = "src/index.ts"
 compatibility_date = "2025-03-10"
 compatibility_flags = [ "nodejs_compat" ]
 
+# ✅ 핵심 수정: 빌드 타임에 WORKER를 상수 "true"로 고정
+# → esbuild가 !process.env.WORKER 블록을 dead code로 판단하여
+#   node-cron import를 번들에서 완전 제거
+[define]
+"process.env.WORKER" = '"true"'
+
 # 주기적 데이터 수집 (매 시간 정각)
 [triggers]
 crons = [ "0 * * * *" ]
 
 [vars]
-# DATABASE_URL은 'wrangler secret put DATABASE_URL' 명령어로 별도로 등록해야 합니다.
 NODE_ENV = "production"
 WORKER = "true"
