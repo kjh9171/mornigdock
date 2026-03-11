@@ -27,9 +27,10 @@ import rssRoutes           from './routes/rss.js';
 import notificationsRoutes from './routes/notifications.js';
 
 // ── Env 타입 정의 ──
-// ✅ Fetcher를 any로 대체하여 workers-types 의존성 제거
 type Env = {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
+  DATABASE_URL: string;
+  JWT_SECRET: string;
   NODE_ENV: string;
   WORKER: string;
 };
@@ -52,7 +53,6 @@ const api = new Hono<{ Bindings: Env }>();
 
 api.get('/health', async (c) => {
   const dbOk = await checkDbConnection();
-  // ✅ Workers 환경에서 process.release가 정의될 수 있으므로 WORKER 변수로 판단
   const runtime = process.env.WORKER === 'true' ? 'worker' : 'node';
   return c.json({
     status: dbOk ? 'ok' : 'degraded',
@@ -103,7 +103,7 @@ app.get('*', async (c) => {
 });
 
 // ── 정기 데이터 수집 작업 ──
-async function handleScheduledTasks(): Promise<void> {
+async function handleScheduledTasks(env?: Env): Promise<void> {
   console.log('[Scheduler] 정기 데이터 수집 시작...');
   try {
     await fetchLatestNews();
@@ -114,13 +114,27 @@ async function handleScheduledTasks(): Promise<void> {
   }
 }
 
+// ✅ Cloudflare env 바인딩을 process.env에 주입하는 헬퍼
+function injectEnv(env: Env) {
+  if (env.DATABASE_URL) process.env.DATABASE_URL = env.DATABASE_URL;
+  if (env.JWT_SECRET)   process.env.JWT_SECRET   = env.JWT_SECRET;
+  if (env.NODE_ENV)     process.env.NODE_ENV     = env.NODE_ENV;
+  if (env.WORKER)       process.env.WORKER       = env.WORKER;
+}
+
 // ── 1. Cloudflare Workers 환경 (기본 export) ──
 export default {
-  fetch: app.fetch,
+  // ✅ fetch 핸들러에서 env 바인딩 → process.env 동기화
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    injectEnv(env);
+    return app.fetch(request, env, ctx);
+  },
 
-  async scheduled(event: any, env: any, ctx: any) {
+  // ✅ 스케줄러에서도 env 동기화
+  async scheduled(event: any, env: Env, ctx: ExecutionContext) {
+    injectEnv(env);
     console.log('[Worker] 스케줄러 트리거됨:', event.cron);
-    ctx.waitUntil(handleScheduledTasks());
+    ctx.waitUntil(handleScheduledTasks(env));
   },
 };
 
@@ -132,7 +146,7 @@ if (typeof process !== 'undefined' && process.env && !process.env.WORKER) {
     const { serve } = await import('@hono/node-server');
     const cron      = await import('node-cron');
 
-    cron.default.schedule('0 * * * *', handleScheduledTasks);
+    cron.default.schedule('0 * * * *', () => handleScheduledTasks());
 
     console.log('[Boot] 로컬 Node.js 환경에서 서버 가동 중...');
     serve({ fetch: app.fetch, port: PORT }, () => {
