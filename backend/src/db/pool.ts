@@ -11,6 +11,7 @@ export const pool = new Pool({
 
 });
 
+
 pool.on('error', (err) => {
   console.error('[DB] 연결 오류:', err.message);
 });
