@@ -26,9 +26,10 @@ import postsRoutes         from './routes/posts.js';
 import rssRoutes           from './routes/rss.js';
 import notificationsRoutes from './routes/notifications.js';
 
-// ── Env 타입 정의 (wrangler.toml [assets] binding) ──
+// ── Env 타입 정의 ──
+// ✅ Fetcher를 any로 대체하여 workers-types 의존성 제거
 type Env = {
-  ASSETS: Fetcher;
+  ASSETS: { fetch: (req: Request) => Promise<Response> };
   NODE_ENV: string;
   WORKER: string;
 };
@@ -75,20 +76,16 @@ app.route('/api', api);
 app.get('/health', (c) => c.redirect('/api/health'));
 
 // ✅ /api/* 외 모든 요청 → 정적 파일(프론트엔드) 서빙
-// SPA 라우팅을 위해 정적 파일이 없으면 index.html 반환
 app.get('*', async (c) => {
   const env = c.env as Env;
 
-  // ASSETS 바인딩이 없는 경우 (로컬 Node.js 환경)
   if (!env?.ASSETS) {
     return c.text('Frontend assets not available in local mode', 404);
   }
 
   try {
-    // 요청한 정적 파일 시도
     const response = await env.ASSETS.fetch(c.req.raw);
 
-    // 정적 파일이 없으면 (404) SPA용 index.html 반환
     if (response.status === 404) {
       const indexRequest = new Request(
         new URL('/index.html', c.req.url).toString(),
@@ -126,8 +123,6 @@ export default {
 };
 
 // ── 2. Node.js 로컬 환경 (개발 서버 기동) ──
-// wrangler.toml [define] "process.env.WORKER" = '"true"' 로 인해
-// Workers 빌드 시 esbuild가 이 블록 전체를 dead code로 제거합니다.
 if (typeof process !== 'undefined' && process.env && !process.env.WORKER) {
   const PORT = Number(process.env.PORT ?? 8787);
 
