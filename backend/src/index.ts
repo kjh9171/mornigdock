@@ -1,6 +1,4 @@
 // ── 환경 변수 설정 (Node.js 환경 전용) ──
-// wrangler.toml의 [define] 설정으로 빌드 시 process.env.WORKER = "true" 가 주입되어
-// 아래 블록은 Workers 번들에서 dead code로 완전 제거됩니다.
 if (typeof process !== 'undefined' && process.env && !process.env.WORKER) {
   try {
     await import('dotenv/config');
@@ -82,11 +80,9 @@ async function handleScheduledTasks(): Promise<void> {
 }
 
 // ── 1. Cloudflare Workers 환경 (기본 export) ──
-// wrangler.toml [define]으로 인해 Workers 빌드에는 이 블록만 남습니다.
 export default {
   fetch: app.fetch,
 
-  // wrangler.toml의 [triggers] crons 설정과 연동
   async scheduled(event: any, env: any, ctx: any) {
     console.log('[Worker] 스케줄러 트리거됨:', event.cron);
     ctx.waitUntil(handleScheduledTasks());
@@ -94,9 +90,8 @@ export default {
 };
 
 // ── 2. Node.js 로컬 환경 (개발 서버 기동) ──
-// [define] "process.env.WORKER" = '"true"' 주입으로 인해
+// wrangler.toml [define] "process.env.WORKER" = '"true"' 로 인해
 // Workers 빌드 시 esbuild가 이 블록 전체를 dead code로 제거합니다.
-// → node-cron이 번들에 포함되지 않아 __dirname 에러가 사라집니다.
 if (typeof process !== 'undefined' && process.env && !process.env.WORKER) {
   const PORT = Number(process.env.PORT ?? 8787);
 
@@ -104,28 +99,13 @@ if (typeof process !== 'undefined' && process.env && !process.env.WORKER) {
     const { serve } = await import('@hono/node-server');
     const cron      = await import('node-cron');
 
-    // 매 시간 정각 실행 (로컬 개발 환경 전용)
     cron.default.schedule('0 * * * *', handleScheduledTasks);
 
     console.log('[Boot] 로컬 Node.js 환경에서 서버 가동 중...');
     serve({ fetch: app.fetch, port: PORT }, () => {
-      console.log(`\n🏛️  AGORA Premium Backend Operational`);
-      console.log(`📡 Endpoint: http://localhost:${PORT}/api`);
-      console.log(`⏰ Cron: 매 시간 정각 자동 실행`);
+      console.log('[Boot] AGORA Backend Operational');
+      console.log('[Boot] Endpoint: http://localhost:' + PORT + '/api');
+      console.log('[Boot] Cron: 매 시간 정각 자동 실행');
     });
   }
 }
-```
-
----
-
-## 🧠 동작 원리
-```
-[define] "process.env.WORKER" = '"true"' 주입
-            ↓
-esbuild 번들링 시:
-  if (!process.env.WORKER)  →  if (!"true")  →  if (false)
-            ↓
-dead code elimination → node-cron 블록 번들에서 완전 제거
-            ↓
-✅ __dirname 에러 없음
