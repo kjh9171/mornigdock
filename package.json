@@ -13,7 +13,7 @@
     "build:frontend": "npm run build -w frontend",
     "build:backend": "npm run build -w backend",
     "build:all": "npm run build:frontend && npm run build:backend",
-    "deploy": "(cd backend && npx wrangler deploy) && (cd frontend && npx wrangler pages deploy dist --project-name=mornigdock-ui)"
+    "deploy": "(cd backend && npx wrangler deploy) && (cd frontend && npx wrangler pages deploy dist --project-name=mornigdock --commit-dirty=true)"
   },
   "devDependencies": {
     "wrangler": "^3.109.2"
