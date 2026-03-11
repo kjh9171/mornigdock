@@ -4,9 +4,11 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://placeholder:5432/db',
-  max: 20,
+  max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
+  ssl: process.env.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false,
+
 });
 
 pool.on('error', (err) => {
