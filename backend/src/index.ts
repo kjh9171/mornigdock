@@ -52,10 +52,12 @@ const api = new Hono<{ Bindings: Env }>();
 
 api.get('/health', async (c) => {
   const dbOk = await checkDbConnection();
+  // ✅ Workers 환경에서 process.release가 정의될 수 있으므로 WORKER 변수로 판단
+  const runtime = process.env.WORKER === 'true' ? 'worker' : 'node';
   return c.json({
     status: dbOk ? 'ok' : 'degraded',
     db: dbOk,
-    runtime: typeof process !== 'undefined' && process.release ? 'node' : 'worker',
+    runtime,
   });
 });
 

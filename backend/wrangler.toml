@@ -13,7 +13,6 @@ crons = [ "0 * * * *" ]
 NODE_ENV = "production"
 WORKER = "true"
 
-# ✅ 프론트엔드 정적 파일을 Worker가 직접 서빙
 [assets]
 directory = "../frontend/dist"
 binding = "ASSETS"
