@@ -1,94 +1,159 @@
-# 🏛️ Agora v2.0 - Intelligence & News Hub
-
----
+# Mornigdock (Agora v2.0) - Intelligence & News Hub
 
 ## 📁 Project Overview
 
-Mornigdock (Agora v2.0)은 최신 뉴스 수집, AI 기반 분석, 그리고 커뮤니티 토론이 기가 막히게 결합된 지능형 플랫폼입니다.
-CERT 보안 총괄이 직접 설계한 OTP 및 JWT Refresh Token Rotation(RTR) 기술이 적용되어 철통 보안을 자랑합니다!
+Mornigdock (Agora v2.0)은 최신 뉴스 수집, AI 기반 분석, 그리고 커뮤니티 토론이 결합된 지능형 플랫폼입니다.
+OTP 2단계 인증 및 JWT Refresh Token Rotation(RTR) 기술이 적용된 보안 플랫폼입니다.
 
-### 🚀 Key Features (v2.0 고도화)
+### Key Features (v2.0)
 
-- 🔐 보안: OTP 2단계 인증, JWT Refresh Token Rotation (RTR), 실시간 계정 차단 검증.
-- 📰 뉴스: NewsAPI 연동 자동 수집(Cron), 카테고리별 에러 격리, API 키 부재 시 Mock 데이터 생성.
-- 💬 댓글: 계층형 트리 구조(Hierarchical) 댓글 시스템, Soft Delete를 통한 트리 무결성 유지.
-- 📺 미디어: 유튜브, 팟캐스트, 음악 등 멀티미디어 큐레이션 및 관리자 전용 관리 패널.
-- 🛡️ 관리자: 시스템 설정 제어(AI 활성/비활성, 수집 주기), 사용자 차단 및 역할 부여 대시보드.
-- 🐋 배포: Docker Compose 기반의 서버리스 환경, Nginx Multi-stage 빌드 및 SPA 라우팅 최적화.
-
----
-
-## 🛠️ Tech Stack
-
-- Backend: Hono (Node.js/Bun compatible), PostgreSQL (pg), JWT, OTP (otplib).
-- Frontend: React (Vite), Zustand (State Management), Axios (with Retry Queue Interceptors), TailwindCSS.
-- Infrastructure: Docker, Docker Compose, Nginx, Cloudflare Tunnel (optional).
+- **보안**: OTP 2단계 인증, JWT Refresh Token Rotation (RTR), 실시간 계정 차단 검증
+- **뉴스**: NewsAPI 연동 자동 수집 (Cron), 카테고리별 에러 격리, API 키 부재 시 Mock 데이터 생성
+- **댓글**: 계층형 트리 구조 댓글 시스템, Soft Delete를 통한 트리 무결성 유지
+- **미디어**: YouTube, 팟캐스트, 음악 등 멀티미디어 큐레이션 및 관리자 전용 관리 패널
+- **관리자**: 시스템 설정 제어 (AI 활성/비활성, 수집 주기), 사용자 차단 및 역할 부여 대시보드
+- **배포**: Cloudflare Workers 기반 서버리스 단일 배포 (프론트엔드 + 백엔드 통합)
 
 ---
 
-## 🏁 Quick Start
+## Tech Stack
 
-### 1. 환경 변수 설정
+| 구분               | 기술                                              |
+| ------------------ | ------------------------------------------------- |
+| **Backend**        | Hono, Node.js, PostgreSQL (pg), JWT, OTP (otplib) |
+| **Frontend**       | React (Vite), Zustand, Axios, TailwindCSS         |
+| **Database**       | Neon (Serverless PostgreSQL)                      |
+| **Infrastructure** | Cloudflare Workers, Cloudflare Assets             |
+| **CI/CD**          | Cloudflare Pages CI (GitHub 연동)                 |
 
-.env.example 파일을 복사하여 .env 파일을 생성합니다.
+---
 
-```bash
-cp .env.example .env
+## Project Structure
+
+```
+mornigdock/
+├── backend/
+│   ├── src/
+│   │   ├── db/
+│   │   │   └── pool.ts          # PostgreSQL 연결 풀
+│   │   ├── middleware/
+│   │   │   └── auth.ts          # JWT 인증 미들웨어
+│   │   ├── routes/
+│   │   │   ├── auth.ts          # 인증 API
+│   │   │   ├── news.ts          # 뉴스 API
+│   │   │   ├── posts.ts         # 게시글 API
+│   │   │   ├── comments.ts      # 댓글 API
+│   │   │   ├── admin.ts         # 관리자 API
+│   │   │   ├── media.ts         # 미디어 API
+│   │   │   ├── stocks.ts        # 주식 API
+│   │   │   ├── finance.ts       # 금융 API
+│   │   │   ├── rss.ts           # RSS API
+│   │   │   └── notifications.ts # 알림 API
+│   │   ├── services/
+│   │   │   ├── newsService.ts   # 뉴스 수집 서비스
+│   │   │   └── geminiService.ts # AI 분석 서비스
+│   │   ├── utils/
+│   │   │   ├── settings.ts      # 시스템 설정
+│   │   │   └── logger.ts        # 로거
+│   │   ├── stockService.ts      # 주식 데이터 수집
+│   │   └── index.ts             # 진입점
+│   ├── scripts/
+│   │   └── reset_data.ts        # 데이터 초기화 스크립트
+│   ├── wrangler.toml            # Cloudflare Workers 설정
+│   ├── tsconfig.json
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── vite.config.ts
+│   └── package.json
+├── schema.sql                   # DB 스키마 (Neon 초기화용)
+├── package.json                 # 루트 (npm workspaces)
+└── README.md
 ```
 
-필수 설정 항목:
+---
 
-- JWT_SECRET, JWT_REFRESH_SECRET: 강력한 비밀번호로 변경 권장.
-- DATABASE_URL: postgresql://agora:agora_secret_2024@db:5432/agora_db (기본값).
-- NEWS_API_KEY: NewsAPI.org에서 발급받은 키 (없으면 Mock 데이터로 동작).
+## Quick Start (로컬 개발)
 
-### 2. 서비스 실행 (Docker)
+### 1. 저장소 클론
 
 ```bash
-# 일반 모드 실행
-docker-compose up -d --build
-
-# Cloudflare Tunnel 포함 실행
-docker-compose --profile cloudflare up -d --build
+git clone https://github.com/kjh9171/mornigdock.git
+cd mornigdock
 ```
 
-### 3. 초기 접속 정보
+### 2. 의존성 설치
 
-- 프론트엔드: http://localhost (80 포트)
-- API 서버: http://localhost:8787
-- 관리자 계정: admin@agora.com / Admin@1234! (로그인 후 즉시 비밀번호 변경 권장)
+```bash
+npm install
+```
+
+### 3. 환경 변수 설정
+
+`backend/.env` 파일 생성:
+
+```env
+DATABASE_URL=postgresql://유저명:비밀번호@호스트/DB명?sslmode=require
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_refresh_secret_here
+PORT=8787
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+```
+
+### 4. 데이터베이스 초기화
+
+```bash
+psql "postgresql://유저명:비밀번호@호스트/DB명?sslmode=require" -f schema.sql
+```
+
+### 5. 로컬 서버 실행
+
+```bash
+# 백엔드 개발 서버
+cd backend && npm run dev
+
+# 프론트엔드 개발 서버 (별도 터미널)
+cd frontend && npm run dev
+```
 
 ---
 
-## 📡 API Specification (Brief)
+## Cloudflare Workers 배포
 
-모든 API 응답은 { success: boolean, data: object, message?: string } 형식을 따릅니다.
+### 배포 구조
 
-| Endpoint             | Method | Role   | Description                          |
-| -------------------- | ------ | ------ | ------------------------------------ |
-| /api/auth/register   | POST   | Public | 회원가입 및 OTP Secret 발급          |
-| /api/auth/login      | POST   | Public | 로그인 (OTP 활성화 시 otpCode 필수)  |
-| /api/auth/refresh    | POST   | Public | Access Token 갱신 (Refresh Rotation) |
-| /api/news            | GET    | Public | 뉴스 목록 (카테고리, 검색 지원)      |
-| /api/comments        | POST   | User   | 댓글 및 답글 작성 (parentId 지원)    |
-| /api/admin/dashboard | GET    | Admin  | 시스템 통계 및 최근 접속 로그        |
+```
+https://mornigdock.gimjonghwan319.workers.dev/
+├── /api/*   → Hono 백엔드 API (Cloudflare Worker)
+└── /*       → React SPA 정적 파일 (Cloudflare Assets)
+```
 
----
+### 초기 설정 (최초 1회)
 
-## 🛡️ Security Policy
+#### 1. Cloudflare Secret 등록
 
-1. 모든 인증 요청은 미들웨어에서 DB를 실시간 조회하여 차단 여부를 검증합니다.
-2. 비밀번호 변경 시 해당 사용자의 모든 Refresh Token을 즉시 삭제하여 강제 로그아웃 시킵니다.
-3. Access Token 만료 시 프론트엔드 Axios 인터셉터가 자동으로 갱신을 시도하며, 진행 중인 요청들은 큐잉(Queueing) 처리됩니다.
+```bash
+cd backend
 
----
+# DB 연결 문자열 등록
+npx wrangler secret put DATABASE_URL
 
-## 🏗️ Deployment
+# JWT 시크릿 등록
+npx wrangler secret put JWT_SECRET
 
-Nginx를 활용한 SPA 최적화 설정이 적용되어 있으며, try_files 구문을 통해 React Router의 새로고침 이슈를 기가 막히게 해결했습니다.
-Docker Compose의 healthcheck 설정을 통해 DB 부팅 완료 후 백엔드가 시작되도록 설계되었습니다.
+# Secret 등록 확인
+npx wrangler secret list
+```
 
-## Cloudflare 대시보드 설정
+#### 2. DB 스키마 적용 (Neon)
+
+```bash
+psql "postgresql://유저명:비밀번호@호스트/DB명?sslmode=require" -f schema.sql
+```
+
+### Cloudflare 대시보드 설정
 
 **Workers & Pages → mornigdock → Settings → Build & deployments**
 
@@ -98,15 +163,163 @@ Docker Compose의 healthcheck 설정을 통해 DB 부팅 완료 후 백엔드가
 | **배포 명령**     | `cd backend && npx wrangler deploy` |
 | **루트 디렉토리** | `/` (비워두기)                      |
 
+### 수동 배포
+
+```bash
+# 전체 빌드 + 배포
+npm run build:all
+cd backend && npx wrangler deploy
+```
+
+### `wrangler.toml` 주요 설정
+
+```toml
+name = "mornigdock"
+main = "src/index.ts"
+compatibility_date = "2025-03-10"
+compatibility_flags = [ "nodejs_compat" ]
+
+[define]
+"process.env.WORKER" = '"true"'
+
+[triggers]
+crons = [ "0 * * * *" ]   # 매 시간 정각 자동 데이터 수집
+
+[vars]
+NODE_ENV = "production"
+WORKER = "true"
+
+[assets]
+directory = "../frontend/dist"
+binding = "ASSETS"
+```
+
 ---
 
-방법 B는 Pages 배포가 없어지고 Worker 배포 하나로 끝나기 때문에 배포 명령이 매우 단순해집니다.
+## API Specification
 
-`frontend/dist`는 `wrangler.toml`의 `[assets]` 설정으로 Worker가 자동으로 포함해서 함께 업로드합니다.
+모든 API 응답 형식: `{ success: boolean, data?: object, message?: string }`
+
+### 인증 (Auth)
+
+| Endpoint               | Method | Role   | Description                          |
+| ---------------------- | ------ | ------ | ------------------------------------ |
+| `/api/auth/register`   | POST   | Public | 회원가입 및 OTP Secret 발급          |
+| `/api/auth/login`      | POST   | Public | 로그인 (OTP 활성화 시 otpCode 필수)  |
+| `/api/auth/refresh`    | POST   | Public | Access Token 갱신 (Refresh Rotation) |
+| `/api/auth/me`         | GET    | User   | 내 정보 조회                         |
+| `/api/auth/otp/enable` | POST   | User   | OTP 2단계 인증 활성화                |
+
+### 뉴스 (News)
+
+| Endpoint        | Method | Role   | Description                     |
+| --------------- | ------ | ------ | ------------------------------- |
+| `/api/news`     | GET    | Public | 뉴스 목록 (카테고리, 검색 지원) |
+| `/api/news/:id` | GET    | Public | 뉴스 상세 조회                  |
+
+### 게시글 (Posts)
+
+| Endpoint                  | Method | Role   | Description                                |
+| ------------------------- | ------ | ------ | ------------------------------------------ |
+| `/api/posts`              | GET    | Public | 게시글 목록 (타입, 카테고리, 검색, 페이징) |
+| `/api/posts`              | POST   | User   | 게시글 작성                                |
+| `/api/posts/:id`          | GET    | Public | 게시글 상세 조회                           |
+| `/api/posts/:id/reaction` | POST   | User   | 좋아요/싫어요                              |
+
+### 댓글 (Comments)
+
+| Endpoint            | Method | Role   | Description                    |
+| ------------------- | ------ | ------ | ------------------------------ |
+| `/api/comments`     | GET    | Public | 댓글 목록 (newsId 또는 postId) |
+| `/api/comments`     | POST   | User   | 댓글/답글 작성 (parentId 지원) |
+| `/api/comments/:id` | PUT    | User   | 댓글 수정                      |
+| `/api/comments/:id` | DELETE | User   | 댓글 삭제 (Soft Delete)        |
+
+### 관리자 (Admin)
+
+| Endpoint                     | Method | Role    | Description                   |
+| ---------------------------- | ------ | ------- | ----------------------------- |
+| `/api/admin/dashboard`       | GET    | Admin   | 시스템 통계 및 최근 접속 로그 |
+| `/api/admin/users`           | GET    | Admin   | 전체 사용자 목록              |
+| `/api/admin/users`           | POST   | Admin   | 사용자 추가                   |
+| `/api/admin/users/:id`       | PUT    | Admin   | 사용자 정보/권한 수정         |
+| `/api/admin/users/:id`       | DELETE | Admin   | 사용자 삭제                   |
+| `/api/admin/users/:id/block` | PUT    | Admin   | 계정 차단/해제                |
+| `/api/admin/media`           | GET    | Admin   | 미디어 목록                   |
+| `/api/admin/media`           | POST   | Admin   | 미디어 추가                   |
+| `/api/admin/media/:id`       | PUT    | Editor+ | 미디어 수정                   |
+| `/api/admin/media/:id`       | DELETE | Editor+ | 미디어 삭제                   |
+| `/api/admin/settings`        | GET    | Admin   | 시스템 설정 조회              |
+| `/api/admin/settings`        | PUT    | Admin   | 시스템 설정 변경              |
+| `/api/admin/news`            | GET    | Admin   | 뉴스 관리 목록                |
+| `/api/admin/posts`           | GET    | Admin   | 게시글 관리 목록              |
+| `/api/admin/posts/:id`       | DELETE | Admin   | 게시글 삭제                   |
+| `/api/admin/inquiries`       | GET    | Admin   | 문의글 목록                   |
+| `/api/admin/inquiries/:id`   | PUT    | Admin   | 문의 상태 변경                |
+
+### 헬스체크
+
+| Endpoint      | Method | Description       |
+| ------------- | ------ | ----------------- |
+| `/api/health` | GET    | DB 연결 상태 확인 |
 
 ---
 
-## 🤝 Contribution
+## Database Schema (Neon PostgreSQL)
 
-안티그래비티 개발총괄 'CERT'
-Copyright (c) 2026 Antigravity. All rights reserved.
+| 테이블            | 설명                          |
+| ----------------- | ----------------------------- |
+| `users`           | 사용자 (OTP, 역할, 차단 여부) |
+| `refresh_tokens`  | JWT Refresh Token             |
+| `news`            | 수집된 뉴스                   |
+| `posts`           | 커뮤니티 게시글               |
+| `comments`        | 계층형 댓글                   |
+| `reactions`       | 좋아요/싫어요                 |
+| `media`           | YouTube/팟캐스트/음악         |
+| `inquiries`       | 문의글                        |
+| `access_logs`     | 접속 로그                     |
+| `system_settings` | 시스템 설정                   |
+| `stocks`          | 주식/금융 데이터              |
+| `notifications`   | 사용자 알림                   |
+
+---
+
+## Security Policy
+
+1. 모든 인증 요청은 미들웨어에서 DB를 실시간 조회하여 차단 여부를 검증합니다.
+2. 비밀번호 변경 시 해당 사용자의 모든 Refresh Token을 즉시 삭제하여 강제 로그아웃시킵니다.
+3. Access Token 만료 시 프론트엔드 Axios 인터셉터가 자동으로 갱신을 시도하며, 진행 중인 요청들은 큐잉(Queueing) 처리됩니다.
+4. OTP 2단계 인증으로 계정 탈취를 방지합니다.
+
+---
+
+## npm Scripts
+
+```bash
+# 루트
+npm run build:all        # 프론트엔드 + 백엔드 전체 빌드
+npm run build:frontend   # 프론트엔드만 빌드
+npm run build:backend    # 백엔드만 빌드 (tsc)
+
+# 백엔드 (cd backend)
+npm run dev              # 로컬 개발 서버 (tsx watch)
+npm run deploy           # Cloudflare Workers 배포
+npm run worker:dev       # Wrangler 로컬 개발 서버
+npm run fetch-news       # 뉴스 수동 수집
+npm run fetch-stocks     # 주식 데이터 수동 수집
+```
+
+---
+
+## Live URL
+
+| 서비스         | URL                                                      |
+| -------------- | -------------------------------------------------------- |
+| **서비스**     | https://mornigdock.gimjonghwan319.workers.dev            |
+| **API Health** | https://mornigdock.gimjonghwan319.workers.dev/api/health |
+
+---
+
+## Contribution
+
+Copyright (c) 2026 CERT. All rights reserved.
