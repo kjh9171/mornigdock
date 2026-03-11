@@ -26,7 +26,14 @@ import postsRoutes         from './routes/posts.js';
 import rssRoutes           from './routes/rss.js';
 import notificationsRoutes from './routes/notifications.js';
 
-const app = new Hono();
+// ── Env 타입 정의 (wrangler.toml [assets] binding) ──
+type Env = {
+  ASSETS: Fetcher;
+  NODE_ENV: string;
+  WORKER: string;
+};
+
+const app = new Hono<{ Bindings: Env }>();
 
 // ── 미들웨어 설정 ──
 app.use('*', logger());
@@ -40,7 +47,7 @@ app.use('*', cors({
 }));
 
 // ── API 라우트 등록 ──
-const api = new Hono();
+const api = new Hono<{ Bindings: Env }>();
 
 api.get('/health', async (c) => {
   const dbOk = await checkDbConnection();
@@ -66,6 +73,35 @@ app.route('/api', api);
 
 // 하위 호환성을 위한 루트 헬스체크 리다이렉트
 app.get('/health', (c) => c.redirect('/api/health'));
+
+// ✅ /api/* 외 모든 요청 → 정적 파일(프론트엔드) 서빙
+// SPA 라우팅을 위해 정적 파일이 없으면 index.html 반환
+app.get('*', async (c) => {
+  const env = c.env as Env;
+
+  // ASSETS 바인딩이 없는 경우 (로컬 Node.js 환경)
+  if (!env?.ASSETS) {
+    return c.text('Frontend assets not available in local mode', 404);
+  }
+
+  try {
+    // 요청한 정적 파일 시도
+    const response = await env.ASSETS.fetch(c.req.raw);
+
+    // 정적 파일이 없으면 (404) SPA용 index.html 반환
+    if (response.status === 404) {
+      const indexRequest = new Request(
+        new URL('/index.html', c.req.url).toString(),
+        c.req.raw
+      );
+      return env.ASSETS.fetch(indexRequest);
+    }
+
+    return response;
+  } catch {
+    return c.text('Not Found', 404);
+  }
+});
 
 // ── 정기 데이터 수집 작업 ──
 async function handleScheduledTasks(): Promise<void> {
