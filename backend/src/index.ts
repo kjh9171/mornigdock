@@ -103,7 +103,7 @@ app.get('*', async (c) => {
 });
 
 // ── 정기 데이터 수집 작업 ──
-async function handleScheduledTasks(env?: Env): Promise<void> {
+async function handleScheduledTasks(): Promise<void> {
   console.log('[Scheduler] 정기 데이터 수집 시작...');
   try {
     await fetchLatestNews();
@@ -124,17 +124,15 @@ function injectEnv(env: Env) {
 
 // ── 1. Cloudflare Workers 환경 (기본 export) ──
 export default {
-  // ✅ fetch 핸들러에서 env 바인딩 → process.env 동기화
-  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  async fetch(request: Request, env: Env, ctx: any) {
     injectEnv(env);
     return app.fetch(request, env, ctx);
   },
 
-  // ✅ 스케줄러에서도 env 동기화
-  async scheduled(event: any, env: Env, ctx: ExecutionContext) {
+  async scheduled(event: any, env: Env, ctx: any) {
     injectEnv(env);
     console.log('[Worker] 스케줄러 트리거됨:', event.cron);
-    ctx.waitUntil(handleScheduledTasks(env));
+    ctx.waitUntil(handleScheduledTasks());
   },
 };
 
