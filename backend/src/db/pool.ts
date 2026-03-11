@@ -1,64 +1,68 @@
-import pg from 'pg';
+import { neon, neonConfig } from '@neondatabase/serverless';
 
-const { Pool } = pg;
+// Cloudflare Workers 환경에서 WebSocket 사용
+neonConfig.fetchConnectionCache = true;
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://placeholder:5432/db',
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  ssl: process.env.DATABASE_URL?.includes('neon.tech') ? { rejectUnauthorized: false } : false,
+const connectionString = process.env.DATABASE_URL || '';
 
-});
+// Neon 서버리스 SQL 클라이언트
+const sql = neon(connectionString);
 
-
-pool.on('error', (err) => {
-  console.error('[DB] 연결 오류:', err.message);
-});
-
-export async function query<T extends pg.QueryResultRow = any>(
+// 기존 코드와 호환되는 query 함수
+export async function query<T extends Record<string, any> = any>(
   text: string,
   params?: (string | number | boolean | null | undefined)[]
-): Promise<pg.QueryResult<T>> {
+): Promise<{ rows: T[]; rowCount: number }> {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL 환경변수가 설정되지 않았습니다.');
   }
-  const start = Date.now();
   try {
-    const result = await pool.query<T>(text, params);
-    const duration = Date.now() - start;
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[DB] ${duration}ms | ${text.slice(0, 80)}`);
-    }
-    return result;
+    const rows = await sql(text, params) as T[];
+    return { rows, rowCount: rows.length };
   } catch (err: any) {
     console.error('[DB] Query 오류:', err.message, '\nSQL:', text);
     throw err;
   }
 }
 
+// transaction 함수 (간소화 — Neon 서버리스는 연결 풀 불필요)
 export async function transaction<T>(
-  fn: (client: pg.PoolClient) => Promise<T>
+  fn: (client: any) => Promise<T>
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = {
+    query: async (text: string, params?: any[]) => {
+      const rows = await sql(text, params);
+      return { rows, rowCount: rows.length };
+    },
+    release: () => {},
+  };
   try {
-    await client.query('BEGIN');
+    await sql('BEGIN');
     const result = await fn(client);
-    await client.query('COMMIT');
+    await sql('COMMIT');
     return result;
   } catch (err) {
-    await client.query('ROLLBACK');
+    await sql('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 }
 
 export async function checkDbConnection(): Promise<boolean> {
+  if (!process.env.DATABASE_URL) return false;
   try {
-    await pool.query('SELECT 1');
+    await sql('SELECT 1');
     return true;
-  } catch {
+  } catch (err: any) {
+    console.error('[DB] Health check 실패:', err.message);
     return false;
   }
 }
+
+// pool export (하위 호환성)
+export const pool = {
+  query: async (text: string, params?: any[]) => {
+    const rows = await sql(text, params);
+    return { rows, rowCount: rows.length };
+  },
+  end: async () => {},
+};
