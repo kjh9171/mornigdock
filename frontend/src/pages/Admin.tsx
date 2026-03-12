@@ -135,6 +135,25 @@ export default function Admin() {
     }
   };
 
+  // ── DB 마이그레이션 실행 ──────────────────────────────────
+  const handleMigrate = async () => {
+    if (!confirm('데이터베이스 스키마를 동기화하시겠습니까?\n이 작업은 테이블 구조를 직접 변경합니다.')) return;
+    setLoading(true);
+    try {
+      const res = await api.post('/admin/system/migrate');
+      if (res.data.success) {
+        showToast(res.data.message);
+        fetchData();
+      } else {
+        showToast(res.data.message, 'err');
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || '동기화 실패', 'err');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => { fetchData(); }, [isAuthenticated, user, activeTab]);
 
   if (!isAuthenticated || user?.role !== 'admin') {
@@ -358,6 +377,25 @@ export default function Admin() {
                     <p><span className="text-slate-500">[{new Date().toISOString().slice(0, 19).replace('T', ' ')}]</span> <span className="text-emerald-400">INFO</span> - System initialized. Awaiting logs...</p>
                   )}
                   <p className="mt-3"><span className="animate-pulse inline-block w-2 h-4 bg-emerald-400" /></p>
+                </div>
+              </div>
+
+              {/* ── 시스템 관리 섹션 추가 ────────────────────────── */}
+              <div className="mt-8 p-8 bg-white rounded-[2rem] border border-slate-100 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                      <Database size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-800">데이터베이스 시스템 점검</h3>
+                      <p className="text-xs font-bold text-slate-400">상용 환경(Neon DB)과의 스키마 불일치를 해결합니다.</p>
+                    </div>
+                  </div>
+                  <button onClick={handleMigrate}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2">
+                    <Activity size={14} /> DB 스키마 동기화 실행
+                  </button>
                 </div>
               </div>
             </>

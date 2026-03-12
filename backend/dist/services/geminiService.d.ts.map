@@ -1,0 +1,1 @@
+{"version":3,"file":"geminiService.d.ts","sourceRoot":"","sources":["../../src/services/geminiService.ts"],"names":[],"mappings":"AASA,UAAU,oBAAoB;IAC5B,OAAO,EAAE,MAAM,CAAC;IAChB,MAAM,EAAE,MAAM,CAAC;IACf,MAAM,EAAE,MAAM,CAAC;CAChB;AAED;;GAEG;AACH,wBAAsB,qBAAqB,CAAC,KAAK,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,GAAG,OAAO,CAAC,oBAAoB,CAAC,CAgEzG"}

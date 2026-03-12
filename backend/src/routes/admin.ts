@@ -367,11 +367,21 @@ admin.get('/posts', adminOnly, async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
-// ─── DELETE /admin/posts/:id - 게시글 삭제 ───────────────────────────────
-admin.delete('/posts/:id', adminOnly, async (c) => {
-  const id = Number(c.req.param('id'));
-  await query('DELETE FROM posts WHERE id = $1', [id]);
-  return c.json({ success: true, message: '게시글이 삭제되었습니다.' });
+// ─── POST /admin/system/migrate - DB 스키마 긴급 동기화 ─────────────────
+admin.post('/system/migrate', adminOnly, async (c) => {
+  try {
+    // 1. media 테이블 play_count 추가
+    await query('ALTER TABLE media ADD COLUMN IF NOT EXISTS play_count INTEGER NOT NULL DEFAULT 0');
+    // 2. inquiries 테이블 type 추가
+    await query('ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS type VARCHAR(50) NOT NULL DEFAULT \'general\'');
+    // 3. inquiries 테이블 status 제약조건 확인 (rejected 추가 등)
+    // 기존 체크 제약조건 때문에 ERROR가 날 수 있으므로 컬럼 추가 위주로 진행
+    
+    return c.json({ success: true, message: '데이터베이스 스키마 동기화가 완료되었습니다.' });
+  } catch (err: any) {
+    console.error('[Migration] Failed:', err.message);
+    return c.json({ success: false, message: `동기화 실패: ${err.message}` }, 500);
+  }
 });
 
 export default admin;

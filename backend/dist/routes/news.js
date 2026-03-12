@@ -1,0 +1,118 @@
+import { Hono } from 'hono';
+import { fetchLatestNews } from '../services/newsService.js';
+const news = new Hono();
+// ── RSS 피드 목록 ─────────────────────────────────────────
+const RSS_FEEDS = {
+    news: 'https://www.yna.co.kr/rss/news.xml',
+    politics: 'https://www.yna.co.kr/rss/politics.xml',
+    northkorea: 'https://www.yna.co.kr/rss/northkorea.xml',
+    economy: 'https://www.yna.co.kr/rss/economy.xml',
+    market: 'https://www.yna.co.kr/rss/market.xml',
+    industry: 'https://www.yna.co.kr/rss/industry.xml',
+    society: 'https://www.yna.co.kr/rss/society.xml',
+    local: 'https://www.yna.co.kr/rss/local.xml',
+    international: 'https://www.yna.co.kr/rss/international.xml',
+    culture: 'https://www.yna.co.kr/rss/culture.xml',
+    health: 'https://www.yna.co.kr/rss/health.xml',
+    entertainment: 'https://www.yna.co.kr/rss/entertainment.xml',
+    sports: 'https://www.yna.co.kr/rss/sports.xml',
+    opinion: 'https://www.yna.co.kr/rss/opinion.xml',
+    people: 'https://www.yna.co.kr/rss/people.xml',
+};
+const CATEGORIES = [
+    { key: 'news', label: '최신기사' },
+    { key: 'politics', label: '정치' },
+    { key: 'northkorea', label: '북한' },
+    { key: 'economy', label: '경제' },
+    { key: 'market', label: '마켓+' },
+    { key: 'industry', label: '산업' },
+    { key: 'society', label: '사회' },
+    { key: 'local', label: '전국' },
+    { key: 'international', label: '세계' },
+    { key: 'culture', label: '문화' },
+    { key: 'health', label: '건강' },
+    { key: 'entertainment', label: '연예' },
+    { key: 'sports', label: '스포츠' },
+    { key: 'opinion', label: '오피니언' },
+    { key: 'people', label: '사람들' },
+];
+// ── 메모리 캐시 (5분) ─────────────────────────────────────
+const cache = {};
+const CACHE_TTL = 5 * 60 * 1000;
+// ── XML 태그 값 추출 헬퍼 ─────────────────────────────────
+function getTag(block, tag) {
+    const m = block.match(new RegExp('<' + tag + '[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/' + tag + '>', 'i'));
+    return m ? m[1].trim() : '';
+}
+function getAttr(block, tag, attr) {
+    const m = block.match(new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'i'));
+    return m ? m[1] : '';
+}
+// ── RSS XML 파싱 ──────────────────────────────────────────
+function parseRSS(xml) {
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+        const block = match[1];
+        const thumbnail = getAttr(block, 'media:content', 'url') ||
+            getAttr(block, 'media:thumbnail', 'url') ||
+            getAttr(block, 'enclosure', 'url') ||
+            '';
+        items.push({
+            title: getTag(block, 'title'),
+            link: getTag(block, 'link'),
+            description: getTag(block, 'description'),
+            pubDate: getTag(block, 'pubDate'),
+            category: getTag(block, 'category'),
+            thumbnail,
+        });
+    }
+    return items;
+}
+// ── GET /api/news/fetch (크론 작업용) ──────────────────────
+news.get('/fetch', async (c) => {
+    try {
+        const count = await fetchLatestNews();
+        return c.json({ success: true, message: `첩보 수집 완료: ${count}건` });
+    }
+    catch (err) {
+        return c.json({ success: false, message: '수집 실패', error: err.message }, 500);
+    }
+});
+// ── GET /api/news/categories ──────────────────────────────
+news.get('/categories', function (c) {
+    return c.json({ success: true, data: CATEGORIES });
+});
+// ── GET /api/news?category=news&limit=20 ─────────────────
+news.get('/', async function (c) {
+    const category = c.req.query('category') ?? 'news';
+    const limit = Math.min(parseInt(c.req.query('limit') ?? '20'), 50);
+    const feedUrl = RSS_FEEDS[category];
+    if (!feedUrl) {
+        return c.json({ success: false, message: '유효하지 않은 카테고리입니다.' }, 400);
+    }
+    const cached = cache[category];
+    if (cached && Date.now() - cached.time < CACHE_TTL) {
+        return c.json({ success: true, cached: true, data: cached.data.slice(0, limit) });
+    }
+    try {
+        const response = await fetch(feedUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 MorningDock/1.0' },
+        });
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
+        const xml = await response.text();
+        const items = parseRSS(xml);
+        cache[category] = { data: items, time: Date.now() };
+        return c.json({ success: true, cached: false, data: items.slice(0, limit) });
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('[News RSS] fetch 실패 (' + category + '):', message);
+        return c.json({ success: false, message: 'RSS 불러오기 실패', error: message }, 500);
+    }
+});
+export default news;
+//# sourceMappingURL=news.js.map
