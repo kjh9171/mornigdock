@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS media (
   artist      VARCHAR(200) DEFAULT '',
   is_featured BOOLEAN NOT NULL DEFAULT false,
   is_active   BOOLEAN NOT NULL DEFAULT true,
+  play_count  INTEGER NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -97,6 +98,7 @@ CREATE TABLE IF NOT EXISTS media (
 CREATE TABLE IF NOT EXISTS inquiries (
   id         SERIAL PRIMARY KEY,
   user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  type       VARCHAR(50) NOT NULL DEFAULT 'general',
   title      TEXT NOT NULL,
   content    TEXT NOT NULL,
   status     VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','resolved')),
