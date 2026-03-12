@@ -26,7 +26,18 @@ postsRouter.get('/', optionalAuth(), async (c) => {
             conditions.push(`(p.title ILIKE $${params.length} OR p.content ILIKE $${params.length})`);
         }
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-        const countResult = await query(`SELECT COUNT(*) as count FROM posts p ${whereClause}`, params);
+        // ─── 보안 계층: 비공개 글 처리 ───
+        const user = c.get('user');
+        const isAdmin = user?.role === 'admin';
+        let securityCondition = '';
+        if (!isAdmin) {
+            // 관리자가 아니면 무조건 비공개 글은 제외합니다.
+            securityCondition = whereClause
+                ? ' AND p.is_private = false'
+                : ' WHERE p.is_private = false';
+        }
+        const finalWhereClause = whereClause + securityCondition;
+        const countResult = await query(`SELECT COUNT(*) as count FROM posts p ${finalWhereClause}`, params);
         const total = parseInt(countResult.rows[0].count || '0');
         const dataParams = [...params, limit, offset];
         const result = await query(`SELECT p.*,
@@ -35,7 +46,7 @@ postsRouter.get('/', optionalAuth(), async (c) => {
               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.is_deleted = false) AS comment_count
        FROM posts p
        LEFT JOIN users u ON p.user_id = u.id
-       ${whereClause}
+       ${finalWhereClause}
        ORDER BY p.is_pinned DESC, p.created_at DESC
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`, dataParams);
         return c.json({

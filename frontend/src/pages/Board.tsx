@@ -17,6 +17,7 @@ interface Post {
   view_count: number;
   created_at: string;
   is_pinned?: boolean;
+  is_private?: boolean;
 }
 
 interface Comment {
@@ -284,8 +285,16 @@ export default function Board() {
                   </div>
                 </div>
                 {post.is_pinned && (
-                  <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase">공지</span>
+                  <span className="px-2 py-1 bg-rose-50 text-rose-600 rounded-lg text-[9px] font-black uppercase tracking-widest">공지</span>
                 )}
+                <div className="flex gap-2">
+                  {post.is_private && (
+                    <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">비밀</span>
+                  )}
+                  {post.category === 'music_request' && (
+                    <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">음악신청</span>
+                  )}
+                </div>
               </div>
               {/* 제목 / 내용 */}
               <h3 className="text-lg font-black text-slate-800 mb-1.5 leading-snug">{post.title}</h3>

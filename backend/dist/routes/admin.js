@@ -292,7 +292,9 @@ admin.post('/system/migrate', adminOnly, async (c) => {
         await query('ALTER TABLE media ADD COLUMN IF NOT EXISTS play_count INTEGER NOT NULL DEFAULT 0');
         // 2. inquiries 테이블 type 추가
         await query('ALTER TABLE inquiries ADD COLUMN IF NOT EXISTS type VARCHAR(50) NOT NULL DEFAULT \'general\'');
-        // 3. inquiries 테이블 status 제약조건 확인 (rejected 추가 등)
+        // 3. posts 테이블 is_private 추가
+        await query('ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false');
+        // 4. inquiries 테이블 status 제약조건 확인 (rejected 추가 등)
         // 기존 체크 제약조건 때문에 ERROR가 날 수 있으므로 컬럼 추가 위주로 진행
         return c.json({ success: true, message: '데이터베이스 스키마 동기화가 완료되었습니다.' });
     }

@@ -47,13 +47,16 @@ media.post('/request', requireAuth(), async (c) => {
         return c.json({ success: false, message: parsed.error.errors[0].message }, 400);
     }
     const { title, url, content } = parsed.data;
-    // inquiries 테이블에 'music_request' 타입으로 등록
-    const result = await query(`INSERT INTO inquiries (user_id, type, title, content)
+    // 1. inquiries 테이블에 'music_request' 타입으로 등록
+    const inquiryResult = await query(`INSERT INTO inquiries (user_id, type, title, content)
      VALUES ($1, 'music_request', $2, $3) RETURNING *`, [user.userId, title, `URL: ${url}\n${content || ''}`]);
+    // 2. posts 테이블(게시판)에 'music_request' 카테고리의 비밀글로 등록
+    await query(`INSERT INTO posts (user_id, type, category, title, content, is_private, updated_at)
+     VALUES ($1, 'post', 'music_request', $2, $3, true, NOW())`, [user.userId, title, `[음악 신청]\nURL: ${url}\n\n${content || ''}`]);
     return c.json({
         success: true,
-        message: '음악 신청이 완료되었습니다. 관리자 검토 후 추가됩니다.',
-        data: result.rows[0]
+        message: '음악 신청이 완료되었습니다. 아고라 광장(관리자 전용) 및 문의 내역에 등록되었습니다.',
+        data: inquiryResult.rows[0]
     }, 201);
 });
 export default media;
