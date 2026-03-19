@@ -86,8 +86,37 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&[a-z]+;/gi, ' ').trim();
+// ── HTML 디코딩 및 태그 제거 함수 ──────────────────────────
+function decodeHtml(text: string): string {
+  if (!text) return '';
+  
+  // 1. 기본적인 HTML 태그 제거
+  let decoded = text.replace(/<[^>]*>/g, '');
+  
+  // 2. 주요 HTML 엔티티 변환 (반복 적용하여 중복 인코딩 처리)
+  const entities: Record<string, string> = {
+    '&amp;':  '&',
+    '&lt;':   '<',
+    '&gt;':   '>',
+    '&quot;': '"',
+    '&#39;':  "'",
+    '&nbsp;': ' ',
+    '&apos;': "'"
+  };
+
+  // 엔티티가 더 이상 발견되지 않을 때까지 반복 (최대 3회)
+  for (let i = 0; i < 3; i++) {
+    let changed = false;
+    Object.entries(entities).forEach(([key, val]) => {
+      if (decoded.includes(key)) {
+        decoded = decoded.replace(new RegExp(key, 'g'), val);
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+
+  return decoded.trim();
 }
 
 function handleImgError(e: React.SyntheticEvent<HTMLImageElement>): void {

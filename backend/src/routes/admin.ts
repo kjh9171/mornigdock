@@ -367,6 +367,32 @@ admin.get('/posts', adminOnly, async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
+// ─── DELETE /admin/posts/:id ──────────────────────────────────────────────
+admin.delete('/posts/:id', adminOnly, async (c) => {
+  // 삭제할 게시글의 ID를 경로 파라미터에서 추출하여 숫자로 변환합니다.
+  const id = Number(c.req.param('id'));
+
+  try {
+    // 1. 게시글에 달린 반응(좋아요/싫어요)들을 먼저 삭제합니다. (폴리모픽 구조라 수동 삭제 필요)
+    await query('DELETE FROM reactions WHERE target_type = $1 AND target_id = $2', ['post', id]);
+
+    // 2. 게시글을 삭제합니다. (댓글은 DB 제약 조건상 ON DELETE CASCADE로 자동 삭제됩니다.)
+    const result = await query('DELETE FROM posts WHERE id = $1 RETURNING id', [id]);
+
+    // 삭제 대상이 없는 경우 404 에러를 반환합니다.
+    if (!result.rowCount || result.rowCount === 0) {
+      return c.json({ success: false, message: '게시글을 찾을 수 없습니다.' }, 404);
+    }
+
+    // 성공 메시지를 반환합니다.
+    return c.json({ success: true, message: '게시글이 성공적으로 삭제되었습니다.' });
+  } catch (err: any) {
+    // 에러 발생 시 로그를 남기고 실패 응답을 보냅니다.
+    console.error('[Admin] Post deletion failed:', err.message);
+    return c.json({ success: false, message: '게시글 삭제 중 오류가 발생했습니다.' }, 500);
+  }
+});
+
 // ─── POST /admin/system/migrate - DB 스키마 긴급 동기화 ─────────────────
 admin.post('/system/migrate', adminOnly, async (c) => {
   try {
