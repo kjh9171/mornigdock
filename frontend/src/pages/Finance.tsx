@@ -86,14 +86,14 @@ function formatDate(dateStr: string): string {
   }
 }
 
-// ── HTML 디코딩 및 태그 제거 함수 ──────────────────────────
-function decodeHtml(text: string): string {
-  if (!text) return '';
+// ── HTML 디코딩 및 태그 제거 함수 (가장 안전한 버전) ────────
+function stripHtml(text: any): string {
+  if (typeof text !== 'string' || !text) return '';
   
   // 1. 기본적인 HTML 태그 제거
   let decoded = text.replace(/<[^>]*>/g, '');
   
-  // 2. 주요 HTML 엔티티 변환 (반복 적용하여 중복 인코딩 처리)
+  // 2. 주요 HTML 엔티티 변환 (split/join 방식으로 정규식 충돌 방지)
   const entities: Record<string, string> = {
     '&amp;':  '&',
     '&lt;':   '<',
@@ -101,18 +101,19 @@ function decodeHtml(text: string): string {
     '&quot;': '"',
     '&#39;':  "'",
     '&nbsp;': ' ',
-    '&apos;': "'"
+    '&apos;': "'",
+    '&#039;': "'"
   };
 
-  // 엔티티가 더 이상 발견되지 않을 때까지 반복 (최대 3회)
+  // 엔티티가 더 이상 발견되지 않을 때까지 반복 (최대 3회, 중복 인코딩 해결)
   for (let i = 0; i < 3; i++) {
     let changed = false;
-    Object.entries(entities).forEach(([key, val]) => {
-      if (decoded.includes(key)) {
-        decoded = decoded.replace(new RegExp(key, 'g'), val);
+    for (const [key, val] of Object.entries(entities)) {
+      if (decoded.indexOf(key) !== -1) {
+        decoded = decoded.split(key).join(val);
         changed = true;
       }
-    });
+    }
     if (!changed) break;
   }
 
@@ -162,7 +163,9 @@ export default function Finance() {
         params: { category: activeCategory, limit: 30 },
       });
       if (res.data.success) {
-        setNewsList(res.data.data);
+        // 데이터가 배열인지 확인하는 방어 로직 추가
+        const data = Array.isArray(res.data.data) ? res.data.data : [];
+        setNewsList(data);
         setLastUpdated(new Date());
       }
     } catch (err) {
@@ -184,8 +187,8 @@ export default function Finance() {
   const activeLabel = activeCat?.label ?? '전체기사';
   const accentColor = categoryColors[activeCategory] ?? 'bg-emerald-600';
   const grouped     = groupCategories(categories);
-  const featured    = newsList[0] ?? null;
-  const rest        = newsList.slice(1);
+  const featured    = (Array.isArray(newsList) && newsList.length > 0) ? newsList[0] : null;
+  const rest        = (Array.isArray(newsList) && newsList.length > 1) ? newsList.slice(1) : [];
 
   function getTabClass(key: string): string {
     const base = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all border flex-shrink-0';
@@ -298,7 +301,7 @@ export default function Finance() {
               {featured.thumbnail ? (
                 <img
                   src={featured.thumbnail}
-                  alt={featured.title}
+                  alt={stripHtml(featured.title)}
                   onError={handleImgError}
                   className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 group-hover:scale-105 transition-all duration-700"
                 />
@@ -316,7 +319,7 @@ export default function Finance() {
                 </div>
                 <div>
                   <h2 className="text-xl md:text-2xl font-black text-white leading-snug mb-3 group-hover:text-emerald-300 transition-colors">
-                    {featured.title}
+                    {stripHtml(featured.title)}
                   </h2>
                   {featured.description && (
                     <p className="text-slate-300 text-sm font-medium line-clamp-2 mb-4">
@@ -354,7 +357,7 @@ export default function Finance() {
                       <div className="relative overflow-hidden h-40 bg-slate-100">
                         <img
                           src={item.thumbnail}
-                          alt={item.title}
+                          alt={stripHtml(item.title)}
                           onError={handleImgError}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -366,7 +369,7 @@ export default function Finance() {
                         {activeLabel}
                       </div>
                       <h3 className="text-sm font-black text-slate-800 leading-snug mb-2 line-clamp-3 group-hover:text-emerald-700 transition-colors flex-1">
-                        {item.title}
+                        {stripHtml(item.title)}
                       </h3>
                       {item.description && (
                         <p className="text-slate-400 text-xs font-medium line-clamp-2 mb-2">
@@ -412,7 +415,7 @@ export default function Finance() {
                       <div className="w-20 h-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
                         <img
                           src={item.thumbnail}
-                          alt={item.title}
+                          alt={stripHtml(item.title)}
                           onError={handleImgError}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -422,7 +425,7 @@ export default function Finance() {
                     {/* 텍스트 */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-black text-slate-800 leading-snug mb-1 line-clamp-2 group-hover:text-emerald-700 transition-colors">
-                        {item.title}
+                        {stripHtml(item.title)}
                       </h3>
                       {item.description && (
                         <p className="text-slate-400 text-xs font-medium line-clamp-1 mb-1">
@@ -442,7 +445,7 @@ export default function Finance() {
             </div>
           )}
 
-          {newsList.length === 0 && (
+          {(!Array.isArray(newsList) || newsList.length === 0) && (
             <div className="text-center py-24 text-slate-400">
               <TrendingUp size={48} className="mx-auto mb-4 opacity-20" />
               <p className="font-bold">금융 뉴스를 불러올 수 없습니다.</p>
